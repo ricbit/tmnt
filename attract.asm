@@ -288,6 +288,33 @@ copy_palette:
         VDPREG  19
         endm
 
+; Select which VDP status will be the default
+        macro   VDP_STATUS reg
+        ld      a, reg
+        VDPREG  15
+        endm
+
+; Load the next handle in the irq pointer.
+        macro   NEXT_HANDLE handle
+        ld      hl, handle
+        ld      (irq + 1), hl
+        endm
+       
+; Disable h interrupt.
+        macro   DISABLE_HIRQ
+        ld      a, (vdpr0)
+        and     255 - 16      
+        VDPREG  0
+        endm
+
+
+; Enable h interrupt.
+        macro   ENABLE_HIRQ
+        ld      a, (vdpr0)
+        or      16
+        VDPREG  0
+        endm
+
 ; ----------------------------------------------------------------
 ; State: title_bounce
 ; Top of TMNT logo bounces in the screen.
@@ -319,15 +346,11 @@ title_bounce:
         ENABLE_SCREEN
 
         ; install horizontal split
-        ld      a, 1 
-        VDPREG  15
-        ld      hl, title_bounce_h_disable
-        ld      (irq + 1), hl
+        VDP_STATUS 1
+        NEXT_HANDLE title_bounce_h_disable
 
         ; enable h interrupt.
-        ld      a, (vdpr0)
-        or      16
-        VDPREG  0
+        ENABLE_HIRQ
 
         jp      return_irq_exx
 
@@ -339,15 +362,11 @@ title_bounce_v_disable:
         DISABLE_SCREEN
 
         ; install horizontal split
-        ld      a, 1 
-        VDPREG  15
-        ld      hl, title_bounce_h_enable
-        ld      (irq + 1), hl
+        VDP_STATUS 1
+        NEXT_HANDLE title_bounce_h_enable
 
         ; enable h interrupt.
-        ld      a, (vdpr0)
-        or      16
-        VDPREG  0
+        ENABLE_HIRQ
 
         jp      return_irq_exx
 
@@ -359,13 +378,10 @@ title_bounce_h_disable:
         DISABLE_SCREEN
 
         ; Install vertical split
-        ld      a, 0
-        VDPREG  15
+        VDP_STATUS 0
 
         ; Disable h interrupt.
-        ld      a, (vdpr0)
-        and     255 - 16      
-        VDPREG  0
+        DISABLE_HIRQ
 
         jp      frame_end_exx
 
@@ -381,8 +397,7 @@ title_bounce_h_enable:
 
         ; install horizontal split
         exx
-        ld      hl, title_bounce_h_disable
-        ld      (irq + 1), hl
+        NEXT_HANDLE title_bounce_h_disable
         jp      return_irq_exx
 
 ; ----------------------------------------------------------------
@@ -392,15 +407,25 @@ title_bounce_h_enable:
 title_slide:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
-        jp      frame_end_exx
         HSPLIT_LINE 46
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        exx
+        NEXT_HANDLE title_slide_scroll
+        jp      return_irq_exx
 
 title_slide_scroll:
         PREAMBLE_HORIZONTAL
+        HSPLIT_LINE 116
+        exx
+        NEXT_HANDLE title_slide_disable
+        jp      return_irq_exx
 
 title_slide_disable:
         PREAMBLE_HORIZONTAL
         DISABLE_SCREEN
+        VDP_STATUS 0
+        DISABLE_HIRQ
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
