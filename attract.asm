@@ -60,7 +60,7 @@ start_attract:
         ; Reset the animation
         xor     a
         ld      (vertical_scroll), a
-        ld      hl, 1280
+        ld      hl, 1250
         ld      (current_frame), hl
 
         ; install new interrupt handler
@@ -541,7 +541,7 @@ handles:                include "handles.inc"
 
 save_irq:               db      0,0,0
 vertical_scroll:        db      0
-current_frame:          dw      1301
+current_frame:          dw      0
 
 temp            equ     04000h
 
