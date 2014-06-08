@@ -65,8 +65,15 @@ start_attract:
         ; Reset the animation
         xor     a
         ld      (vertical_scroll), a
+        ld      (horizontal_scroll), a
         ld      hl, 1250
         ld      (current_frame), hl
+
+        ; Clear scroll register
+        di
+        xor     a
+        VDPREG  26
+        ei
 
         ; install new interrupt handler
         di
@@ -407,7 +414,7 @@ title_bounce_h_enable:
 title_slide:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
-        HSPLIT_LINE 46
+        HSPLIT_LINE 47
         VDP_STATUS 1
         ENABLE_HIRQ
         exx
@@ -416,14 +423,31 @@ title_slide:
 
 title_slide_scroll:
         PREAMBLE_HORIZONTAL
-        HSPLIT_LINE 116
+        ; Adjust horizontal scroll
         exx
+        ld      a, (horizontal_scroll)
+        ld      e, a
+        ld      d, 0
+        ld      hl, title_slide_data
+        add     hl, de
+        ld      a, (hl)
+        srl     a
+        srl     a
+        srl     a
+        VDPREG  26
+        inc     e
+        ld      a, e
+        ld      (horizontal_scroll), a
+        HSPLIT_LINE 118
         NEXT_HANDLE title_slide_disable
         jp      return_irq_exx
 
 title_slide_disable:
         PREAMBLE_HORIZONTAL
         DISABLE_SCREEN
+        ; Reset h scroll
+        xor     a
+        VDPREG  26
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end_exx
@@ -594,6 +618,7 @@ handles:                include "handles.inc"
 
 save_irq:               db      0,0,0
 vertical_scroll:        db      0
+horizontal_scroll:      db      0
 current_frame:          dw      0
 
 temp            equ     04000h
