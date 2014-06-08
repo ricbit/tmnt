@@ -66,7 +66,10 @@ start_attract:
         xor     a
         ld      (vertical_scroll), a
         ld      (horizontal_scroll), a
-        ld      hl, 1250
+        ld      de, 1250
+        ld      hl, handles
+        add     hl, de
+        add     hl, de
         ld      (current_frame), hl
 
         ; Clear scroll register
@@ -84,15 +87,11 @@ start_attract:
 
         ld      a, 0C3h
         ld      (irq), a
-        ld      de, (current_frame)
-        ld      hl, handles
-        add     hl, de
-        add     hl, de
+        ld      hl, (current_frame)
         ld      e, (hl)
         inc     hl
         ld      d, (hl)
-        ex      de, hl
-        ld      (irq + 1), hl
+        ld      (irq + 1), de
         ei
 
         ; Init turboR PCM.
@@ -480,17 +479,14 @@ disable_screen:
 frame_end_exx:
         exx
 frame_end:
-        ld      de, (current_frame)
-        inc     de
-        ld      (current_frame), de
-        ld      hl, handles
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        ld      (irq + 1), a
+        ld      hl, (current_frame)
         inc     hl
-        ld      a, (hl)
-        ld      (irq + 2), a
+        inc     hl
+        ld      (current_frame), hl
+        ld      e, (hl)
+        inc     hl
+        ld      d, (hl)
+        ld      (irq + 1), de
 return_irq_exx:
         exx
 return_irq:
