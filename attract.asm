@@ -57,9 +57,11 @@ bigfil          equ     0016Bh  ; Fill vram with a value
 start:
         call    init
 start_attract:
-        ; Reset the scroll data.
+        ; Reset the animation
         xor     a
         ld      (vertical_scroll), a
+        ld      hl, 1301 * 2
+        ld      (current_frame), hl
 
         ; install new interrupt handler
         di
@@ -70,7 +72,13 @@ start_attract:
 
         ld      a, 0C3h
         ld      (irq), a
-        ld      hl, title_bounce
+        ld      de, (current_frame)
+        ld      hl, handles
+        add     hl, de
+        ld      e, (hl)
+        inc     hl
+        ld      d, (hl)
+        ex      de, hl
         ld      (irq + 1), hl
         ei
 
@@ -467,19 +475,20 @@ title_stand:
 
 ; Misc strings.
 str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
-str_not_turbor:         db      "MSX is not a turboR, sorry.$"
+str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
 str_read_error:         db      "Error reading from disk, sorry.$"
 opening_filename:       dz      "attract.001"
 title_music_filename:   dz      "attract.002"
 
-palette:                incbin  "palette.inc"
-scroll_data:            incbin  "scroll.inc"
+palette:                incbin  "title_bounce_palette.bin"
+scroll_data:            incbin  "title_bounce_scroll.bin"
 handles:                include "handles.inc"
 
 ; Variables.
 
 save_irq:               db      0,0,0
 vertical_scroll:        db      0
+current_frame:          dw      1301
 
 temp            equ     04000h
 
