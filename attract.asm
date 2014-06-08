@@ -43,17 +43,22 @@ vdpr1           equ     0F3E0h  ; Copy of VDP register 1
 vdpr9           equ     0FFE8h  ; Copy of VDP register 9
 vdpr8           equ     0FFE7h  ; Copy of VDP register 8
 bigfil          equ     0016Bh  ; Fill vram with a value
+chgcpu          equ     00180h  ; Change CPU
 
+; ----------------------------------------------------------------
 ; Set a VDP register
 ; Input: A = value
 ; Destroys: A
+
         macro   VDPREG reg
         out     (099h), a
         ld      a, 128 + reg
         out     (099h), a
         endm
 
+; ----------------------------------------------------------------
 ; Start of main program.
+
 start:
         call    init
 start_attract:
@@ -146,7 +151,9 @@ wait:
         ; Exit to DOS.
         jp      restart
 
+; ----------------------------------------------------------------
 ; Initialization.
+
 init:
         ; Check if DOS2 is present.
         call    check_dos2
@@ -157,6 +164,12 @@ init:
         call    check_turbor
         ld      de, str_not_turbor
         jp      c, abort
+
+        ; Enable R800 ROM
+        ld      a, 128 + 1
+        ld      iy, (mainrom)
+        ld      ix, chgcpu
+        call    callf
 
         ; Read opening screen.
         ld      de, opening_filename
@@ -247,6 +260,14 @@ copy_palette:
         jp      p, return_irq
         endm
 
+; Check if a hirq has happened.
+        macro   PREAMBLE_HORIZONTAL
+        ex      af, af'
+        in      a, (099h)
+        rrca
+        jp      nc, return_irq
+        endm
+
 ; Enable screen
         macro   ENABLE_SCREEN
         ld      a, (vdpr1)
@@ -261,6 +282,12 @@ copy_palette:
         VDPREG  1
         endm
 
+; Set the line where the hsplit will happen
+        macro   HSPLIT_LINE line
+        ld      a, line
+        VDPREG  19
+        endm
+
 ; ----------------------------------------------------------------
 ; State: title_bounce
 ; Top of TMNT logo bounces in the screen.
@@ -270,7 +297,7 @@ title_bounce:
         exx
         ; Adjust vertical scroll.
         ld      a, (vertical_scroll)
-        ld      hl, scroll_data
+        ld      hl, title_bounce_data
         ld      e, a
         ld      d, 0
         add     hl, de
@@ -286,13 +313,10 @@ title_bounce:
         jr      nc, title_bounce_v_disable
 
         ; Program hsplit.
-        ld      a, 46
-        VDPREG  19
+        HSPLIT_LINE 46
 
         ; Enable screen.
-        ld      a, (vdpr1)
-        or      64
-        VDPREG  1
+        ENABLE_SCREEN
 
         ; install horizontal split
         ld      a, 1 
@@ -309,13 +333,10 @@ title_bounce:
 
 title_bounce_v_disable:
         ; Program hsplit.
-        ld      a, 10
-        VDPREG  19
+        HSPLIT_LINE 10
 
         ; Disable screen.
-        ld      a, (vdpr1)
-        or      255 - 64
-        VDPREG  1
+        DISABLE_SCREEN
 
         ; install horizontal split
         ld      a, 1 
@@ -332,15 +353,10 @@ title_bounce_v_disable:
 
 ; H handler to disable screen
 title_bounce_h_disable:
-        ex      af,af'
-        in      a, (099h)
-        rrca
-        jp      nc, return_irq
-        
+        PREAMBLE_HORIZONTAL
+       
         ; Disable screen
-        ld      a, (vdpr1)
-        and     128 + 63
-        VDPREG  1
+        DISABLE_SCREEN
 
         ; Install vertical split
         ld      a, 0
@@ -355,19 +371,13 @@ title_bounce_h_disable:
 
 ; H handler to enable screen
 title_bounce_h_enable:
-        ex      af,af'
-        in      a, (099h)
-        rrca
-        jr      nc, return_irq
+        PREAMBLE_HORIZONTAL
         
         ; Enable screen
-        ld      a, (vdpr1)
-        or      64
-        VDPREG  1
+        ENABLE_SCREEN
 
         ; Program hsplit.
-        ld      a, 46
-        VDPREG  19
+        HSPLIT_LINE 46
 
         ; install horizontal split
         exx
@@ -376,10 +386,27 @@ title_bounce_h_enable:
         jp      return_irq_exx
 
 ; ----------------------------------------------------------------
+; State: title_slide
+; Bottom of TMNT logo slides from the right.
+
+title_slide:
+        PREAMBLE_VERTICAL
+        ENABLE_SCREEN
+        jp      frame_end_exx
+        HSPLIT_LINE 46
+
+title_slide_scroll:
+        PREAMBLE_HORIZONTAL
+
+title_slide_disable:
+        PREAMBLE_HORIZONTAL
+        DISABLE_SCREEN
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
 ; State: title_stand
 ; Show the entire logo.
 
-title_slide:
 title_stand:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
@@ -534,7 +561,8 @@ opening_filename:       dz      "attract.001"
 title_music_filename:   dz      "attract.002"
 
 palette:                incbin  "title_bounce_palette.bin"
-scroll_data:            incbin  "title_bounce_scroll.bin"
+title_bounce_data:      incbin  "title_bounce_scroll.bin"
+title_slide_data:       incbin  "title_slide_scroll.bin"
 handles:                include "handles.inc"
 
 ; Variables.
