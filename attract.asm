@@ -60,7 +60,7 @@ start_attract:
         ; Reset the animation
         xor     a
         ld      (vertical_scroll), a
-        ld      hl, 1301 * 2
+        ld      hl, 1280
         ld      (current_frame), hl
 
         ; install new interrupt handler
@@ -74,6 +74,7 @@ start_attract:
         ld      (irq), a
         ld      de, (current_frame)
         ld      hl, handles
+        add     hl, de
         add     hl, de
         ld      e, (hl)
         inc     hl
@@ -236,13 +237,35 @@ copy_palette:
         ret
 
 ; ----------------------------------------------------------------
-; State: title_bounce
-; Top of TMNT logo bounces in the screen.
-title_bounce:
+; Helpers for the states.
+
+; Check if a virq has happened.
+        macro   PREAMBLE_VERTICAL
         ex      af, af'
         in      a, (099h)
         and     a
-        jp      p, exit_handler
+        jp      p, return_irq
+        endm
+
+; Enable screen
+        macro   ENABLE_SCREEN
+        ld      a, (vdpr1)
+        or      64
+        VDPREG  1
+        endm
+
+; Disable screen
+        macro   DISABLE_SCREEN
+        ld      a, (vdpr1)
+        and     255 - 64
+        VDPREG  1
+        endm
+
+; ----------------------------------------------------------------
+; State: title_bounce
+; Top of TMNT logo bounces in the screen.
+title_bounce:
+        PREAMBLE_VERTICAL
 
         exx
         ; Adjust vertical scroll.
@@ -282,11 +305,7 @@ title_bounce:
         or      16
         VDPREG  0
 
-        exx
-exit_handler:
-        ex      af, af'
-        ei
-        ret
+        jp      return_irq_exx
 
 title_bounce_v_disable:
         ; Program hsplit.
@@ -309,15 +328,14 @@ title_bounce_v_disable:
         or      16
         VDPREG  0
 
-        exx
-        jr      exit_handler
+        jp      return_irq_exx
 
 ; H handler to disable screen
 title_bounce_h_disable:
         ex      af,af'
         in      a, (099h)
         rrca
-        jr      nc, 1f
+        jp      nc, return_irq
         
         ; Disable screen
         ld      a, (vdpr1)
@@ -328,26 +346,19 @@ title_bounce_h_disable:
         ld      a, 0
         VDPREG  15
 
-        exx
-        ld      hl, title_bounce
-        ld      (irq + 1), hl
-        exx
-
         ; Disable h interrupt.
         ld      a, (vdpr0)
         and     255 - 16      
         VDPREG  0
-1:
-        ex      af,af'
-        ei
-        ret
+
+        jp      frame_end_exx
 
 ; H handler to enable screen
 title_bounce_h_enable:
         ex      af,af'
         in      a, (099h)
         rrca
-        jr      nc, 1b
+        jr      nc, return_irq
         
         ; Enable screen
         ld      a, (vdpr1)
@@ -362,9 +373,54 @@ title_bounce_h_enable:
         exx
         ld      hl, title_bounce_h_disable
         ld      (irq + 1), hl
-        exx
+        jp      return_irq_exx
 
-        jr      1b
+; ----------------------------------------------------------------
+; State: title_stand
+; Show the entire logo.
+
+title_slide:
+title_stand:
+        PREAMBLE_VERTICAL
+        ENABLE_SCREEN
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
+; State: disable_screen
+; Turn off the screen.
+
+disable_screen:
+        PREAMBLE_VERTICAL
+
+        ; Disable screen
+        ld      a, (vdpr1)
+        and     128 + 63
+        VDPREG  1
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
+
+; Exit common to all frames
+frame_end_exx:
+        exx
+frame_end:
+        ld      de, (current_frame)
+        inc     de
+        ld      (current_frame), de
+        ld      hl, handles
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        ld      (irq + 1), a
+        inc     hl
+        ld      a, (hl)
+        ld      (irq + 2), a
+return_irq_exx:
+        exx
+return_irq:
+        ex      af, af'
+        ei
+        ret
 
 ; ----------------------------------------------------------------
 ; Utils
@@ -469,9 +525,6 @@ load_file:
         call    bdos
         call    check_bdos_error
         ret
-
-title_slide:
-title_stand:
 
 ; Misc strings.
 str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
