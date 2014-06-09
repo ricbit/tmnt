@@ -42,6 +42,7 @@ vdpr0           equ     0F3DFh  ; Copy of VDP register 0
 vdpr1           equ     0F3E0h  ; Copy of VDP register 1
 vdpr9           equ     0FFE8h  ; Copy of VDP register 9
 vdpr8           equ     0FFE7h  ; Copy of VDP register 8
+vdpr25          equ     0FFFAh  ; Copy of VDP register 25
 bigfil          equ     0016Bh  ; Fill vram with a value
 chgcpu          equ     00180h  ; Change CPU
 
@@ -75,6 +76,7 @@ start_attract:
         ; Clear scroll register
         di
         xor     a
+        dec     a
         VDPREG  26
         ei
 
@@ -111,6 +113,11 @@ loop:
         ; Play a sample
         ld      a, (hl)
         out     (pcm), a
+
+        ; Up to 10 outs here
+        ;rept 10
+        ;out (98h) ,a
+        ;endm
 
 wait:   
         ; Wait enough to hit 11025Hz
@@ -193,11 +200,17 @@ init:
         ld      ix, disscr
         call    callf
 
+        ; Set page 1
+        di
+        ld      a, 0111111b
+        VDPREG  2
+        ei
+
         ; Clear the vram
         ld      iy, (mainrom)
         ld      ix, bigfil
         ld      hl, 0
-        ld      bc, 08000h
+        ld      bc, 0ffffh
         xor     a
         call    callf
 
@@ -221,7 +234,7 @@ init:
         ld      iy, (mainrom)
         ld      ix, ldirvm
         ld      hl, temp
-        ld      de, 0
+        ld      de, 08000h
         ld      bc, 256 * 192 / 2
         call    callf
 
@@ -313,7 +326,6 @@ copy_palette:
         VDPREG  0
         endm
 
-
 ; Enable h interrupt.
         macro   ENABLE_HIRQ
         ld      a, (vdpr0)
@@ -339,6 +351,15 @@ title_bounce:
         ld      a, (vertical_scroll)
         inc     a
         ld      (vertical_scroll), a
+
+        ; Enable two-pages h scroll with no masking.
+        ld      a, (vdpr25)
+        or      1
+        and     255-2
+        VDPREG  25
+
+        ld      a, 32
+        VDPREG  26
 
         ; If the logo is too low, disable screen
         ld      a, (hl)
@@ -416,6 +437,8 @@ title_slide:
         HSPLIT_LINE 47
         VDP_STATUS 1
         ENABLE_HIRQ
+        ld      a, 32
+        VDPREG  26
         exx
         NEXT_HANDLE title_slide_scroll
         jp      return_irq_exx
@@ -429,11 +452,12 @@ title_slide_scroll:
         ld      d, 0
         ld      hl, title_slide_data
         add     hl, de
+        add     hl, de
         ld      a, (hl)
-        srl     a
-        srl     a
-        srl     a
         VDPREG  26
+        inc     hl
+        ld      a, (hl)
+        VDPREG  27
         inc     e
         ld      a, e
         ld      (horizontal_scroll), a
@@ -447,6 +471,7 @@ title_slide_disable:
         ; Reset h scroll
         xor     a
         VDPREG  26
+        VDPREG  27
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end_exx
@@ -458,6 +483,8 @@ title_slide_disable:
 title_stand:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
+        ld      a, 32
+        VDPREG  26
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
