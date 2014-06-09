@@ -45,6 +45,8 @@ vdpr8           equ     0FFE7h  ; Copy of VDP register 8
 vdpr25          equ     0FFFAh  ; Copy of VDP register 25
 bigfil          equ     0016Bh  ; Fill vram with a value
 chgcpu          equ     00180h  ; Change CPU
+hokvld          equ     0FB20h  ; Extended BIOS support
+extbio          equ     0FFCAh  ; Extended BIOS entry point
 
 ; ----------------------------------------------------------------
 ; Set a VDP register
@@ -72,13 +74,6 @@ start_attract:
         add     hl, de
         add     hl, de
         ld      (current_frame), hl
-
-        ; Clear scroll register
-        di
-        xor     a
-        dec     a
-        VDPREG  26
-        ei
 
         ; install new interrupt handler
         di
@@ -183,6 +178,13 @@ init:
         ld      iy, (mainrom)
         ld      ix, chgcpu
         call    callf
+
+        ; Get mapper support address
+        xor     a
+        ld      de, 0402h
+        call    extbio
+        ; At this point C = number of free mapper pages
+        ld      (mapper), hl
 
         ; Read opening screen.
         ld      de, opening_filename
@@ -358,8 +360,12 @@ title_bounce:
         and     255-2
         VDPREG  25
 
+        ; Set h scroll to page 1
         ld      a, 32
         VDPREG  26
+        ld      a, 0
+        VDPREG  27
+
 
         ; If the logo is too low, disable screen
         ld      a, (hl)
@@ -439,6 +445,8 @@ title_slide:
         ENABLE_HIRQ
         ld      a, 32
         VDPREG  26
+        xor     a
+        VDPREG  27
         exx
         NEXT_HANDLE title_slide_scroll
         jp      return_irq_exx
@@ -485,6 +493,8 @@ title_stand:
         ENABLE_SCREEN
         ld      a, 32
         VDPREG  26
+        xor     a
+        VDPREG  27
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
@@ -569,12 +579,18 @@ set_palette:
 ; Output: SCF if DOS2 not found.
 ; Based on http://map.grauw.nl/resources/dos2_functioncalls.php#_dosver
 check_dos2:
+        ; Check for DOS2
         ld      c, dosver
         call    bdos
         add     a, 255
         ret     c
         ld      a, b
         cp      2
+        ret     c
+        ; Check for EXTBIO
+        ld      a, (hokvld)
+        rrca
+        ccf
         ret
 
 ; Check if turboR is present.
@@ -625,24 +641,31 @@ load_file:
         call    check_bdos_error
         ret
 
-; Misc strings.
-str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
-str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
-str_read_error:         db      "Error reading from disk, sorry.$"
-opening_filename:       dz      "attract.001"
-title_music_filename:   dz      "attract.002"
-
-palette:                incbin  "title_bounce_palette.bin"
-title_bounce_data:      incbin  "title_bounce_scroll.bin"
-title_slide_data:       incbin  "title_slide_scroll.bin"
-handles:                include "handles.inc"
-
+; ----------------------------------------------------------------
 ; Variables.
 
 save_irq:               db      0,0,0
 vertical_scroll:        db      0
 horizontal_scroll:      db      0
 current_frame:          dw      0
+mapper:                 dw      0
+
+; ----------------------------------------------------------------
+; Misc strings.
+
+str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
+str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
+str_read_error:         db      "Error reading from disk, sorry.$"
+opening_filename:       dz      "attract.001"
+title_music_filename:   dz      "attract.002"
+
+; ----------------------------------------------------------------
+; Data
+
+palette:                incbin  "title_bounce_palette.bin"
+title_bounce_data:      incbin  "title_bounce_scroll.bin"
+title_slide_data:       incbin  "title_slide_scroll.bin"
+handles:                include "handles.inc"
 
 temp            equ     04000h
 
