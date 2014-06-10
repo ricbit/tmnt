@@ -1,6 +1,6 @@
 ; TMNT attract mode
 ; by Ricardo Bittencourt 2014
-; Last modification: 2014-06-07
+; Last modification: 2014-06-09
 
 ; Sequence of animation frames
 ; 1301 - 1373 : title_bounce
@@ -503,11 +503,7 @@ title_stand:
 
 disable_screen:
         PREAMBLE_VERTICAL
-
-        ; Disable screen
-        ld      a, (vdpr1)
-        and     128 + 63
-        VDPREG  1
+        DISABLE_SCREEN
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
@@ -539,18 +535,14 @@ restore_irq:
         di
 
         ; Disable h interrupt.
-        ld      a, (vdpr0)
-        and     255 - 16      
-        VDPREG  0
+        DISABLE_HIRQ
 
         ; Clear H-irq flag
-        ld      a, 1
-        VDPREG  15
+        VDP_STATUS 1
         in      a, (099h)
 
         ; Clear V-irq flag
-        ld      a, 0
-        VDPREG  15
+        VDP_STATUS 0
         in      a, (099h)
 
         ; Reload old interrupt handler
