@@ -168,6 +168,10 @@ wait:
         ld      ix, chgmod
         xor     a
         call    callf
+
+        ; Restore mapper.
+        ld      a, (mapper_selectors)
+        call    fast_put_p1
                 
         ; Exit to DOS.
         ld      de, str_credits
@@ -708,6 +712,7 @@ load_pcm_data:
         ld      (fast_put_p1 + 1), hl
         call    call_hl
 
+        ; Read 16kb from disk.
         ld      de, temp
         ld      hl, 04000h
         ld      a, (file_handle)
@@ -727,8 +732,6 @@ load_pcm_data:
         call    bdos
         call    check_bdos_error
         ret
-
-
 
 ; ----------------------------------------------------------------
 ; Variables.
@@ -752,6 +755,8 @@ str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
                         db      "by Ricardo Bittencourt 2014.$"
 opening_filename:       dz      "attract.001"
 title_music_filename:   dz      "attract.002"
+cloud_page2_filename:   dz      "attract.003"
+cloud_page3_filename:   dz      "attract.004"
 
 ; ----------------------------------------------------------------
 ; Data
