@@ -11,6 +11,9 @@
             
         org     0100h
 
+; Required memory, in mapper 16kb selectors
+selectors       equ     9
+
 ; MSX bios
 restart         equ     00000h  ; Return to DOS
 bdos            equ     00005h  ; BDOS entry point
@@ -47,6 +50,11 @@ bigfil          equ     0016Bh  ; Fill vram with a value
 chgcpu          equ     00180h  ; Change CPU
 hokvld          equ     0FB20h  ; Extended BIOS support
 extbio          equ     0FFCAh  ; Extended BIOS entry point
+get_p1          equ     00021h  ; Entry point for mapper get_p1
+get_p2          equ     00027h  ; Entry point for mapper get_p2
+put_p1          equ     0001eh  ; Entry point for mapper put_p1
+put_p2          equ     00024h  ; Entry point for mapper put_p2
+all_seg         equ     00000h  ; Allocate a mapper segment
 
 ; ----------------------------------------------------------------
 ; Set a VDP register
@@ -69,7 +77,7 @@ start_attract:
         xor     a
         ld      (vertical_scroll), a
         ld      (horizontal_scroll), a
-        ld      de, 1250
+        ld      de, 750
         ld      hl, handles
         add     hl, de
         add     hl, de
@@ -99,14 +107,18 @@ start_attract:
         xor     a
         out     (systml), a
 
-        ; main loop
-        ld      hl, temp
-        ld      bc, 36986
+        ld      b, 9
+        ld      hl, mapper_selectors
+outer_loop:
+        ; Set mapper page
+        ld      a, (hl)
+        call    fast_put_p1
+        ld      de, temp
+
         in      a, (systml)
-        ld      d, a
 loop:
         ; Play a sample
-        ld      a, (hl)
+        ld      a, (de)
         out     (pcm), a
 
         ; Up to 10 outs here
@@ -122,11 +134,12 @@ wait:
         xor     a
         out     (systml), a
 
+        inc     de
+        bit     7, d
+        jr      z, loop
+
         inc     hl
-        dec     bc
-        ld      a, b
-        or      c
-        jr      nz, loop
+        djnz    outer_loop
 
         ; Restore system irq
         call    restore_irq
@@ -157,7 +170,8 @@ wait:
         call    callf
                 
         ; Exit to DOS.
-        jp      restart
+        ld      de, str_credits
+        jp      abort
 
 ; ----------------------------------------------------------------
 ; Initialization.
@@ -184,7 +198,39 @@ init:
         ld      de, 0402h
         call    extbio
         ; At this point C = number of free mapper pages
+        ld      a, 2
+        add     a, c
+        cp      selectors
+        ld      de, str_not_enough_memory
+        jp      c, abort
         ld      (mapper), hl
+
+        ; Put the two default pages into the mapper pool.
+        ld      de, get_p1
+        add     hl, de
+        call    call_hl
+        ld      (mapper_selectors), a
+        ld      hl, (mapper)
+        ld      de, get_p2
+        add     hl, de
+        call    call_hl
+        ld      (mapper_selectors + 1), a
+
+        ; Allocate the remaining mapper selectors.
+        ld      de, mapper_selectors + 2
+        ld      b, selectors - 2
+allocate_memory:
+        push    bc
+        ld      hl, (mapper)
+        ld      bc, all_seg
+        add     hl, bc
+        xor     a
+        ld      b, a
+        call    call_hl
+        ld      (de), a
+        inc     de
+        pop     bc
+        djnz    allocate_memory
 
         ; Read opening screen.
         ld      de, opening_filename
@@ -253,11 +299,7 @@ copy_palette:
         inc     d
         djnz    copy_palette
 
-        ; load sample pcm data
-        ld      de, title_music_filename
-        ld      hl, 36986
-        call    load_file
-
+        call    load_pcm_data
         ; Beep
         ld      iy, (mainrom)
         ld      ix, beep
@@ -633,6 +675,61 @@ load_file:
         call    check_bdos_error
         ret
 
+; Call HL.
+call_hl:
+        jp      (hl)
+
+; Fast put page 1.
+fast_put_p1:
+        jp      0
+
+; Load PCM data into mapper.
+load_pcm_data:
+        ; Open file handle.
+        ld      de, title_music_filename
+        ld      c, open
+        xor     a
+        ld      b, a
+        call    bdos
+        call    check_bdos_error
+        ld      a, b
+        ld      (file_handle), a
+
+        ld      b, 9
+        ld      hl, mapper_selectors
+1:
+        ; Set mapper page.
+        push    bc
+        push    hl
+        ld      a, (hl)
+        ld      hl, (mapper)
+        ld      de, put_p1
+        add     hl, de
+        ld      (fast_put_p1 + 1), hl
+        call    call_hl
+
+        ld      de, temp
+        ld      hl, 04000h
+        ld      a, (file_handle)
+        ld      b, a
+        ld      c, read
+        call    bdos
+        call    check_bdos_error
+        pop     hl
+        inc     hl
+        pop     bc
+        djnz    1b
+
+        ; Close file.
+        ld      a, (file_handle)
+        ld      b, a
+        ld      c, close
+        call    bdos
+        call    check_bdos_error
+        ret
+
+
+
 ; ----------------------------------------------------------------
 ; Variables.
 
@@ -640,7 +737,9 @@ save_irq:               db      0,0,0
 vertical_scroll:        db      0
 horizontal_scroll:      db      0
 current_frame:          dw      0
+file_handle:            db      0
 mapper:                 dw      0
+mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
 ; Misc strings.
@@ -648,6 +747,9 @@ mapper:                 dw      0
 str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
 str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
 str_read_error:         db      "Error reading from disk, sorry.$"
+str_not_enough_memory:  db      "Not enough memory, sorry.$"
+str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
+                        db      "by Ricardo Bittencourt 2014.$"
 opening_filename:       dz      "attract.001"
 title_music_filename:   dz      "attract.002"
 
