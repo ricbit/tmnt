@@ -3,6 +3,7 @@
 ; Last modification: 2014-06-09
 
 ; Sequence of animation frames
+;  575 -  710 : cloud_fade
 ; 1301 - 1373 : title_bounce
 ; 1374 - 1401 : title_slide
 ; 1402 ->     : title_stand
@@ -81,22 +82,27 @@ all_seg         equ     00000h  ; Allocate a mapper segment
         endm
 
 ; ----------------------------------------------------------------
+; Set display page.
+
+        macro   SET_PAGE page
+        ld      a, (page << 5) or 011111b
+        VDPREG  2
+        endm
+
+ ; ----------------------------------------------------------------
 ; Start of main program.
 
 start:
         call    init
 start_attract:
-        ; Reset the animation
+        ; Reset the animation.
         xor     a
         ld      (vertical_scroll), a
         ld      (horizontal_scroll), a
-        ld      de, 750
-        ld      hl, handles
-        add     hl, de
-        add     hl, de
+        ld      hl, 750
         ld      (current_frame), hl
 
-        ; install new interrupt handler
+        ; Install new interrupt handler.
         di
         ld      a, (irq)
         ld      (save_irq), a
@@ -105,7 +111,10 @@ start_attract:
 
         ld      a, 0C3h
         ld      (irq), a
-        ld      hl, (current_frame)
+        ld      de, (current_frame)
+        ld      hl, handles
+        add     hl, de
+        add     hl, de
         ld      e, (hl)
         inc     hl
         ld      d, (hl)
@@ -123,14 +132,14 @@ start_attract:
         ld      b, 9
         ld      hl, mapper_selectors
 outer_loop:
-        ; Set mapper page
+        ; Set mapper page.
         ld      a, (hl)
         call    fast_put_p1
         ld      de, temp
 
         in      a, (systml)
 loop:
-        ; Play a sample
+        ; Play a sample.
         ld      a, (de)
         out     (pcm), a
 
@@ -140,7 +149,7 @@ loop:
         ;endm
 
 wait:   
-        ; Wait enough to hit 11025Hz
+        ; Wait enough to hit 11025Hz.
         in      a, (systml)
         cp      23
         jr      c, wait
@@ -154,17 +163,17 @@ wait:
         inc     hl
         djnz    outer_loop
 
-        ; Restore system irq
+        ; Restore system irq.
         call    restore_irq
 
-        ; Enable screen
+        ; Enable screen.
         di
         ld      a, (vdpr1)
         or      64
         VDPREG  1
         ei
 
-        ; Wait for a key and exit if not ESC
+        ; Wait for a key and exit if not ESC.
         ld      iy, (mainrom)
         ld      ix, chget
         call    callf
@@ -204,17 +213,17 @@ init:
         ld      de, str_not_turbor
         jp      c, abort
 
-        ; Enable R800 ROM
+        ; Enable R800 ROM.
         ld      a, 128 + 1
         ld      iy, (mainrom)
         ld      ix, chgcpu
         call    callf
 
-        ; Get mapper support address
+        ; Get mapper support address.
         xor     a
         ld      de, 0402h
         call    extbio
-        ; At this point C = number of free mapper pages
+        ; At this point C = number of free mapper pages.
         ld      a, 2
         add     a, c
         cp      selectors
@@ -257,18 +266,12 @@ allocate_memory:
         ld      a, 1
         ld      (graphics_on), a
 
-        ; Disable screen
+        ; Disable screen.
         ld      iy, (mainrom)
         ld      ix, disscr
         call    callf
 
-        ; Set page 1
-        di
-        ld      a, 0111111b
-        VDPREG  2
-        ei
-
-        ; Clear the vram
+        ; Clear the vram.
         ld      iy, (mainrom)
         ld      ix, bigfil
         ld      hl, 0
@@ -361,6 +364,7 @@ copy_palette:
 
 ; ----------------------------------------------------------------
 ; Load PCM data into mapper.
+
 load_pcm_data:
         ; Open file handle.
         ld      de, title_music_filename
@@ -476,6 +480,7 @@ load_pcm_data:
 ; Top of TMNT logo bounces in the screen.
 title_bounce:
         PREAMBLE_VERTICAL
+        SET_PAGE 1
 
         exx
         ; Adjust vertical scroll.
@@ -642,15 +647,27 @@ disable_screen:
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
+; State: cloud_fade
+; Fade in the clouds.
+
+cloud_fade:
+        PREAMBLE_VERTICAL
+        ENABLE_SCREEN
+        SET_PAGE 3
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
 
 ; Exit common to all frames
 frame_end_exx:
         exx
 frame_end:
-        ld      hl, (current_frame)
-        inc     hl
-        inc     hl
-        ld      (current_frame), hl
+        ld      de, (current_frame)
+        inc     de
+        ld      (current_frame), de
+        ld      hl, handles
+        add     hl, de
+        add     hl, de
         ld      e, (hl)
         inc     hl
         ld      d, (hl)
