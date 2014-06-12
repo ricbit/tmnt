@@ -89,7 +89,72 @@ all_seg         equ     00000h  ; Allocate a mapper segment
         VDPREG  2
         endm
 
- ; ----------------------------------------------------------------
+; ----------------------------------------------------------------
+; Helpers for the states.
+
+; Check if a virq has happened.
+        macro   PREAMBLE_VERTICAL
+        ex      af, af'
+        in      a, (099h)
+        and     a
+        jp      p, return_irq
+        endm
+
+; Check if a hirq has happened.
+        macro   PREAMBLE_HORIZONTAL
+        ex      af, af'
+        in      a, (099h)
+        rrca
+        jp      nc, return_irq
+        endm
+
+; Enable screen
+        macro   ENABLE_SCREEN
+        ld      a, (vdpr1)
+        or      64
+        VDPREG  1
+        endm
+
+; Disable screen
+        macro   DISABLE_SCREEN
+        ld      a, (vdpr1)
+        and     255 - 64
+        VDPREG  1
+        endm
+
+; Set the line where the hsplit will happen
+        macro   HSPLIT_LINE line
+        ld      a, line
+        VDPREG  19
+        endm
+
+; Select which VDP status will be the default
+        macro   VDP_STATUS reg
+        ld      a, reg
+        VDPREG  15
+        endm
+
+; Load the next handle in the irq pointer.
+        macro   NEXT_HANDLE handle
+        ld      hl, handle
+        ld      (irq + 1), hl
+        endm
+       
+; Disable h interrupt.
+        macro   DISABLE_HIRQ
+        ld      a, (vdpr0)
+        and     255 - 16      
+        VDPREG  0
+        endm
+
+; Enable h interrupt.
+        macro   ENABLE_HIRQ
+        ld      a, (vdpr0)
+        or      16
+        VDPREG  0
+        endm
+
+; ----------------------------------------------------------------
 ; Start of main program.
 
 start:
@@ -99,7 +164,7 @@ start_attract:
         xor     a
         ld      (vertical_scroll), a
         ld      (horizontal_scroll), a
-        ld      hl, 750
+        ld      hl, 550
         ld      (current_frame), hl
 
         ; Install new interrupt handler.
@@ -126,19 +191,27 @@ start_attract:
         out     (pmcntl), a
         in      a, (systml)
 
-        xor     a
-        out     (systml), a
+        ; Delay theme music until frame 750.
+delay_theme_music:
+        ld      hl, 750
+        ld      de, (current_frame)
+        or      a
+        sbc     hl, de
+        jr      nz, delay_theme_music
 
+        ; Main theme music loop.
         ld      b, 9
         ld      hl, mapper_selectors
-outer_loop:
+        xor     a
+        out     (systml), a
+change_sample_mapper:
         ; Set mapper page.
         ld      a, (hl)
         call    fast_put_p1
         ld      de, temp
 
         in      a, (systml)
-loop:
+sample_loop:
         ; Play a sample.
         ld      a, (de)
         out     (pcm), a
@@ -148,29 +221,27 @@ loop:
         ;out (98h) ,a
         ;endm
 
-wait:   
+sample_wait:
         ; Wait enough to hit 11025Hz.
         in      a, (systml)
         cp      23
-        jr      c, wait
+        jr      c, sample_wait
         xor     a
         out     (systml), a
 
         inc     de
         bit     7, d
-        jr      z, loop
+        jr      z, sample_loop
 
         inc     hl
-        djnz    outer_loop
+        djnz    change_sample_mapper
 
         ; Restore system irq.
         call    restore_irq
 
         ; Enable screen.
         di
-        ld      a, (vdpr1)
-        or      64
-        VDPREG  1
+        ENABLE_SCREEN
         ei
 
         ; Wait for a key and exit if not ESC.
@@ -409,71 +480,6 @@ load_pcm_data:
         call    bdos
         call    check_bdos_error
         ret
-
-; ----------------------------------------------------------------
-; Helpers for the states.
-
-; Check if a virq has happened.
-        macro   PREAMBLE_VERTICAL
-        ex      af, af'
-        in      a, (099h)
-        and     a
-        jp      p, return_irq
-        endm
-
-; Check if a hirq has happened.
-        macro   PREAMBLE_HORIZONTAL
-        ex      af, af'
-        in      a, (099h)
-        rrca
-        jp      nc, return_irq
-        endm
-
-; Enable screen
-        macro   ENABLE_SCREEN
-        ld      a, (vdpr1)
-        or      64
-        VDPREG  1
-        endm
-
-; Disable screen
-        macro   DISABLE_SCREEN
-        ld      a, (vdpr1)
-        and     255 - 64
-        VDPREG  1
-        endm
-
-; Set the line where the hsplit will happen
-        macro   HSPLIT_LINE line
-        ld      a, line
-        VDPREG  19
-        endm
-
-; Select which VDP status will be the default
-        macro   VDP_STATUS reg
-        ld      a, reg
-        VDPREG  15
-        endm
-
-; Load the next handle in the irq pointer.
-        macro   NEXT_HANDLE handle
-        ld      hl, handle
-        ld      (irq + 1), hl
-        endm
-       
-; Disable h interrupt.
-        macro   DISABLE_HIRQ
-        ld      a, (vdpr0)
-        and     255 - 16      
-        VDPREG  0
-        endm
-
-; Enable h interrupt.
-        macro   ENABLE_HIRQ
-        ld      a, (vdpr0)
-        or      16
-        VDPREG  0
-        endm
 
 ; ----------------------------------------------------------------
 ; State: title_bounce
