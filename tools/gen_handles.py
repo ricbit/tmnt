@@ -1,6 +1,7 @@
 handle = [ 
     (575,  "cloud_fade"),
-    (711,  "disable_screen"),
+    (711,  "cloud_slide"),
+    (792,  "disable_screen"),
     (1301, "title_bounce"),
     (1374, "title_slide"),
     (1402, "title_stand"),

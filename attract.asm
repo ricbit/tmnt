@@ -4,6 +4,7 @@
 
 ; Sequence of animation frames
 ;  575 -  710 : cloud_fade
+;  711 -  791 : cloud_slide
 ; 1301 - 1373 : title_bounce
 ; 1374 - 1401 : title_slide
 ; 1402 ->     : title_stand
@@ -70,6 +71,18 @@ temp            equ     04000h  ; Temp buffer for disk loading
         endm
 
 ; ----------------------------------------------------------------
+; Set entire palette
+; Input: HL = palette
+; Destroys: A
+
+        macro   SET_PALETTE
+        xor     a
+        VDPREG  16
+        ld      bc, (16 * 2) * 256 + 09Ah
+        otir
+        endm
+
+; ----------------------------------------------------------------
 ; Set VRAM address to write
 ; Destroys: A
 
@@ -83,15 +96,14 @@ temp            equ     04000h  ; Temp buffer for disk loading
         endm
 
 ; ----------------------------------------------------------------
+; Helpers for the states.
+
 ; Set display page.
 
         macro   SET_PAGE page
         ld      a, (page << 5) or 011111b
         VDPREG  2
         endm
-
-; ----------------------------------------------------------------
-; Helpers for the states.
 
 ; Check if a virq has happened.
         macro   PREAMBLE_VERTICAL
@@ -167,6 +179,10 @@ start_attract:
         ld      (horizontal_scroll), a
         ld      hl, 550
         ld      (current_frame), hl
+        ld      hl, cloud_fade_palette
+        ld      (palette_fade), hl
+        ld      a, 16
+        ld      (palette_fade_counter), a
 
         ; Install new interrupt handler.
         di
@@ -407,17 +423,10 @@ allocate_memory:
         call    blit
 
         ; Copy palette.
-        ld      d, 0
         ld      hl, palette
-        ld      b, 16
-copy_palette:
-        ld      a, (hl)
-        inc     hl
-        ld      e, (hl)
-        inc     hl
-        call    set_palette
-        inc     d
-        djnz    copy_palette
+        di
+        SET_PALETTE
+        ei
 
         ; Load PCM data.
         call    load_pcm_data
@@ -664,6 +673,16 @@ cloud_fade:
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
+; State: cloud_slide
+; Slide the clouds before v scroll.
+
+cloud_slide:
+        PREAMBLE_VERTICAL
+        ENABLE_SCREEN
+        SET_PAGE 3
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
 
 ; Exit common to all frames
 frame_end_exx:
@@ -709,20 +728,6 @@ restore_irq:
         ld      (irq), a
         ld      hl, (save_irq + 1)
         ld      (irq + 1), hl
-        ei
-        ret
-
-; Set one color of the palette.
-; Input: D = color number, A = RB, E = 0G
-set_palette:
-        di
-        push    af
-        ld      a, d
-        VDPREG  16
-        pop     af
-        out     (09Ah), a
-        ld      a, e
-        out     (09Ah), a
         ei
         ret
 
@@ -836,6 +841,8 @@ mapper_selectors:       ds      selectors, 0
 ; Animation states.
 vertical_scroll:        db      0
 horizontal_scroll:      db      0
+palette_fade:           dw      0
+palette_fade_counter:   db      0
 current_frame:          dw      0
 
 ; ----------------------------------------------------------------
