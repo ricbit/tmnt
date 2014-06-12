@@ -68,6 +68,19 @@ all_seg         equ     00000h  ; Allocate a mapper segment
         endm
 
 ; ----------------------------------------------------------------
+; Set VRAM address to write
+; Destroys: A
+
+        macro   SET_VRAM_WRITE addr
+        ld      a, addr >> 14
+        VDPREG  14
+        ld      a, addr and 255
+        out     (099h), a
+        ld      a, ((addr >> 8) and 03Fh) or 64
+        out     (099h), a
+        endm
+
+; ----------------------------------------------------------------
 ; Start of main program.
 
 start:
@@ -236,16 +249,13 @@ allocate_memory:
         pop     bc
         djnz    allocate_memory
 
-        ; Read opening screen.
-        ld      de, opening_filename
-        ld      hl, 256 * 192 / 2
-        call    load_file
-
         ; Change to SCREEN 5.
         ld      iy, (subrom)
         ld      ix, chgmod
         ld      a, 5
         call    callf
+        ld      a, 1
+        ld      (graphics_on), a
 
         ; Disable screen
         ld      iy, (mainrom)
@@ -282,13 +292,44 @@ allocate_memory:
         VDPREG  8
         ei
 
+        ; Read opening screen.
+        ld      de, opening_filename
+        ld      hl, 256 * 192 / 2
+        call    load_file
+
         ; Copy data to vram.
-        ld      iy, (mainrom)
-        ld      ix, ldirvm
+        di
+        SET_VRAM_WRITE 08000h
+        ei
         ld      hl, temp
-        ld      de, 08000h
         ld      bc, 256 * 192 / 2
-        call    callf
+        call    blit
+
+        ; Read cloud 2 screen.
+        ld      de, cloud_page2_filename
+        ld      hl, 256 * 192 / 2
+        call    load_file
+
+        ; Copy data to vram.
+        di
+        SET_VRAM_WRITE 010000h
+        ei
+        ld      hl, temp
+        ld      bc, 256 * 192 / 2
+        call    blit
+
+        ; Read cloud 3 screen.
+        ld      de, cloud_page3_filename
+        ld      hl, 256 * 192 / 2
+        call    load_file
+
+        ; Copy data to vram.
+        di
+        SET_VRAM_WRITE 018000h
+        ei
+        ld      hl, temp
+        ld      bc, 256 * 192 / 2
+        call    blit
 
         ; Copy palette.
         ld      d, 0
@@ -303,17 +344,66 @@ copy_palette:
         inc     d
         djnz    copy_palette
 
+        ; Load PCM data.
         call    load_pcm_data
-        ; Beep
+
+        ; Beep.
         ld      iy, (mainrom)
         ld      ix, beep
         call    callf
 
-        ; wait for a key
+        ; Wait for a key.
         ld      iy, (mainrom)
         ld      ix, chget
         call    callf
 
+        ret
+
+; ----------------------------------------------------------------
+; Load PCM data into mapper.
+load_pcm_data:
+        ; Open file handle.
+        ld      de, title_music_filename
+        ld      c, open
+        xor     a
+        ld      b, a
+        call    bdos
+        call    check_bdos_error
+        ld      a, b
+        ld      (file_handle), a
+
+        ld      b, 9
+        ld      hl, mapper_selectors
+1:
+        ; Set mapper page.
+        push    bc
+        push    hl
+        ld      a, (hl)
+        ld      hl, (mapper)
+        ld      de, put_p1
+        add     hl, de
+        ld      (fast_put_p1 + 1), hl
+        call    call_hl
+
+        ; Read 16kb from disk.
+        ld      de, temp
+        ld      hl, 04000h
+        ld      a, (file_handle)
+        ld      b, a
+        ld      c, read
+        call    bdos
+        call    check_bdos_error
+        pop     hl
+        inc     hl
+        pop     bc
+        djnz    1b
+
+        ; Close file.
+        ld      a, (file_handle)
+        ld      b, a
+        ld      c, close
+        call    bdos
+        call    check_bdos_error
         ret
 
 ; ----------------------------------------------------------------
@@ -411,7 +501,6 @@ title_bounce:
         VDPREG  26
         ld      a, 0
         VDPREG  27
-
 
         ; If the logo is too low, disable screen
         ld      a, (hl)
@@ -652,9 +741,33 @@ check_bdos_error:
 ; Print error message, abort and return to dos.
 ; Input: de = error message terminated in $
 abort:
+        ; Restore text mode.
+        ld      a, (graphics_on)
+        or      a
+        jr      z, 1f
+        push    de
+        ld      iy, (subrom)
+        ld      ix, chgmod
+        xor     a
+        call    callf
+        pop     de
+1:
+        ; Print the message.
         ld      c, strout
         call    bdos
         jp      restart
+
+; Copy RAM to VRAM, assumes VRAM address is already set.
+; Input: HL = RAM source, BC = size
+blit:
+        ld      a, (hl)
+        out     (098h), a
+        inc     hl
+        dec     bc
+        ld      a, b
+        or      c
+        jr      nz, blit
+        ret
 
 ; Load a file.
 ; Input: DE = filename in asciiz, HL = size
@@ -687,52 +800,6 @@ call_hl:
 fast_put_p1:
         jp      0
 
-; Load PCM data into mapper.
-load_pcm_data:
-        ; Open file handle.
-        ld      de, title_music_filename
-        ld      c, open
-        xor     a
-        ld      b, a
-        call    bdos
-        call    check_bdos_error
-        ld      a, b
-        ld      (file_handle), a
-
-        ld      b, 9
-        ld      hl, mapper_selectors
-1:
-        ; Set mapper page.
-        push    bc
-        push    hl
-        ld      a, (hl)
-        ld      hl, (mapper)
-        ld      de, put_p1
-        add     hl, de
-        ld      (fast_put_p1 + 1), hl
-        call    call_hl
-
-        ; Read 16kb from disk.
-        ld      de, temp
-        ld      hl, 04000h
-        ld      a, (file_handle)
-        ld      b, a
-        ld      c, read
-        call    bdos
-        call    check_bdos_error
-        pop     hl
-        inc     hl
-        pop     bc
-        djnz    1b
-
-        ; Close file.
-        ld      a, (file_handle)
-        ld      b, a
-        ld      c, close
-        call    bdos
-        call    check_bdos_error
-        ret
-
 ; ----------------------------------------------------------------
 ; Variables.
 
@@ -742,6 +809,7 @@ horizontal_scroll:      db      0
 current_frame:          dw      0
 file_handle:            db      0
 mapper:                 dw      0
+graphics_on:            db      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
