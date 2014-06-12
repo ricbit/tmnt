@@ -56,6 +56,7 @@ get_p2          equ     00027h  ; Entry point for mapper get_p2
 put_p1          equ     0001eh  ; Entry point for mapper put_p1
 put_p2          equ     00024h  ; Entry point for mapper put_p2
 all_seg         equ     00000h  ; Allocate a mapper segment
+temp            equ     04000h  ; Temp buffer for disk loading
 
 ; ----------------------------------------------------------------
 ; Set a VDP register
@@ -827,13 +828,15 @@ fast_put_p1:
 ; Variables.
 
 save_irq:               db      0,0,0
-vertical_scroll:        db      0
-horizontal_scroll:      db      0
-current_frame:          dw      0
 file_handle:            db      0
 mapper:                 dw      0
 graphics_on:            db      0
 mapper_selectors:       ds      selectors, 0
+
+; Animation states.
+vertical_scroll:        db      0
+horizontal_scroll:      db      0
+current_frame:          dw      0
 
 ; ----------------------------------------------------------------
 ; Misc strings.
@@ -855,9 +858,11 @@ cloud_page3_filename:   dz      "attract.004"
 palette:                incbin  "title_bounce_palette.bin"
 title_bounce_data:      incbin  "title_bounce_scroll.bin"
 title_slide_data:       incbin  "title_slide_scroll.bin"
+cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 handles:                include "handles.inc"
 
-temp            equ     04000h
+end_of_code:
+        assert  end_of_code < 04000h
 
         end
 
