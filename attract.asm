@@ -61,6 +61,12 @@ all_seg         equ     00000h  ; Allocate a mapper segment
 temp            equ     04000h  ; Temp buffer for disk loading
 
 ; ----------------------------------------------------------------
+; Animation constants
+
+theme_start_frame       equ     750
+pcm_timer_period        equ     23
+
+; ----------------------------------------------------------------
 ; Set a VDP register
 ; Input: A = value
 ; Destroys: A
@@ -206,7 +212,7 @@ start_attract:
 
         ; Delay theme music until frame 750.
 delay_theme_music:
-        ld      hl, 750
+        ld      hl, theme_start_frame
         ld      de, (current_frame)
         or      a
         sbc     hl, de
@@ -237,7 +243,7 @@ sample_loop:
 sample_wait:
         ; Wait enough to hit 11025Hz.
         in      a, (systml)
-        cp      23
+        cp      pcm_timer_period
         jr      c, sample_wait
         xor     a
         out     (systml), a
@@ -663,7 +669,7 @@ disable_screen:
         DISABLE_SCREEN
         exx
         ld      hl, black_palette
-        SET_PALETTE
+        call    smart_palette
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -676,7 +682,7 @@ cloud_fade:
         SET_PAGE 3
         exx
         ld      hl, (palette_fade)
-        SET_PALETTE
+        call    smart_palette
         ld      a, (palette_fade_counter)
         dec     a
         jr      nz, 1f
@@ -737,6 +743,50 @@ return_irq:
 
 ; ----------------------------------------------------------------
 ; Utils
+
+; Set the palette without stopping the pcm sample.
+smart_palette:
+        push    hl
+        ld      hl, (current_frame)
+        ld      de, theme_start_frame
+        or      a
+        sbc     hl, de
+        pop     hl
+        jr      nc, 1f
+        SET_PALETTE
+        ret
+1:
+        xor     a
+        VDPREG  16
+        ld      b, 32
+smart_palette_next_color:
+        ld      a, (hl)
+        inc     hl
+        out     (09Ah), a
+        dec     b
+        ret     z
+        in      a, (systml)
+        cp      pcm_timer_period
+        jr      c, smart_palette_next_color
+
+        xor     a
+        out     (systml), a
+
+        exx
+        inc     de
+        bit     7, d
+        jr      z, smart_palette_next_sample
+
+        inc     hl
+        ld      a, (hl)
+        call    fast_put_p1
+        ld      de, temp
+
+smart_palette_next_sample:
+        ld      a, (de)
+        out     (pcm), a
+        exx     
+        jr      smart_palette_next_color
 
 ; Restore the VDP interrupt settings.
 restore_irq:
