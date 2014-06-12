@@ -175,15 +175,10 @@ start:
         call    init
 start_attract:
         ; Reset the animation.
-        xor     a
-        ld      (vertical_scroll), a
-        ld      (horizontal_scroll), a
-        ld      hl, 550
-        ld      (current_frame), hl
-        ld      hl, cloud_fade_palette
-        ld      (palette_fade), hl
-        ld      a, 16
-        ld      (palette_fade_counter), a
+        ld      de, state_start
+        ld      hl, state_backup
+        ld      bc, state_end - state_start
+        ldir
 
         ; Install new interrupt handler.
         di
@@ -431,6 +426,12 @@ allocate_memory:
 
         ; Load PCM data.
         call    load_pcm_data
+
+        ; Backup animation state on startup.
+        ld      hl, state_start
+        ld      de, state_backup
+        ld      bc, state_end - state_start
+        ldir
 
         ; Beep.
         ld      iy, (mainrom)
@@ -868,11 +869,15 @@ graphics_on:            db      0
 mapper_selectors:       ds      selectors, 0
 
 ; Animation states.
+state_start:
 vertical_scroll:        db      0
 horizontal_scroll:      db      0
-palette_fade:           dw      0
-palette_fade_counter:   db      0
-current_frame:          dw      0
+palette_fade:           dw      cloud_fade_palette
+palette_fade_counter:   db      16
+current_frame:          dw      550
+state_end:
+
+state_backup:           ds      state_end - state_start, 0
 
 ; ----------------------------------------------------------------
 ; Misc strings.
