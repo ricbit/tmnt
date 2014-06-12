@@ -5,6 +5,7 @@
 ; Sequence of animation frames
 ;  575 -  710 : cloud_fade
 ;  711 -  791 : cloud_slide
+; 1290 - 1300 : disable_screen_title
 ; 1301 - 1373 : title_bounce
 ; 1374 - 1401 : title_slide
 ; 1402 ->     : title_stand
@@ -496,7 +497,6 @@ load_pcm_data:
 ; Top of TMNT logo bounces in the screen.
 title_bounce:
         PREAMBLE_VERTICAL
-        SET_PAGE 1
 
         exx
         ; Adjust vertical scroll.
@@ -660,7 +660,10 @@ title_stand:
 disable_screen:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
-        jp      frame_end_exx
+        exx
+        ld      hl, black_palette
+        SET_PALETTE
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: cloud_fade
@@ -670,7 +673,20 @@ cloud_fade:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
         SET_PAGE 3
-        jp      frame_end_exx
+        exx
+        ld      hl, (palette_fade)
+        SET_PALETTE
+        ld      a, (palette_fade_counter)
+        dec     a
+        jr      nz, 1f
+        ld      hl, (palette_fade)
+        ld      de, 16 * 2
+        add     hl, de
+        ld      (palette_fade), hl
+        ld      a, 16
+1:
+        ld      (palette_fade_counter), a
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: cloud_slide
@@ -681,6 +697,19 @@ cloud_slide:
         ENABLE_SCREEN
         SET_PAGE 3
         jp      frame_end_exx
+
+; ----------------------------------------------------------------
+; State: disable_screen_title
+; Disable the screen just before the title
+
+disable_screen_title:
+        PREAMBLE_VERTICAL
+        DISABLE_SCREEN
+        SET_PAGE 1
+        exx
+        ld      hl, palette
+        SET_PALETTE
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 
@@ -867,6 +896,7 @@ title_bounce_data:      incbin  "title_bounce_scroll.bin"
 title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 handles:                include "handles.inc"
+black_palette:          ds      16 * 2, 0
 
 end_of_code:
         assert  end_of_code < 04000h

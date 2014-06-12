@@ -1288,17 +1288,17 @@
 		dw	disable_screen	; 1287
 		dw	disable_screen	; 1288
 		dw	disable_screen	; 1289
-		dw	disable_screen	; 1290
-		dw	disable_screen	; 1291
-		dw	disable_screen	; 1292
-		dw	disable_screen	; 1293
-		dw	disable_screen	; 1294
-		dw	disable_screen	; 1295
-		dw	disable_screen	; 1296
-		dw	disable_screen	; 1297
-		dw	disable_screen	; 1298
-		dw	disable_screen	; 1299
-		dw	disable_screen	; 1300
+		dw	disable_screen_title	; 1290
+		dw	disable_screen_title	; 1291
+		dw	disable_screen_title	; 1292
+		dw	disable_screen_title	; 1293
+		dw	disable_screen_title	; 1294
+		dw	disable_screen_title	; 1295
+		dw	disable_screen_title	; 1296
+		dw	disable_screen_title	; 1297
+		dw	disable_screen_title	; 1298
+		dw	disable_screen_title	; 1299
+		dw	disable_screen_title	; 1300
 		dw	title_bounce	; 1301
 		dw	title_bounce	; 1302
 		dw	title_bounce	; 1303
