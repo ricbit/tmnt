@@ -690,10 +690,42 @@ cloud_fade:
         ld      de, 16 * 2
         add     hl, de
         ld      (palette_fade), hl
-        ld      a, 16
+        ld      a, 7
 1:
         ld      (palette_fade_counter), a
-        jp      frame_end
+
+        ; Enable two-pages h scroll with no masking.
+        ld      a, (vdpr25)
+        or      1
+        and     255-2
+        VDPREG  25
+
+        HSPLIT_LINE 27
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE cloud_fade_first
+        jp      return_irq
+
+cloud_fade_first:  
+        PREAMBLE_HORIZONTAL
+        ld      a, 16
+        VDPREG  26
+        xor     a
+        VDPREG  27
+        HSPLIT_LINE 52
+        exx
+        NEXT_HANDLE cloud_fade_second
+        jp      return_irq_exx
+
+cloud_fade_second:  
+        PREAMBLE_HORIZONTAL
+        ld      a, 32
+        VDPREG  26
+        xor     a
+        VDPREG  27
+        VDP_STATUS 0
+        DISABLE_HIRQ
+        jp      frame_end_exx
 
 ; ----------------------------------------------------------------
 ; State: cloud_slide
@@ -703,7 +735,10 @@ cloud_slide:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
         SET_PAGE 3
-        jp      frame_end_exx
+        exx
+        ld      hl, cloud_palette_final
+        call    smart_palette
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -952,6 +987,7 @@ title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
+cloud_palette_final     equ     cloud_fade_palette + 512
 
 end_of_code:
         assert  end_of_code < 04000h
