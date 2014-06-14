@@ -424,12 +424,6 @@ allocate_memory:
         ld      bc, 256 * 192 / 2
         call    blit
 
-        ; Copy palette.
-        ld      hl, palette
-        di
-        SET_PALETTE
-        ei
-
         ; Load PCM data.
         call    load_pcm_data
 
@@ -682,15 +676,19 @@ cloud_fade:
         SET_PAGE 3
         exx
         ld      hl, (palette_fade)
+        ;;
+        ld      hl, cloud_palette_final
+        ;;
         call    smart_palette
         ld      a, (palette_fade_counter)
         dec     a
         jr      nz, 1f
+        ; Change palette every 6 frames.
         ld      hl, (palette_fade)
         ld      de, 16 * 2
         add     hl, de
         ld      (palette_fade), hl
-        ld      a, 7
+        ld      a, 6 + 1
 1:
         ld      (palette_fade_counter), a
 
@@ -703,21 +701,88 @@ cloud_fade:
         HSPLIT_LINE 27
         VDP_STATUS 1
         ENABLE_HIRQ
-        NEXT_HANDLE cloud_fade_first
+        ; Scroll clouds every 4 frames.
+        ld      hl, cloud1_scroll
+        ld      a, (cloud_tick)
+        dec     a
+        jr      nz, 2f
+        dec     (hl)
+        inc     hl
+        inc     (hl)
+        dec     hl
+        ld      a, 4 + 1
+2:
+        ld      (cloud_tick), a
+        ; Patch the scroll values for cloud 1.
+        ld      e, (hl)
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        ld      (cloud_fade_patch1 + 1), a
+        inc     hl
+        ld      a, (hl)
+        ld      (cloud_fade_patch2 + 1), a
+        ; Patch the scroll values for cloud 2.
+        ld      a, (cloud2_scroll)
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        ld      (cloud_fade_patch3 + 1), a
+        inc     hl
+        ld      a, (hl)
+        ld      (cloud_fade_patch4 + 1), a
+        ; Set VDP to indirect auto-increment on port 26.
+        ld      a, 26
+        VDPREG  17
+        NEXT_HANDLE cloud_fade_first_top
         jp      return_irq
 
-cloud_fade_first:  
+cloud_fade_first_top:  
         PREAMBLE_HORIZONTAL
-        ld      a, 16
+cloud_fade_patch1:
+        ld      a, 0
+        out     (09Bh), a
+cloud_fade_patch2:
+        ld      a, 0
+        out     (09Bh), a
+        HSPLIT_LINE 52
+        exx
+        NEXT_HANDLE cloud_fade_first_bottom
+        jp      return_irq_exx
+
+cloud_fade_first_bottom:  
+        PREAMBLE_HORIZONTAL
+        ld      a, 32
         VDPREG  26
         xor     a
         VDPREG  27
-        HSPLIT_LINE 52
+        HSPLIT_LINE 63
         exx
-        NEXT_HANDLE cloud_fade_second
+        NEXT_HANDLE cloud_fade_second_top
+        ; Set VDP to indirect auto-increment on port 26.
+        ld      a, 26
+        VDPREG  17
         jp      return_irq_exx
 
-cloud_fade_second:  
+cloud_fade_second_top:
+        PREAMBLE_HORIZONTAL
+cloud_fade_patch3:
+        ld      a, 0
+        out     (09Bh), a
+cloud_fade_patch4:
+        ld      a, 0
+        out     (09Bh), a
+        exx
+        HSPLIT_LINE 92
+        NEXT_HANDLE cloud_fade_second_bottom
+        jp      return_irq_exx
+
+cloud_fade_second_bottom:
         PREAMBLE_HORIZONTAL
         ld      a, 32
         VDPREG  26
@@ -749,7 +814,7 @@ disable_screen_title:
         DISABLE_SCREEN
         SET_PAGE 1
         exx
-        ld      hl, palette
+        ld      hl, title_palette
         SET_PALETTE
         jp      frame_end
 
@@ -960,6 +1025,9 @@ horizontal_scroll:      db      0
 palette_fade:           dw      cloud_fade_palette
 palette_fade_counter:   db      16
 current_frame:          dw      550
+cloud1_scroll:          db      158
+cloud2_scroll:          db      146
+cloud_tick:             db      1
 state_end:
 
 state_backup:           ds      state_end - state_start, 0
@@ -981,10 +1049,11 @@ cloud_page3_filename:   dz      "attract.004"
 ; ----------------------------------------------------------------
 ; Data
 
-palette:                incbin  "title_bounce_palette.bin"
+title_palette:          incbin  "title_bounce_palette.bin"
 title_bounce_data:      incbin  "title_bounce_scroll.bin"
 title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
+absolute_scroll:        incbin  "absolute_scroll.bin"
 handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
