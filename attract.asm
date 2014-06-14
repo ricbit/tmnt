@@ -676,9 +676,6 @@ cloud_fade:
         SET_PAGE 3
         exx
         ld      hl, (palette_fade)
-        ;;
-        ld      hl, cloud_palette_final
-        ;;
         call    smart_palette
         ld      a, (palette_fade_counter)
         dec     a
@@ -779,15 +776,18 @@ cloud_fade_patch4:
         out     (09Bh), a
         exx
         HSPLIT_LINE 92
+        ; Set VDP to indirect auto-increment on port 26.
+        ld      a, 26
+        VDPREG  17
         NEXT_HANDLE cloud_fade_second_bottom
         jp      return_irq_exx
 
 cloud_fade_second_bottom:
         PREAMBLE_HORIZONTAL
         ld      a, 32
-        VDPREG  26
+        out     (09Bh), a
         xor     a
-        VDPREG  27
+        out     (09Bh), a
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end_exx
