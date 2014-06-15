@@ -676,7 +676,6 @@ cloud_fade:
         SET_PAGE 3
         exx
         ld      hl, (palette_fade)
-        call    smart_palette
         ld      a, (palette_fade_counter)
         dec     a
         jr      nz, 1f
@@ -688,6 +687,7 @@ cloud_fade:
         ld      a, 6 + 1
 1:
         ld      (palette_fade_counter), a
+        call    smart_palette
 
         ; Enable two-pages h scroll with no masking.
         ld      a, (vdpr25)
@@ -695,7 +695,7 @@ cloud_fade:
         and     255-2
         VDPREG  25
 
-        HSPLIT_LINE 27
+        HSPLIT_LINE 12
         VDP_STATUS 1
         ENABLE_HIRQ
         ; Scroll clouds every 4 frames.
@@ -747,7 +747,7 @@ cloud_fade_patch1:
 cloud_fade_patch2:
         ld      a, 0
         out     (09Bh), a
-        HSPLIT_LINE 52
+        HSPLIT_LINE 37
         exx
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
@@ -758,7 +758,7 @@ cloud_fade_first_bottom:
         VDPREG  26
         xor     a
         VDPREG  27
-        HSPLIT_LINE 63
+        HSPLIT_LINE 48
         exx
         NEXT_HANDLE cloud_fade_second_top
         ; Set VDP to indirect auto-increment on port 26.
@@ -775,7 +775,7 @@ cloud_fade_patch4:
         ld      a, 0
         out     (09Bh), a
         exx
-        HSPLIT_LINE 92
+        HSPLIT_LINE 77
         ; Set VDP to indirect auto-increment on port 26.
         ld      a, 26
         VDPREG  17
@@ -788,9 +788,14 @@ cloud_fade_second_bottom:
         out     (09Bh), a
         xor     a
         out     (09Bh), a
+        exx
+        ld      hl, (palette_fade)
+        ld      de, city_fade_palette - cloud_fade_palette
+        add     hl, de
+        call    smart_palette
         VDP_STATUS 0
         DISABLE_HIRQ
-        jp      frame_end_exx
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: cloud_slide
@@ -801,7 +806,9 @@ cloud_slide:
         ENABLE_SCREEN
         SET_PAGE 3
         exx
-        ld      hl, cloud_palette_final
+        ld      (palette_fade), hl
+        ld      de, city_fade_palette - cloud_fade_palette
+        add     hl, de
         call    smart_palette
         jp      frame_end
 
@@ -1053,6 +1060,7 @@ title_palette:          incbin  "title_bounce_palette.bin"
 title_bounce_data:      incbin  "title_bounce_scroll.bin"
 title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
+city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
 handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
