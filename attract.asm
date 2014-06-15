@@ -3,8 +3,7 @@
 ; Last modification: 2014-06-09
 
 ; Sequence of animation frames
-;  575 -  710 : cloud_fade
-;  711 -  791 : cloud_slide
+;  575 -  793 : cloud_fade
 ; 1290 - 1300 : disable_screen_title
 ; 1301 - 1373 : title_bounce
 ; 1374 - 1401 : title_slide
@@ -100,6 +99,14 @@ pcm_timer_period        equ     23
         out     (099h), a
         ld      a, ((addr >> 8) and 03Fh) or 64
         out     (099h), a
+        endm
+
+; ----------------------------------------------------------------
+; Set a VDP register to auto-increment
+
+        macro   VDP_AUTOINC reg
+        ld      a, reg
+        VDPREG 17
         endm
 
 ; ----------------------------------------------------------------
@@ -223,6 +230,8 @@ delay_theme_music:
         ld      hl, mapper_selectors
         xor     a
         out     (systml), a
+        ld      a, 1
+        ld      (is_playing), a
 change_sample_mapper:
         ; Set mapper page.
         ld      a, (hl)
@@ -721,6 +730,20 @@ cloud_fade:
         inc     hl
         ld      a, (hl)
         ld      (cloud_fade_patch2 + 1), a
+        VDP_AUTOINC 26
+        NEXT_HANDLE cloud_fade_first_top
+        jp      return_irq_exx
+
+cloud_fade_first_top:  
+        PREAMBLE_HORIZONTAL
+cloud_fade_patch1:
+        ld      a, 0
+        out     (09Bh), a
+cloud_fade_patch2:
+        ld      a, 0
+        out     (09Bh), a
+        HSPLIT_LINE 37
+        exx
         ; Patch the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
         ld      e, a
@@ -733,22 +756,6 @@ cloud_fade:
         inc     hl
         ld      a, (hl)
         ld      (cloud_fade_patch4 + 1), a
-        ; Set VDP to indirect auto-increment on port 26.
-        ld      a, 26
-        VDPREG  17
-        NEXT_HANDLE cloud_fade_first_top
-        jp      return_irq
-
-cloud_fade_first_top:  
-        PREAMBLE_HORIZONTAL
-cloud_fade_patch1:
-        ld      a, 0
-        out     (09Bh), a
-cloud_fade_patch2:
-        ld      a, 0
-        out     (09Bh), a
-        HSPLIT_LINE 37
-        exx
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
 
@@ -761,9 +768,7 @@ cloud_fade_first_bottom:
         HSPLIT_LINE 48
         exx
         NEXT_HANDLE cloud_fade_second_top
-        ; Set VDP to indirect auto-increment on port 26.
-        ld      a, 26
-        VDPREG  17
+        VDP_AUTOINC 26
         jp      return_irq_exx
 
 cloud_fade_second_top:
@@ -776,9 +781,7 @@ cloud_fade_patch4:
         out     (09Bh), a
         exx
         HSPLIT_LINE 77
-        ; Set VDP to indirect auto-increment on port 26.
-        ld      a, 26
-        VDPREG  17
+        VDP_AUTOINC 26
         NEXT_HANDLE cloud_fade_second_bottom
         jp      return_irq_exx
 
@@ -795,21 +798,6 @@ cloud_fade_second_bottom:
         call    smart_palette
         VDP_STATUS 0
         DISABLE_HIRQ
-        jp      frame_end
-
-; ----------------------------------------------------------------
-; State: cloud_slide
-; Slide the clouds before v scroll.
-
-cloud_slide:
-        PREAMBLE_VERTICAL
-        ENABLE_SCREEN
-        SET_PAGE 3
-        exx
-        ld      (palette_fade), hl
-        ld      de, city_fade_palette - cloud_fade_palette
-        add     hl, de
-        call    smart_palette
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -853,13 +841,9 @@ return_irq:
 
 ; Set the palette without stopping the pcm sample.
 smart_palette:
-        push    hl
-        ld      hl, (current_frame)
-        ld      de, theme_start_frame
+        ld      a, (is_playing)
         or      a
-        sbc     hl, de
-        pop     hl
-        jr      nc, 1f
+        jr      nz, 1f
         SET_PALETTE
         ret
 1:
@@ -1035,6 +1019,7 @@ current_frame:          dw      550
 cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
+is_playing:             db      0
 state_end:
 
 state_backup:           ds      state_end - state_start, 0
