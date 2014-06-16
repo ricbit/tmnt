@@ -572,7 +572,7 @@
 		dw	disable_screen	; 571
 		dw	disable_screen	; 572
 		dw	disable_screen	; 573
-		dw	disable_screen	; 574
+		dw	cloud_setup	; 574
 		dw	cloud_fade	; 575
 		dw	cloud_fade	; 576
 		dw	cloud_fade	; 577

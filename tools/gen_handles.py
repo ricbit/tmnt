@@ -1,4 +1,5 @@
-handle = [ 
+handle = [
+    (574,  "cloud_setup"),
     (575,  "cloud_fade"),
     (794,  "disable_screen"),
     (1290, "disable_screen_title"),

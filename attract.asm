@@ -2,6 +2,7 @@
 ; by Ricardo Bittencourt 2014
 
 ; Sequence of animation frames
+;  574 -  574 : cloud_setup
 ;  575 -  793 : cloud_fade
 ; 1290 - 1300 : disable_screen_title
 ; 1301 - 1373 : title_bounce
@@ -675,13 +676,27 @@ disable_screen:
         jp      frame_end
 
 ; ----------------------------------------------------------------
+; State: cloud_setup
+; Setup cloud animation.
+
+cloud_setup:
+        PREAMBLE_VERTICAL
+        DISABLE_SCREEN
+        SET_PAGE 3
+        ; Enable two-pages h scroll with no masking.
+        ld      a, (vdpr25)
+        or      1
+        and     255-2
+        VDPREG  25
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
 ; State: cloud_fade
 ; Fade in the clouds.
 
 cloud_fade:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
-        SET_PAGE 3
         exx
         ld      hl, (palette_fade)
         ld      a, (palette_fade_counter)
@@ -696,12 +711,6 @@ cloud_fade:
 1:
         ld      (palette_fade_counter), a
         call    smart_palette
-
-        ; Enable two-pages h scroll with no masking.
-        ld      a, (vdpr25)
-        or      1
-        and     255-2
-        VDPREG  25
 
         HSPLIT_LINE 14
         VDP_STATUS 1
