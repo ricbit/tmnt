@@ -1,6 +1,5 @@
 ; TMNT attract mode
 ; by Ricardo Bittencourt 2014
-; Last modification: 2014-06-09
 
 ; Sequence of animation frames
 ;  575 -  793 : cloud_fade
@@ -704,7 +703,7 @@ cloud_fade:
         and     255-2
         VDPREG  25
 
-        HSPLIT_LINE 12
+        HSPLIT_LINE 14
         VDP_STATUS 1
         ENABLE_HIRQ
         ; Scroll clouds every 4 frames.
@@ -742,7 +741,7 @@ cloud_fade_patch1:
 cloud_fade_patch2:
         ld      a, 0
         out     (09Bh), a
-        HSPLIT_LINE 37
+        HSPLIT_LINE 40
         exx
         ; Patch the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
@@ -756,16 +755,17 @@ cloud_fade_patch2:
         inc     hl
         ld      a, (hl)
         ld      (cloud_fade_patch4 + 1), a
+        VDP_AUTOINC 26
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
 
 cloud_fade_first_bottom:  
         PREAMBLE_HORIZONTAL
         ld      a, 32
-        VDPREG  26
+        out     (09Bh), a
         xor     a
-        VDPREG  27
-        HSPLIT_LINE 48
+        out     (09Bh), a
+        HSPLIT_LINE 49
         exx
         NEXT_HANDLE cloud_fade_second_top
         VDP_AUTOINC 26
@@ -780,7 +780,7 @@ cloud_fade_patch4:
         ld      a, 0
         out     (09Bh), a
         exx
-        HSPLIT_LINE 77
+        HSPLIT_LINE 79
         VDP_AUTOINC 26
         NEXT_HANDLE cloud_fade_second_bottom
         jp      return_irq_exx
