@@ -1,15 +1,29 @@
 raw = [ord(i) for i in open("moon.raw", "rb").read()]
 colors = [1,3,6,7]
 sprites = []
+startx, starty = 72, 15
 for c in colors:
   for oi in xrange(2):
     for i in xrange(2):
       for j in xrange(16):
         b = 0
         for ii in xrange(8):
-          if raw[72 + oi * 16 + i * 8 + j * 256 + ii] == c:
-            b |= 1 << ii
+          if raw[startx + oi * 16 + i * 8 + (j + starty) * 256 + ii] == c:
+            b |= 1 << (7 - ii)
         sprites.append(b)
 f = open("attract.005", "wb")
 f.write("".join(chr(i) for i in sprites))
 f.close()
+attr = []
+for c in colors:
+  attr.extend([c] * 32)
+attr.extend([0] * (512 - len(colors) * 32))
+pattern = 0
+for c in colors:
+  attr.extend([starty - 1, startx, pattern, 0])
+  attr.extend([starty - 1, startx + 16, pattern + 4, 0])
+  pattern += 8
+f = open("attract.006", "wb")
+f.write("".join(chr(i) for i in attr))
+f.close()
+

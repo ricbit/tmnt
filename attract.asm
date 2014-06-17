@@ -60,6 +60,12 @@ all_seg         equ     00000h  ; Allocate a mapper segment
 temp            equ     04000h  ; Temp buffer for disk loading
 
 ; ----------------------------------------------------------------
+; VRAM layout
+
+moon_pattern_addr       equ     11800h
+moon_attr_addr          equ     13200h
+
+; ----------------------------------------------------------------
 ; Animation constants
 
 theme_start_frame       equ     750
@@ -139,6 +145,7 @@ pcm_timer_period        equ     23
         macro   ENABLE_SCREEN
         ld      a, (vdpr1)
         or      64
+        ld      (vdpr1), a
         VDPREG  1
         endm
 
@@ -146,6 +153,7 @@ pcm_timer_period        equ     23
         macro   DISABLE_SCREEN
         ld      a, (vdpr1)
         and     255 - 64
+        ld      (vdpr1), a
         VDPREG  1
         endm
 
@@ -171,6 +179,7 @@ pcm_timer_period        equ     23
         macro   DISABLE_HIRQ
         ld      a, (vdpr0)
         and     255 - 16      
+        ld      (vdpr0), a
         VDPREG  0
         endm
 
@@ -178,9 +187,58 @@ pcm_timer_period        equ     23
         macro   ENABLE_HIRQ
         ld      a, (vdpr0)
         or      16
+        ld      (vdpr0), a
         VDPREG  0
         endm
 
+; Turn on sprites.
+        macro   SPRITES_ON
+        ld      a, (vdpr8)
+        and     255 - 2
+        ld      (vdpr8), a
+        VDPREG  8
+        endm
+
+; Turn off sprites.
+        macro   SPRITES_OFF
+        ld      a, (vdpr8)
+        or      2
+        ld      (vdpr8), a
+        VDPREG  8
+        endm
+
+; Set sprite size to 16x16
+        macro   SPRITES_16x16
+        ld      a, (vdpr1)
+        or      2
+        ld      (vdpr1), a
+        VDPREG  1
+        endm
+
+; Enable two-pages h scroll with no masking.
+        macro   WIDE_SCROLL
+        ld      a, (vdpr25)
+        or      1
+        and     255 - 2
+        ld      (vdpr25), a
+        VDPREG  25
+        endm
+
+; Set sprite attribute table.
+        macro   SPRITE_ATTR addr
+        assert  (addr and (1 << 9)) > 0
+        ld      a, (((addr >> 10) and 1Fh) << 3) or 7
+        VDPREG  5
+        ld      a, addr >> 15
+        VDPREG  11
+        endm
+
+ ; Set sprite pattern table.
+        macro   SPRITE_PATTERN addr
+        ld      a, addr >> 11
+        VDPREG  6
+        endm
+        
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -391,6 +449,7 @@ allocate_memory:
         ; Enable 16 colors and turn off sprites.
         ld      a, (vdpr8)
         or      32 + 2
+        ld      (vdpr8), a
         VDPREG  8
         ei
 
@@ -431,6 +490,32 @@ allocate_memory:
         ei
         ld      hl, temp
         ld      bc, 256 * 192 / 2
+        call    blit
+
+        ; Read moon sprite patterns.
+        ld      de, moon_pattern_filename
+        ld      hl, 256
+        call    load_file
+
+        ; Copy data to vram.
+        di
+        SET_VRAM_WRITE moon_pattern_addr
+        ei
+        ld      hl, temp
+        ld      bc, 256
+        call    blit
+
+        ; Read moon sprite attributes.
+        ld      de, moon_attr_filename
+        ld      hl, 32 * 16 + 4 * 8
+        call    load_file
+
+        ; Copy data to vram.
+        di
+        SET_VRAM_WRITE (moon_attr_addr - 512)
+        ei
+        ld      hl, temp
+        ld      bc, 32 * 16 + 4 * 8
         call    blit
 
         ; Load PCM data.
@@ -521,11 +606,7 @@ title_bounce:
         inc     a
         ld      (vertical_scroll), a
 
-        ; Enable two-pages h scroll with no masking.
-        ld      a, (vdpr25)
-        or      1
-        and     255-2
-        VDPREG  25
+        WIDE_SCROLL
 
         ; Set h scroll to page 1
         ld      a, 32
@@ -538,63 +619,34 @@ title_bounce:
         cp      80h
         jr      nc, title_bounce_v_disable
 
-        ; Program hsplit.
         HSPLIT_LINE 46
-
-        ; Enable screen.
         ENABLE_SCREEN
-
-        ; install horizontal split
         VDP_STATUS 1
         NEXT_HANDLE title_bounce_h_disable
-
-        ; enable h interrupt.
         ENABLE_HIRQ
-
         jp      return_irq_exx
 
 title_bounce_v_disable:
-        ; Program hsplit.
         HSPLIT_LINE 10
-
-        ; Disable screen.
         DISABLE_SCREEN
-
-        ; install horizontal split
         VDP_STATUS 1
         NEXT_HANDLE title_bounce_h_enable
-
-        ; enable h interrupt.
         ENABLE_HIRQ
-
         jp      return_irq_exx
 
 ; H handler to disable screen
 title_bounce_h_disable:
         PREAMBLE_HORIZONTAL
-       
-        ; Disable screen
         DISABLE_SCREEN
-
-        ; Install vertical split
         VDP_STATUS 0
-
-        ; Disable h interrupt.
         DISABLE_HIRQ
-
         jp      frame_end_exx
 
 ; H handler to enable screen
 title_bounce_h_enable:
         PREAMBLE_HORIZONTAL
-        
-        ; Enable screen
         ENABLE_SCREEN
-
-        ; Program hsplit.
         HSPLIT_LINE 46
-
-        ; install horizontal split
         exx
         NEXT_HANDLE title_bounce_h_disable
         jp      return_irq_exx
@@ -683,11 +735,11 @@ cloud_setup:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
         SET_PAGE 3
-        ; Enable two-pages h scroll with no masking.
-        ld      a, (vdpr25)
-        or      1
-        and     255-2
-        VDPREG  25
+        SPRITES_ON
+        WIDE_SCROLL
+        SPRITES_16x16
+        SPRITE_ATTR moon_attr_addr
+        SPRITE_PATTERN moon_pattern_addr
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
@@ -816,15 +868,16 @@ cloud_fade_second_bottom:
 disable_screen_title:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
+        SPRITES_OFF
         SET_PAGE 1
         exx
         ld      hl, title_palette
-        SET_PALETTE
+        call    smart_palette
         jp      frame_end
 
 ; ----------------------------------------------------------------
-
 ; Exit common to all frames
+
 frame_end_exx:
         exx
 frame_end:
@@ -1046,6 +1099,8 @@ opening_filename:       dz      "attract.001"
 title_music_filename:   dz      "attract.002"
 cloud_page2_filename:   dz      "attract.003"
 cloud_page3_filename:   dz      "attract.004"
+moon_pattern_filename:  dz      "attract.005"
+moon_attr_filename:     dz      "attract.006"
 
 ; ----------------------------------------------------------------
 ; Data
