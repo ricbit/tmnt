@@ -244,7 +244,7 @@ pcm_timer_period        equ     23
 ; Start of main program.
 
 start:
-        call    init
+        call    global_init
 start_attract:
         ; Reset the animation.
         ld      de, state_start
@@ -354,6 +354,8 @@ foreground_next:
         ; Restore mapper.
         ld      a, (mapper_selectors)
         call    fast_put_p1
+        ld      a, (mapper_selectors + 1)
+        call    fast_put_p2
                 
         ; Exit to DOS.
         ld      de, str_credits
@@ -362,7 +364,7 @@ foreground_next:
 ; ----------------------------------------------------------------
 ; Initialization.
 
-init:
+global_init:
         ; Check if DOS2 is present.
         call    check_dos2
         ld      de, str_dos2_not_found
@@ -390,6 +392,13 @@ init:
         ld      de, str_not_enough_memory
         jp      c, abort
         ld      (mapper), hl
+        ld      de, put_p1
+        add     hl, de
+        ld      (fast_put_p1 + 1), hl
+        ld      hl, (mapper)
+        ld      de, put_p2
+        add     hl, de
+        ld      (fast_put_p2 + 1), hl
 
         ; Put the two default pages into the mapper pool.
         ld      de, get_p1
@@ -469,60 +478,38 @@ allocate_memory:
         ld      bc, 256 * 192 / 2
         call    blit
 
-        ; Read cloud 2 screen.
-        ld      de, cloud_page2_filename
-        ld      hl, 256 * 192 / 2
-        call    load_file
+        ; Load mapper data.
+        call    load_mapper_data
 
-        ; Copy data to vram.
+        ; Copy cloud2 to vram.
+        ld      a, (mapper_selectors + 10)
+        call    fast_put_p2
         di
         SET_VRAM_WRITE 010000h
         ei
-        ld      hl, temp
-        ld      bc, 256 * 192 / 2
-        call    blit
+        ld      hl, cloud_page2
+        call    zblit
 
-        ; Read cloud 3 screen.
-        ld      de, cloud_page3_filename
-        ld      hl, 256 * 192 / 2
-        call    load_file
-
-        ; Copy data to vram.
+        ; Copy cloud3 to vram.
         di
         SET_VRAM_WRITE 018000h
         ei
-        ld      hl, temp
-        ld      bc, 256 * 192 / 2
-        call    blit
+        ld      hl, cloud_page3
+        call    zblit
 
-        ; Read moon sprite patterns.
-        ld      de, moon_pattern_filename
-        ld      hl, 256
-        call    load_file
-
-        ; Copy data to vram.
+        ; Copy moon sprite patterns to vram.
         di
         SET_VRAM_WRITE moon_pattern_addr
         ei
-        ld      hl, temp
-        ld      bc, 256
-        call    blit
+        ld      hl, moon_pattern
+        call    zblit
 
-        ; Read moon sprite attributes.
-        ld      de, moon_attr_filename
-        ld      hl, 32 * 16 + 4 * 8
-        call    load_file
-
-        ; Copy data to vram.
+        ; Copy moon sprite attributes to vram.
         di
         SET_VRAM_WRITE (moon_attr_addr - 512)
         ei
-        ld      hl, temp
-        ld      bc, 32 * 16 + 4 * 8
-        call    blit
-
-        ; Load PCM data.
-        call    load_pcm_data
+        ld      hl, moon_attr
+        call    zblit
 
         ; Backup animation state on startup.
         ld      hl, state_start
@@ -543,11 +530,11 @@ allocate_memory:
         ret
 
 ; ----------------------------------------------------------------
-; Load PCM data into mapper.
+; Load mapper data.
 
-load_pcm_data:
+load_mapper_data:
         ; Open file handle.
-        ld      de, title_music_filename
+        ld      de, mapper_data_filename
         ld      c, open
         xor     a
         ld      b, a
@@ -563,11 +550,7 @@ load_pcm_data:
         push    bc
         push    hl
         ld      a, (hl)
-        ld      hl, (mapper)
-        ld      de, put_p1
-        add     hl, de
-        ld      (fast_put_p1 + 1), hl
-        call    call_hl
+        call    fast_put_p1
 
         ; Read 16kb from disk.
         ld      de, temp
@@ -902,9 +885,32 @@ return_irq:
         ret
 
 ; ----------------------------------------------------------------
-; Utils
+; Decompress graphics, assumes VRAM address is already set.
+; Input: HL = address
 
+zblit:
+        ld      a, (hl)
+        inc     hl
+        or      a
+        ret     z
+        jp      m, zblit_rle
+        ld      b, a
+        ld      c, 098h
+        otir
+        jr      zblit
+zblit_rle:
+        sub     080h
+        ld      b, a
+        ld      a, (hl)
+        inc     hl
+1:
+        out     (098h), a
+        djnz    1b
+        jr      zblit
+
+; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
+
 smart_palette:
         ld      a, (is_playing)
         or      a
@@ -968,7 +974,9 @@ smart_palette_next_sample:
         out     (pcm), a
         jr      smart_palette_next_color
 
+; ----------------------------------------------------------------
 ; Restore the VDP interrupt settings.
+
 restore_irq:
         di
 
@@ -1089,6 +1097,10 @@ call_hl:
 fast_put_p1:
         jp      0
 
+; Fast put page 2.
+fast_put_p2:
+        jp      0
+
 ; ----------------------------------------------------------------
 ; Variables.
 
@@ -1125,11 +1137,7 @@ str_foreground_error:   db      "Foreground thread overrun.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
                         db      "by Ricardo Bittencourt 2014.$"
 opening_filename:       dz      "attract.001"
-title_music_filename:   dz      "attract.dat"
-cloud_page2_filename:   dz      "attract.003"
-cloud_page3_filename:   dz      "attract.004"
-moon_pattern_filename:  dz      "attract.005"
-moon_attr_filename:     dz      "attract.006"
+mapper_data_filename:   dz      "attract.dat"
 
 ; ----------------------------------------------------------------
 ; Data
@@ -1152,18 +1160,26 @@ end_of_code:
 
         output  attract.dat
 
+        macro   PAGE_LIMIT
+        assert  $ < 0C000h
+        endm
+
 ; Mapper pages 0-8
 theme_music:            incbin "theme.pcm"
 
 ; Mapper page 9
-                .phase  04000h
+                        .phase  08000h
 opening_title:          incbin "tmnt.z5"
+                        PAGE_LIMIT                
                         align 16384
 
 ; Mapper page 10
-                .phase  04000h
+                        .phase  08000h
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
+moon_pattern:           incbin "moon_pattern.z5"
+moon_attr:              incbin "moon_attr.z5"
+                        PAGE_LIMIT
                         align 16384
 
         end

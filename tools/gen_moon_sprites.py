@@ -11,7 +11,7 @@ for c in colors:
           if raw[startx + oi * 16 + i * 8 + (j + starty) * 256 + ii] == c:
             b |= 1 << (7 - ii)
         sprites.append(b)
-f = open("attract.005", "wb")
+f = open("moon_pattern.sc5", "wb")
 f.write("".join(chr(i) for i in sprites))
 f.close()
 attr = []
@@ -23,7 +23,7 @@ for c in colors:
   attr.extend([starty - 1, startx, pattern, 0])
   attr.extend([starty - 1, startx + 16, pattern + 4, 0])
   pattern += 8
-f = open("attract.006", "wb")
+f = open("moon_attr.sc5", "wb")
 f.write("".join(chr(i) for i in attr))
 f.close()
 
