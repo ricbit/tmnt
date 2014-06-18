@@ -14,7 +14,7 @@
         org     0100h
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     9
+selectors       equ     11
 
 ; MSX bios
 restart         equ     00000h  ; Return to DOS
@@ -556,7 +556,7 @@ load_pcm_data:
         ld      a, b
         ld      (file_handle), a
 
-        ld      b, 9
+        ld      b, selectors
         ld      hl, mapper_selectors
 1:
         ; Set mapper page.
@@ -1125,7 +1125,7 @@ str_foreground_error:   db      "Foreground thread overrun.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
                         db      "by Ricardo Bittencourt 2014.$"
 opening_filename:       dz      "attract.001"
-title_music_filename:   dz      "attract.002"
+title_music_filename:   dz      "attract.dat"
 cloud_page2_filename:   dz      "attract.003"
 cloud_page3_filename:   dz      "attract.004"
 moon_pattern_filename:  dz      "attract.005"
@@ -1146,6 +1146,25 @@ cloud_palette_final     equ     cloud_fade_palette + 512
 
 end_of_code:
         assert  end_of_code < 04000h
+
+; ----------------------------------------------------------------
+; Mapper Data
+
+        output  attract.dat
+
+; Mapper pages 0-8
+theme_music:            incbin "theme.pcm"
+
+; Mapper page 9
+                .phase  04000h
+opening_title:          incbin "tmnt.z5"
+                        align 16384
+
+; Mapper page 10
+                .phase  04000h
+cloud_page2:            incbin "cloud2.z5"
+cloud_page3:            incbin "cloud3.z5"
+                        align 16384
 
         end
 
