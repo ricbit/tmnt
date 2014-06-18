@@ -226,7 +226,7 @@ pcm_timer_period        equ     23
 
 ; Set sprite attribute table.
         macro   SPRITE_ATTR addr
-        assert  (addr and (1 << 9)) > 0
+        assert  (addr and ((1 << 10) - 1)) == (1 << 9)
         ld      a, (((addr >> 10) and 1Fh) << 3) or 7
         VDPREG  5
         ld      a, addr >> 15
@@ -235,6 +235,7 @@ pcm_timer_period        equ     23
 
  ; Set sprite pattern table.
         macro   SPRITE_PATTERN addr
+        assert  (addr and ((1 << 11) - 1)) == 0
         ld      a, addr >> 11
         VDPREG  6
         endm
@@ -307,11 +308,13 @@ sample_loop:
         ;out (98h) ,a
         ;endm
 
-sample_wait:
+foreground:
+        jp      foreground_next
+foreground_next:
         ; Wait enough to hit 11025Hz.
         in      a, (systml)
         cp      pcm_timer_period
-        jr      c, sample_wait
+        jr      c, foreground
         xor     a
         out     (systml), a
 
@@ -911,13 +914,35 @@ smart_palette:
 1:
         xor     a
         VDPREG  16
+        ld      (save_palette), hl
+        ld      hl, (foreground + 1)
+        ld      de, foreground_next
+        or      a
+        sbc     hl, de
+        ld      de, str_foreground_error
+        jp      nz, abort
+        ld      hl, foreground_palette
+        ld      (foreground + 1), hl
+        ret
+
+smart_palette_ret:
+        ld      hl, foreground_next
+        ld      (foreground + 1), hl
+        pop     hl
+        pop     bc
+        jp      foreground
+
+foreground_palette:
+        push    bc
+        push    hl
+        ld      hl, (save_palette)
         ld      b, 32
 smart_palette_next_color:
         ld      a, (hl)
         inc     hl
         out     (09Ah), a
         dec     b
-        ret     z
+        jr      z, smart_palette_ret
         in      a, (systml)
         cp      pcm_timer_period
         jr      c, smart_palette_next_color
@@ -925,20 +950,22 @@ smart_palette_next_color:
         xor     a
         out     (systml), a
 
-        exx
         inc     de
         bit     7, d
         jr      z, smart_palette_next_sample
 
+        ld      (save_palette), hl
+        pop     hl
         inc     hl
         ld      a, (hl)
         call    fast_put_p1
+        push    hl
+        ld      hl, (save_palette)
         ld      de, temp
 
 smart_palette_next_sample:
         ld      a, (de)
         out     (pcm), a
-        exx     
         jr      smart_palette_next_color
 
 ; Restore the VDP interrupt settings.
@@ -1069,6 +1096,7 @@ save_irq:               db      0,0,0
 file_handle:            db      0
 mapper:                 dw      0
 graphics_on:            db      0
+save_palette:           dw      0
 mapper_selectors:       ds      selectors, 0
 
 ; Animation states.
@@ -1093,6 +1121,7 @@ str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
 str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
 str_read_error:         db      "Error reading from disk, sorry.$"
 str_not_enough_memory:  db      "Not enough memory, sorry.$"
+str_foreground_error:   db      "Foreground thread overrun.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
                         db      "by Ricardo Bittencourt 2014.$"
 opening_filename:       dz      "attract.001"
