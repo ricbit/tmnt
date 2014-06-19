@@ -6,12 +6,12 @@ handle = [
     (1301, "title_bounce"),
     (1374, "title_slide"),
     (1402, "title_stand"),
-    (3000, "unreachable")
+    (1500, "end_animation")
 ]
 
 pos = 0
 cur = "disable_screen"
-for i in xrange(2000):
+for i in xrange(1 + max(i for i,j in handle)):
   if i >= handle[pos][0]:
     cur = handle[pos][1]
     pos += 1

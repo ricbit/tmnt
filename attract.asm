@@ -271,12 +271,16 @@ start_attract:
         ld      (irq + 1), de
         ei
 
+        ; Install foreground thread.
+        ld      hl, foreground_next
+        ld      (foreground + 1), hl
+
         ; Init turboR PCM.
         ld      a, 3
         out     (pmcntl), a
         in      a, (systml)
 
-        ; Delay theme music until frame 750.
+        ; Delay theme music until the correct frame.
 delay_theme_music:
         ld      hl, theme_start_frame
         ld      de, (current_frame)
@@ -285,17 +289,20 @@ delay_theme_music:
         jr      nz, delay_theme_music
 
         ; Main theme music loop.
-        ld      b, 9
-        ld      hl, mapper_selectors
         xor     a
         out     (systml), a
         ld      a, 1
         ld      (is_playing), a
 change_sample_mapper:
         ; Set mapper page.
+        push    hl
+        ld      hl, (pcm_mapper_page)
         ld      a, (hl)
+        inc     hl
+        ld      (pcm_mapper_page), hl
         call    fast_put_p1
         ld      de, temp
+        pop     hl
 
         in      a, (systml)
 sample_loop:
@@ -321,10 +328,9 @@ foreground_next:
         inc     de
         bit     7, d
         jr      z, sample_loop
+        jr      change_sample_mapper
 
-        inc     hl
-        djnz    change_sample_mapper
-
+finish_animation:
         ; Restore system irq.
         call    restore_irq
 
@@ -572,6 +578,16 @@ load_mapper_data:
         call    bdos
         call    check_bdos_error
         ret
+
+; ----------------------------------------------------------------
+; State: end_animation
+; Finish the animation.
+end_animation:
+        PREAMBLE_VERTICAL
+        exx
+        ld      hl, finish_animation
+        ld      (foreground + 1), hl
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: title_bounce
@@ -1122,6 +1138,7 @@ cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
 is_playing:             db      0
+pcm_mapper_page:        dw      mapper_selectors
 state_end:
 
 state_backup:           ds      state_end - state_start, 0
