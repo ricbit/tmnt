@@ -936,7 +936,11 @@ smart_palette:
 1:
         xor     a
         VDPREG  16
-        ld      (save_palette), hl
+        push    hl
+        exx
+        pop     hl
+        ld      b, 32
+        exx
         ld      hl, (foreground + 1)
         ld      de, foreground_next
         or      a
@@ -947,48 +951,15 @@ smart_palette:
         ld      (foreground + 1), hl
         ret
 
-smart_palette_ret:
+foreground_palette:
+        ld      a, (hl)
+        out     (09Ah), a
+        inc     hl
+        dec     b
+        jp      nz, foreground_next
         ld      hl, foreground_next
         ld      (foreground + 1), hl
-        pop     hl
-        pop     bc
-        jp      foreground
-
-foreground_palette:
-        push    bc
-        push    hl
-        ld      hl, (save_palette)
-        ld      b, 32
-smart_palette_next_color:
-        ld      a, (hl)
-        inc     hl
-        out     (09Ah), a
-        dec     b
-        jr      z, smart_palette_ret
-        in      a, (systml)
-        cp      pcm_timer_period
-        jr      c, smart_palette_next_color
-
-        xor     a
-        out     (systml), a
-
-        inc     de
-        bit     7, d
-        jr      z, smart_palette_next_sample
-
-        ld      (save_palette), hl
-        pop     hl
-        inc     hl
-        ld      a, (hl)
-        call    fast_put_p1
-        push    hl
-        ld      hl, (save_palette)
-        ld      de, temp
-
-smart_palette_next_sample:
-        ld      a, (de)
-        out     (pcm), a
-        jr      smart_palette_next_color
+        jp      (hl)
 
 ; ----------------------------------------------------------------
 ; Restore the VDP interrupt settings.
