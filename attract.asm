@@ -1,6 +1,8 @@
 ; TMNT attract mode
 ; by Ricardo Bittencourt 2014
 
+; Keep in mind: 18 frames to copy 192 lines to vram.
+
         output  attract.com
             
         org     0100h
@@ -54,7 +56,7 @@ temp            equ     04000h  ; Temp buffer for disk loading
 ; ----------------------------------------------------------------
 ; VRAM layout
 
-moon_pattern_addr       equ     11800h
+moon_pattern_addr       equ     00000h
 moon_attr_addr          equ     13200h
 
 ; ----------------------------------------------------------------
@@ -530,7 +532,7 @@ load_mapper_data:
 
         ld      b, selectors
         ld      hl, mapper_selectors
-1:
+load_mapper_data_block:
         ; Set mapper page.
         push    bc
         push    hl
@@ -548,7 +550,7 @@ load_mapper_data:
         pop     hl
         inc     hl
         pop     bc
-        djnz    1b
+        djnz    load_mapper_data_block
 
         ; Close file.
         ld      a, (file_handle)
@@ -561,6 +563,7 @@ load_mapper_data:
 ; ----------------------------------------------------------------
 ; State: end_animation
 ; Finish the animation.
+
 end_animation:
         PREAMBLE_VERTICAL
         exx
@@ -571,6 +574,7 @@ end_animation:
 ; ----------------------------------------------------------------
 ; State: title_bounce
 ; Top of TMNT logo bounces in the screen.
+
 title_bounce:
         PREAMBLE_VERTICAL
 
@@ -744,7 +748,7 @@ cloud_setup:
         SPRITES_16x16
         SPRITE_ATTR moon_attr_addr
         SPRITE_PATTERN moon_pattern_addr
-        jp      frame_end_exx
+        jp      cloud_fade_moon_set_sprite
 
 ; ----------------------------------------------------------------
 ; State: cloud_fade
@@ -861,8 +865,41 @@ cloud_fade_second_bottom:
         ld      de, city_fade_palette - cloud_fade_palette
         add     hl, de
         call    smart_palette
+        HSPLIT_LINE 150
+        NEXT_HANDLE cloud_fade_moon_sprites
+        jp      return_irq_exx
+
+cloud_fade_moon_sprites:
+        PREAMBLE_HORIZONTAL
         VDP_STATUS 0
         DISABLE_HIRQ
+cloud_fade_moon_set_sprite:
+        exx
+        ; Set sprite pattern base.
+        ld      a, (cloud1_scroll)
+        sub     114
+        ld      d, a
+        srl     a
+        srl     a
+        srl     a
+        VDPREG 6
+        ; Set sprite attributes.
+        ld      b, 8
+        ld      a, d
+        and     7
+        rrca
+        rrca
+        rrca
+        ld      hl, dynamic_moon_attr + 3
+        ld      de, 4
+1:
+        ld      (hl), a
+        add     a, e
+        add     hl, de
+        djnz    1b
+        SET_VRAM_WRITE moon_attr_addr
+        ld      hl, dynamic_moon_attr
+        call    smart_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -930,6 +967,10 @@ zblit_rle:
 ; Decompress graphics without stopping the pcm sample.
 
 smart_zblit:
+        ld      a, (is_playing)
+        or      a
+        jp      z, zblit
+
         push    hl
         exx
         pop     hl
@@ -1179,6 +1220,15 @@ absolute_scroll:        incbin  "absolute_scroll.bin"
 handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
+
+; Dynamic sprite attr data for the moon.
+dynamic_moon_attr:
+        db      8 * 4
+        rept    4
+        db      14, 72, 0, 0
+        db      14, 72 + 16, 0, 0
+        endr
+        db      0
 
 end_of_code:
         assert  end_of_code < 04000h

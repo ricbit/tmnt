@@ -1,16 +1,19 @@
+cloud = [ord(i) for i in open("cloud2.raw", "rb").read()]
 raw = [ord(i) for i in open("moon.raw", "rb").read()]
 colors = [1,3,6,7]
 sprites = []
 startx, starty = 72, 15
-for c in colors:
-  for oi in xrange(2):
-    for i in xrange(2):
-      for j in xrange(16):
-        b = 0
-        for ii in xrange(8):
-          if raw[startx + oi * 16 + i * 8 + (j + starty) * 256 + ii] == c:
-            b |= 1 << (7 - ii)
-        sprites.append(b)
+for cloudx in xrange(114, 153):
+  for c in colors:
+    for oi in xrange(2):
+      for i in xrange(2):
+        for j in xrange(16):
+          b = 0
+          for ii in xrange(8):
+            pos = startx + oi * 16 + i * 8 + (j + starty) * 256 + ii
+            if raw[pos] == c and cloud[pos + cloudx] == 0:
+              b |= 1 << (7 - ii)
+          sprites.append(b)
 f = open("moon_pattern.sc5", "wb")
 f.write("".join(chr(i) for i in sprites))
 f.close()

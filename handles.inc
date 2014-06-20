@@ -1198,7 +1198,7 @@
 		dw	disable_screen	; 1197
 		dw	disable_screen	; 1198
 		dw	disable_screen	; 1199
-		dw	copy_title_vram	; 1200
+		dw	disable_screen	; 1200
 		dw	disable_screen	; 1201
 		dw	disable_screen	; 1202
 		dw	disable_screen	; 1203
@@ -1270,7 +1270,7 @@
 		dw	disable_screen	; 1269
 		dw	disable_screen	; 1270
 		dw	disable_screen	; 1271
-		dw	disable_screen	; 1272
+		dw	copy_title_vram	; 1272
 		dw	disable_screen	; 1273
 		dw	disable_screen	; 1274
 		dw	disable_screen	; 1275
