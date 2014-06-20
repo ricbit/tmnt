@@ -427,6 +427,9 @@ allocate_memory:
         pop     bc
         djnz    allocate_memory
 
+        ; Load mapper data.
+        call    load_mapper_data
+
         ; Change to SCREEN 5.
         ld      iy, (subrom)
         ld      ix, chgmod
@@ -464,9 +467,6 @@ allocate_memory:
         ld      (vdpr8), a
         VDPREG  8
         ei
-
-        ; Load mapper data.
-        call    load_mapper_data
 
         ; Copy cloud2 to vram.
         ld      a, (mapper_selectors + 10)
@@ -775,20 +775,9 @@ cloud_fade:
         HSPLIT_LINE 14
         VDP_STATUS 1
         ENABLE_HIRQ
-        ; Scroll clouds every 4 frames.
-        ld      hl, cloud1_scroll
-        ld      a, (cloud_tick)
-        dec     a
-        jr      nz, 2f
-        dec     (hl)
-        inc     hl
-        inc     (hl)
-        dec     hl
-        ld      a, 4 + 1
-2:
-        ld      (cloud_tick), a
+        ld      a, (cloud1_scroll)
         ; Patch the scroll values for cloud 1.
-        ld      e, (hl)
+        ld      e, a
         ld      d, 0
         ld      hl, absolute_scroll
         add     hl, de
@@ -875,6 +864,18 @@ cloud_fade_moon_sprites:
         DISABLE_HIRQ
 cloud_fade_moon_set_sprite:
         exx
+        ; Scroll clouds every 4 frames.
+        ld      hl, cloud1_scroll
+        ld      a, (cloud_tick)
+        dec     a
+        jr      nz, 2f
+        dec     (hl)
+        inc     hl
+        inc     (hl)
+        dec     hl
+        ld      a, 4 + 1
+2:
+        ld      (cloud_tick), a
         ; Set sprite pattern base.
         ld      a, (cloud1_scroll)
         sub     114
