@@ -304,10 +304,16 @@ sample_loop:
 foreground:
         jp      foreground_next
 foreground_next:
+        ; Avoid jitter by stopping foreground thread 
+        ; a few ticks before the limit.
+        in      a, (systml)
+        cp      pcm_timer_period - 4
+        jr      c, foreground
         ; Wait enough to hit 11025Hz.
+1:
         in      a, (systml)
         cp      pcm_timer_period
-        jr      c, foreground
+        jr      c, 1b
         xor     a
         out     (systml), a
 
