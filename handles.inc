@@ -792,7 +792,7 @@
 		dw	cloud_fade	; 791
 		dw	cloud_fade	; 792
 		dw	cloud_fade	; 793
-		dw	disable_screen	; 794
+		dw	disable_screen_black	; 794
 		dw	disable_screen	; 795
 		dw	disable_screen	; 796
 		dw	disable_screen	; 797
@@ -1198,7 +1198,7 @@
 		dw	disable_screen	; 1197
 		dw	disable_screen	; 1198
 		dw	disable_screen	; 1199
-		dw	disable_screen	; 1200
+		dw	copy_title_vram	; 1200
 		dw	disable_screen	; 1201
 		dw	disable_screen	; 1202
 		dw	disable_screen	; 1203

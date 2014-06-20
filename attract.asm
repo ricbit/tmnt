@@ -1,14 +1,6 @@
 ; TMNT attract mode
 ; by Ricardo Bittencourt 2014
 
-; Sequence of animation frames
-;  574 -  574 : cloud_setup
-;  575 -  793 : cloud_fade
-; 1290 - 1300 : disable_screen_title
-; 1301 - 1373 : title_bounce
-; 1374 - 1401 : title_slide
-; 1402 ->     : title_stand
-
         output  attract.com
             
         org     0100h
@@ -85,7 +77,7 @@ pcm_timer_period        equ     23
 ; ----------------------------------------------------------------
 ; Set entire palette
 ; Input: HL = palette
-; Destroys: A
+; Destroys: A, HL, BC
 
         macro   SET_PALETTE
         xor     a
@@ -95,9 +87,9 @@ pcm_timer_period        equ     23
         endm
 
 ; ----------------------------------------------------------------
-; Set VRAM address to write
-; Destroys: A
+; Helpers for the states.
 
+; Set VRAM address to write
         macro   SET_VRAM_WRITE addr
         ld      a, addr >> 14
         VDPREG  14
@@ -107,19 +99,7 @@ pcm_timer_period        equ     23
         out     (099h), a
         endm
 
-; ----------------------------------------------------------------
-; Set a VDP register to auto-increment
-
-        macro   VDP_AUTOINC reg
-        ld      a, reg
-        VDPREG 17
-        endm
-
-; ----------------------------------------------------------------
-; Helpers for the states.
-
 ; Set display page.
-
         macro   SET_PAGE page
         ld      a, (page << 5) or 011111b
         VDPREG  2
@@ -240,6 +220,12 @@ pcm_timer_period        equ     23
         VDPREG  6
         endm
         
+; Set a VDP register to auto-increment
+        macro   VDP_AUTOINC reg
+        ld      a, reg
+        VDPREG 17
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -470,19 +456,6 @@ allocate_memory:
         ld      (vdpr8), a
         VDPREG  8
         ei
-
-        ; Read opening screen.
-        ld      de, opening_filename
-        ld      hl, 256 * 192 / 2
-        call    load_file
-
-        ; Copy data to vram.
-        di
-        SET_VRAM_WRITE 08000h
-        ei
-        ld      hl, temp
-        ld      bc, 256 * 192 / 2
-        call    blit
 
         ; Load mapper data.
         call    load_mapper_data
@@ -718,10 +691,33 @@ title_stand:
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
+; State: copy_title_vram
+; Copy title data to vram.
+
+copy_title_vram:
+        PREAMBLE_VERTICAL
+        SET_VRAM_WRITE 08000h
+        ld      a, (mapper_selectors + 9)
+        call    fast_put_p2
+        exx
+        ld      hl, opening_title
+        call    smart_zblit
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: disable_screen
 ; Turn off the screen.
 
 disable_screen:
+        PREAMBLE_VERTICAL
+        DISABLE_SCREEN
+        jp      frame_end_exx
+
+; ----------------------------------------------------------------
+; State: disable_screen
+; Turn off the screen and set the palette to all blacks.
+
+disable_screen_black:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
         exx
@@ -925,6 +921,65 @@ zblit_rle:
         jr      zblit
 
 ; ----------------------------------------------------------------
+; Decompress graphics without stopping the pcm sample.
+
+smart_zblit:
+        push    hl
+        exx
+        pop     hl
+        exx
+        ld      hl, (foreground + 1)
+        ld      de, foreground_next
+        or      a
+        sbc     hl, de
+        ld      de, str_foreground_error
+        jp      nz, abort
+        ld      hl, foreground_zblit
+        ld      (foreground + 1), hl
+        ret
+
+foreground_zblit:
+        ld      a, (hl)
+        inc     hl
+        or      a
+        jp      z, foreground_ret
+        jp      m, foreground_rle_setup
+
+        ; Setup zblit copy.
+        ld      bc, foreground_copy_step
+        ld      (foreground + 1), bc
+        ld      b, a
+        jp      foreground_next
+
+        ; Setup zblit rle.
+foreground_rle_setup:
+        ld      bc, foreground_rle_step
+        ld      (foreground + 1), bc
+        sub     080h
+        ld      b, a
+        jp      foreground_next
+
+foreground_copy_step:
+        ld      a, (hl)
+        inc     hl
+        out     (098h), a
+        dec     b
+        jp      nz, foreground_next
+        ld      bc, foreground_zblit
+        ld      (foreground + 1), bc
+        jp      foreground_next
+
+foreground_rle_step:
+        ld      a, (hl)
+        out     (098h), a
+        dec     b
+        jp      nz, foreground_next
+        inc     hl
+        ld      bc, foreground_zblit
+        ld      (foreground + 1), bc
+        jp      foreground_next
+
+; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
 
 smart_palette:
@@ -957,6 +1012,9 @@ foreground_palette:
         inc     hl
         dec     b
         jp      nz, foreground_next
+        ; fall through
+
+foreground_ret:
         ld      hl, foreground_next
         ld      (foreground + 1), hl
         jp      (hl)
@@ -1053,29 +1111,6 @@ blit:
         jr      nz, blit
         ret
 
-; Load a file.
-; Input: DE = filename in asciiz, HL = size
-load_file:
-        push    hl
-        ld      c, open
-        xor     a
-        ld      b, a
-        call    bdos
-        call    check_bdos_error
-
-        ld      de, temp        
-        pop     hl
-        push    bc
-        ld      c, read
-        call    bdos
-        call    check_bdos_error
-        pop     bc
-
-        ld      c, close
-        call    bdos
-        call    check_bdos_error
-        ret
-
 ; Call HL.
 call_hl:
         jp      (hl)
@@ -1124,7 +1159,6 @@ str_not_enough_memory:  db      "Not enough memory, sorry.$"
 str_foreground_error:   db      "Foreground thread overrun.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
                         db      "by Ricardo Bittencourt 2014.$"
-opening_filename:       dz      "attract.001"
 mapper_data_filename:   dz      "attract.dat"
 
 ; ----------------------------------------------------------------
