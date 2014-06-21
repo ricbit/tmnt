@@ -430,6 +430,16 @@ allocate_memory:
         ; Load mapper data.
         call    load_mapper_data
 
+        ; Beep.
+        ld      iy, (mainrom)
+        ld      ix, beep
+        call    callf
+
+        ; Wait for a key.
+        ld      iy, (mainrom)
+        ld      ix, chget
+        call    callf
+
         ; Change to SCREEN 5.
         ld      iy, (subrom)
         ld      ix, chgmod
@@ -504,22 +514,17 @@ allocate_memory:
         ld      bc, state_end - state_start
         ldir
 
-        ; Beep.
-        ld      iy, (mainrom)
-        ld      ix, beep
-        call    callf
-
-        ; Wait for a key.
-        ld      iy, (mainrom)
-        ld      ix, chget
-        call    callf
-
         ret
 
 ; ----------------------------------------------------------------
 ; Load mapper data.
 
 load_mapper_data:
+        ; Print "loading" message.
+        ld      de, str_loading
+        ld      c, strout
+        call    bdos
+
         ; Open file handle.
         ld      de, mapper_data_filename
         ld      c, open
@@ -550,7 +555,16 @@ load_mapper_data_block:
         pop     hl
         inc     hl
         pop     bc
-        djnz    load_mapper_data_block
+
+        ; Print a dot and loop
+        push    bc
+        push    hl
+        ld      de, str_dot
+        ld      c, strout
+        call    bdos
+        pop     hl
+        pop     bc
+        djnz    load_mapper_data_block        
 
         ; Close file.
         ld      a, (file_handle)
@@ -558,6 +572,10 @@ load_mapper_data_block:
         ld      c, close
         call    bdos
         call    check_bdos_error
+
+        ld      de, str_press_any_key
+        ld      c, strout
+        call    bdos
         ret
 
 ; ----------------------------------------------------------------
@@ -1188,7 +1206,7 @@ vertical_scroll:        db      0
 horizontal_scroll:      db      0
 palette_fade:           dw      cloud_fade_palette
 palette_fade_counter:   db      16
-current_frame:          dw      550
+current_frame:          dw      520
 cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
@@ -1206,6 +1224,9 @@ str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
 str_read_error:         db      "Error reading from disk, sorry.$"
 str_not_enough_memory:  db      "Not enough memory, sorry.$"
 str_foreground_error:   db      "Foreground thread overrun.$"
+str_loading:            db      "Loading$"
+str_dot:                db      ".$"
+str_press_any_key:      db      13, 10, "Press any key to start.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
                         db      "by Ricardo Bittencourt 2014.$"
 mapper_data_filename:   dz      "attract.dat"

@@ -13,7 +13,7 @@ handle = [
 ]
 
 pos = 0
-cur = "disable_screen"
+cur = "disable_screen_black"
 for i in xrange(1 + max(i for i,j in handle)):
   if i >= handle[pos][0]:
     cur = handle[pos][1]
