@@ -898,6 +898,7 @@ cloud_fade_moon_set_sprite:
         add     a, e
         add     hl, de
         djnz    1b
+        ; Copy moon attributes to VRAM.
         SET_VRAM_WRITE moon_attr_addr
         ld      hl, dynamic_moon_attr
         call    smart_zblit
