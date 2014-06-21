@@ -725,6 +725,7 @@ erase_title_vram:
         exx
         ld      hl, cmd_erase_vram_page0
         call    smart_vdp_command
+        VDP_STATUS 0
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1021,9 +1022,43 @@ vdp_command:
 ; ----------------------------------------------------------------
 ; Start a VDP command without stopping the pcm sample.
 ; Input: HL=table with vdp commands
+; Destroy: VDP Status
 
 smart_vdp_command:
+        ; Check for foreground overrun.
+        push    hl
+        call    check_foreground
+        pop     hl
+        ; Check for VDP overrun.
+        VDP_STATUS 2
+1:
+        in      a, (099h)
+        rrca
+        ld      de, str_vdp_error
+        jp      c, abort
+        ; Set VDP to autoincrement. 
+        ld      a, (hl)
+        VDPREG 17
+        ; Setup foreground thread.
+        ld      a, 47
+        sub     (hl)
+        inc     hl
+        push    hl
+        exx
+        pop     hl
+        ld      b, a
+        exx
+        ld      hl, foreground_vdp_command
+        ld      (foreground + 1), hl
         ret
+
+foreground_vdp_command:
+        ld      a, (hl)
+        out     (09Bh), a
+        inc     hl
+        dec     b
+        jp      nz, foreground_next
+        jp      foreground_ret
 
 ; ----------------------------------------------------------------
 ; Decompress graphics without stopping the pcm sample.
@@ -1266,6 +1301,7 @@ str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
 str_read_error:         db      "Error reading from disk, sorry.$"
 str_not_enough_memory:  db      "Not enough memory, sorry.$"
 str_foreground_error:   db      "Foreground thread overrun.$"
+str_vdp_error:          db      "VDP command overrun.$"
 str_loading:            db      "Loading$"
 str_dot:                db      ".$"
 str_press_any_key:      db      13, 10, "Press any key to start.$"
@@ -1316,7 +1352,7 @@ cmd_erase_vram_page0:   VDP_HMMV 0, 0, 256, 192, 0
 cmd_erase_all_vram:     VDP_HMMV 0, 0, 256, 1023, 0
 
 end_of_code:
-        assert  end_of_code < 04000h
+        assert  end_of_code <= 04000h
 
 ; ----------------------------------------------------------------
 ; Mapper Data
@@ -1324,7 +1360,7 @@ end_of_code:
         output  attract.dat
 
         macro   PAGE_LIMIT
-        assert  $ < 0C000h
+        assert  $ <= 0C000h
         endm
 
 ; Mapper pages 0-8
