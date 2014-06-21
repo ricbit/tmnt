@@ -1269,7 +1269,7 @@
 		dw	disable_screen	; 1268
 		dw	disable_screen	; 1269
 		dw	disable_screen	; 1270
-		dw	disable_screen	; 1271
+		dw	erase_title_vram	; 1271
 		dw	copy_title_vram	; 1272
 		dw	disable_screen	; 1273
 		dw	disable_screen	; 1274

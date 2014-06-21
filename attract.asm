@@ -454,12 +454,10 @@ allocate_memory:
         call    callf
 
         ; Clear the vram.
-        ld      iy, (mainrom)
-        ld      ix, bigfil
-        ld      hl, 0
-        ld      bc, 0ffffh
-        xor     a
-        call    callf
+        di
+        ld      hl, cmd_erase_all_vram
+        call    vdp_command
+        ei
 
         ; Set border to color 0.
         di
@@ -717,6 +715,17 @@ title_stand:
         xor     a
         VDPREG  27
         jp      frame_end_exx
+
+; ----------------------------------------------------------------
+; State: erase_title_vram
+; Erase vram page 0 in order to prepare to draw the title.
+
+erase_title_vram:
+        PREAMBLE_VERTICAL
+        exx
+        ld      hl, cmd_erase_vram_page0
+        call    smart_vdp_command
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: copy_title_vram
@@ -984,7 +993,41 @@ zblit_rle:
         jr      zblit
 
 ; ----------------------------------------------------------------
+; Start a VDP command.
+; Input: HL=table with vdp commands
+
+vdp_command:
+        VDP_STATUS 2
+1:
+        in      a, (099h)
+        rrca
+        jr      c, 1b
+        ; Set VDP to autoinc.
+        ld      a, (hl)
+        VDPREG  17
+        ld      a, 47
+        sub     (hl)
+        ld      b, a
+        ld      c, 09Bh
+        inc     hl
+        otir
+1:
+        in      a, (099h)
+        rrca
+        jr      c, 1b
+        VDP_STATUS 0
+        ret
+
+; ----------------------------------------------------------------
+; Start a VDP command without stopping the pcm sample.
+; Input: HL=table with vdp commands
+
+smart_vdp_command:
+        ret
+
+; ----------------------------------------------------------------
 ; Decompress graphics without stopping the pcm sample.
+; Input: HL=graphics
 
 smart_zblit:
         ld      a, (is_playing)
@@ -995,12 +1038,7 @@ smart_zblit:
         exx
         pop     hl
         exx
-        ld      hl, (foreground + 1)
-        ld      de, foreground_next
-        or      a
-        sbc     hl, de
-        ld      de, str_foreground_error
-        jp      nz, abort
+        call    check_foreground
         ld      hl, foreground_zblit
         ld      (foreground + 1), hl
         ret
@@ -1063,12 +1101,7 @@ smart_palette:
         pop     hl
         ld      b, 32
         exx
-        ld      hl, (foreground + 1)
-        ld      de, foreground_next
-        or      a
-        sbc     hl, de
-        ld      de, str_foreground_error
-        jp      nz, abort
+        call    check_foreground
         ld      hl, foreground_palette
         ld      (foreground + 1), hl
         ret
@@ -1085,6 +1118,15 @@ foreground_ret:
         ld      hl, foreground_next
         ld      (foreground + 1), hl
         jp      (hl)
+
+check_foreground:
+        ld      hl, (foreground + 1)
+        ld      de, foreground_next
+        or      a
+        sbc     hl, de
+        ld      de, str_foreground_error
+        jp      nz, abort
+        ret
 
 ; ----------------------------------------------------------------
 ; Restore the VDP interrupt settings.
@@ -1252,6 +1294,26 @@ dynamic_moon_attr:
         db      14, 72 + 16, 0, 0
         endr
         db      0
+
+; VDP commands
+
+        macro   VDP_HMMV dx, dy, nx, ny, color
+        db      36
+        db      dx and 255
+        db      dx >> 8
+        db      dy and 255
+        db      dy >> 8
+        db      nx and 255
+        db      nx >> 8
+        db      ny and 255
+        db      ny >> 8
+        db      color
+        db      0
+        db      0C0h
+        endm
+
+cmd_erase_vram_page0:   VDP_HMMV 0, 0, 256, 192, 0
+cmd_erase_all_vram:     VDP_HMMV 0, 0, 256, 1023, 0
 
 end_of_code:
         assert  end_of_code < 04000h
