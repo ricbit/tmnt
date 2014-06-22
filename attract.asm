@@ -283,6 +283,7 @@ delay_theme_music:
         out     (systml), a
         ld      a, 1
         ld      (is_playing), a
+        ld      de, 04000h
 change_sample_mapper:
         ; Set mapper page.
         push    hl
@@ -291,7 +292,6 @@ change_sample_mapper:
         inc     hl
         ld      (pcm_mapper_page), hl
         call    fast_put_p1
-        ld      de, temp
         pop     hl
 
         in      a, (systml)
@@ -313,12 +313,23 @@ foreground_next:
         in      a, (systml)
         cp      pcm_timer_period
         jr      c, 1b
+        ld      iyl, a
         xor     a
         out     (systml), a
+        ; Increment the pcm counter.
+        ld      iyh, high advance_pcm
+        ld      a, (iy)
+        add     a, e
+        ld      e, a
+        ld      a, 0
+        adc     a, d
+        ld      d, a
 
-        inc     de
+        ; Check the pcm for mapper page change.
         bit     7, d
         jr      z, sample_loop
+        set     6, d
+        res     7, d
         jr      change_sample_mapper
 
 finish_animation:
@@ -1344,6 +1355,9 @@ absolute_scroll:        incbin  "absolute_scroll.bin"
 handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
+
+                        align   256
+advance_pcm:            incbin  "advance_pcm.bin"
 
 ; Dynamic sprite attr data for the moon.
 dynamic_moon_attr:
