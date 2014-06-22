@@ -234,6 +234,8 @@ pcm_timer_period        equ     23
 start:
         call    global_init
 start_attract:
+        call    local_init
+
         ; Reset the animation.
         ld      de, state_start
         ld      hl, state_backup
@@ -443,6 +445,18 @@ allocate_memory:
         ld      a, 1
         ld      (graphics_on), a
 
+        ; Backup animation state on startup.
+        ld      hl, state_start
+        ld      de, state_backup
+        ld      bc, state_end - state_start
+        ldir
+
+        ret
+
+; ----------------------------------------------------------------
+; Initialization to be performed every time.
+
+local_init:
         ; Disable screen.
         ld      iy, (mainrom)
         ld      ix, disscr
@@ -509,12 +523,6 @@ allocate_memory:
         ei
         ld      hl, city_page1
         call    zblit
-
-        ; Backup animation state on startup.
-        ld      hl, state_start
-        ld      de, state_backup
-        ld      bc, state_end - state_start
-        ldir
 
         ret
 

@@ -1,8 +1,8 @@
 handle = [
     (574,  "cloud_setup"),
     (575,  "cloud_fade"),
-    (794,  "disable_screen_black"),
-    (795,  "disable_screen"),
+    #(794,  "disable_screen_black"),
+    #(795,  "disable_screen"),
     (1271, "erase_title_vram"),
     (1272, "copy_title_vram"),
     (1273, "disable_screen"),
