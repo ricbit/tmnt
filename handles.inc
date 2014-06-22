@@ -573,8 +573,8 @@
 		dw	disable_screen_black	; 572
 		dw	disable_screen_black	; 573
 		dw	cloud_setup	; 574
-		dw	cloud_fade	; 575
-		dw	cloud_fade	; 576
+		dw	cloud_setup	; 575
+		dw	cloud_fade_first	; 576
 		dw	cloud_fade	; 577
 		dw	cloud_fade	; 578
 		dw	cloud_fade	; 579

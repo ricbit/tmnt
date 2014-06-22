@@ -1,5 +1,6 @@
 handle = [
     (574,  "cloud_setup"),
+    (576,  "cloud_fade_first"),
     (575,  "cloud_fade"),
     (794,  "disable_screen_black"),
     (795,  "disable_screen"),

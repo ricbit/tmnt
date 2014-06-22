@@ -56,6 +56,10 @@ temp            equ     04000h  ; Temp buffer for disk loading
 ; ----------------------------------------------------------------
 ; VRAM layout
 
+cloud2_addr             equ     10000h
+cloud3_addr             equ     18000h
+city1_addr              equ     08000h
+title_addr              equ     08000h
 moon_pattern_addr       equ     00000h
 moon_attr_addr          equ     13200h
 
@@ -228,6 +232,15 @@ pcm_timer_period        equ     23
         VDPREG 17
         endm
 
+; Set the value of the h scroll
+        macro   SET_HSCROLL value
+.X = (value + 7) / 8
+        ld      a, .X
+        VDPREG  26
+        ld      a, .X * 8 - value
+        VDPREG  27
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -235,12 +248,6 @@ start:
         call    global_init
 start_attract:
         call    local_init
-
-        ; Reset the animation.
-        ld      de, state_start
-        ld      hl, state_backup
-        ld      bc, state_end - state_start
-        ldir
 
         ; Install new interrupt handler.
         di
@@ -487,6 +494,7 @@ local_init:
         ; Enable 192 lines.
         ld      a, (vdpr9)
         and     127
+        ld      (vdpr9), a
         VDPREG  9
 
         ; Enable 16 colors and turn off sprites.
@@ -500,14 +508,14 @@ local_init:
         ld      a, (mapper_selectors + 9)
         call    fast_put_p2
         di
-        SET_VRAM_WRITE 010000h
+        SET_VRAM_WRITE cloud2_addr
         ei
         ld      hl, cloud_page2
         call    zblit
 
         ; Copy cloud3 to vram.
         di
-        SET_VRAM_WRITE 018000h
+        SET_VRAM_WRITE cloud3_addr
         ei
         ld      hl, cloud_page3
         call    zblit
@@ -530,10 +538,16 @@ local_init:
 
         ; Copy city1 to vram.
         di
-        SET_VRAM_WRITE 08000h
+        SET_VRAM_WRITE city1_addr
         ei
         ld      hl, city_page1
         call    zblit
+
+        ; Reset the animation.
+        ld      de, state_start
+        ld      hl, state_backup
+        ld      bc, state_end - state_start
+        ldir
 
         ret
 
@@ -631,12 +645,7 @@ title_bounce:
         ld      (vertical_scroll), a
 
         WIDE_SCROLL
-
-        ; Set h scroll to page 1
-        ld      a, 32
-        VDPREG  26
-        ld      a, 0
-        VDPREG  27
+        SET_HSCROLL 256
 
         ; If the logo is too low, disable screen
         ld      a, (hl)
@@ -685,10 +694,7 @@ title_slide:
         HSPLIT_LINE 47
         VDP_STATUS 1
         ENABLE_HIRQ
-        ld      a, 32
-        VDPREG  26
-        xor     a
-        VDPREG  27
+        SET_HSCROLL 256
         exx
         NEXT_HANDLE title_slide_scroll
         jp      return_irq_exx
@@ -718,10 +724,6 @@ title_slide_scroll:
 title_slide_disable:
         PREAMBLE_HORIZONTAL
         DISABLE_SCREEN
-        ; Reset h scroll
-        xor     a
-        VDPREG  26
-        VDPREG  27
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end_exx
@@ -733,10 +735,7 @@ title_slide_disable:
 title_stand:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
-        ld      a, 32
-        VDPREG  26
-        xor     a
-        VDPREG  27
+        SET_HSCROLL 256
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
@@ -757,7 +756,7 @@ erase_title_vram:
 
 copy_title_vram:
         PREAMBLE_VERTICAL
-        SET_VRAM_WRITE 08000h
+        SET_VRAM_WRITE title_addr
         ld      a, (mapper_selectors + 9)
         call    fast_put_p2
         exx
@@ -792,14 +791,19 @@ disable_screen_black:
 
 cloud_setup:
         PREAMBLE_VERTICAL
-        DISABLE_SCREEN
-        SET_PAGE 3
-        SPRITES_ON
         WIDE_SCROLL
         SPRITES_16x16
         SPRITE_ATTR moon_attr_addr
-        SPRITE_PATTERN moon_pattern_addr
         jp      cloud_fade_moon_set_sprite
+
+; ----------------------------------------------------------------
+; State: cloud_fade_first
+; First frame of fade in the clouds.
+
+cloud_fade_first:
+        PREAMBLE_VERTICAL
+        ENABLE_SCREEN
+        jr      cloud_fade_common
 
 ; ----------------------------------------------------------------
 ; State: cloud_fade
@@ -807,7 +811,7 @@ cloud_setup:
 
 cloud_fade:
         PREAMBLE_VERTICAL
-        ENABLE_SCREEN
+cloud_fade_common:
         SET_PAGE 3
         SPRITES_ON
         ; Set v scroll.
