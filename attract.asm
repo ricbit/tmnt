@@ -298,11 +298,6 @@ sample_loop:
         ld      a, (de)
         out     (pcm), a
 
-        ; Up to 10 outs here
-        ;rept 10
-        ;out (98h) ,a
-        ;endm
-
 foreground:
         jp      foreground_next
 foreground_next:
@@ -477,7 +472,7 @@ allocate_memory:
         ei
 
         ; Copy cloud2 to vram.
-        ld      a, (mapper_selectors + 10)
+        ld      a, (mapper_selectors + 9)
         call    fast_put_p2
         di
         SET_VRAM_WRITE 010000h
@@ -493,6 +488,8 @@ allocate_memory:
         call    zblit
 
         ; Copy moon sprite patterns to vram.
+        ld      a, (mapper_selectors + 10)
+        call    fast_put_p2
         di
         SET_VRAM_WRITE moon_pattern_addr
         ei
@@ -504,6 +501,13 @@ allocate_memory:
         SET_VRAM_WRITE (moon_attr_addr - 512)
         ei
         ld      hl, moon_attr
+        call    zblit
+
+        ; Copy city1 to vram.
+        di
+        SET_VRAM_WRITE 08000h
+        ei
+        ld      hl, city_page1
         call    zblit
 
         ; Backup animation state on startup.
@@ -785,6 +789,11 @@ cloud_setup:
 cloud_fade:
         PREAMBLE_VERTICAL
         ENABLE_SCREEN
+        SET_PAGE 3
+        SPRITES_ON
+        ; Set v scroll.
+        xor     a
+        VDPREG 23
         exx
         ld      hl, (palette_fade)
         ld      a, (palette_fade_counter)
@@ -873,16 +882,22 @@ cloud_fade_patch4:
 
 cloud_fade_second_bottom:
         PREAMBLE_HORIZONTAL
+        ; Set h scroll
         ld      a, 32
         out     (09Bh), a
         xor     a
         out     (09Bh), a
+        ; Set v scroll.
+        ld      a, 256 - 80
+        VDPREG 23
+        SET_PAGE 1
+        SPRITES_OFF
         exx
         ld      hl, (palette_fade)
         ld      de, city_fade_palette - cloud_fade_palette
         add     hl, de
         call    smart_palette
-        HSPLIT_LINE 150
+        HSPLIT_LINE 150 - 79
         NEXT_HANDLE cloud_fade_moon_sprites
         jp      return_irq_exx
 
@@ -1369,13 +1384,14 @@ theme_music:            incbin "theme.pcm"
 ; Mapper page 9
                         .phase  08000h
 opening_title:          incbin "tmnt.z5"
+cloud_page2:            incbin "cloud2.z5"
+cloud_page3:            incbin "cloud3.z5"
                         PAGE_LIMIT                
                         align 16384
 
 ; Mapper page 10
                         .phase  08000h
-cloud_page2:            incbin "cloud2.z5"
-cloud_page3:            incbin "cloud3.z5"
+city_page1:             incbin "city1.z5"
 moon_pattern:           incbin "moon_pattern.z5"
 moon_attr:              incbin "moon_attr.z5"
                         PAGE_LIMIT
