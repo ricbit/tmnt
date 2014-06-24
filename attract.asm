@@ -883,10 +883,6 @@ cloud_fade_second_top:
         PREAMBLE_HORIZONTAL
 cloud_fade_patch2:
         FAST_SET_HSCROLL 0
-        ld      a, 0
-        out     (09Bh), a
-        ld      a, 0
-        out     (09Bh), a
         exx
         HSPLIT_LINE 79
         VDP_AUTOINC vdp_hscroll_h
@@ -895,7 +891,6 @@ cloud_fade_patch2:
 
 cloud_fade_second_bottom:
         PREAMBLE_HORIZONTAL
-        ; Set h scroll
         FAST_SET_HSCROLL 256
         ; Set v scroll.
         ld      a, (vertical_scroll)
@@ -1065,7 +1060,6 @@ cloud_down3_patch:
 
 cloud_down3_second_bottom:
         PREAMBLE_HORIZONTAL
-        ; Set h scroll
         FAST_SET_HSCROLL 256
         ; Set v scroll.
         ld      a, (vertical_scroll)
@@ -1083,7 +1077,7 @@ cloud_down3_second_bottom:
 ; ----------------------------------------------------------------
 ; State: cloud_down4
 ; Start scrolling down the clouds, step 4.
-; Second cloud visible.
+; Bottom cloud visible.
 
 cloud_down4:
         PREAMBLE_VERTICAL
@@ -1108,7 +1102,6 @@ cloud_down4:
 
 cloud_down4_second_bottom:
         PREAMBLE_HORIZONTAL
-        ; Set h scroll
         FAST_SET_HSCROLL 256
         ; Set v scroll.
         ld      a, (vertical_scroll)
