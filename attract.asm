@@ -53,6 +53,9 @@ put_p1          equ     0001eh  ; Entry point for mapper put_p1
 put_p2          equ     00024h  ; Entry point for mapper put_p2
 all_seg         equ     00000h  ; Allocate a mapper segment
 temp            equ     04000h  ; Temp buffer for disk loading
+vdp_vscroll     equ     00017h  ; VDP register for vertical scroll
+vdp_hscroll_h   equ     0001Ah  ; VDP register for horizontal scroll, high
+vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
 
 ; ----------------------------------------------------------------
 ; Animation states.
@@ -251,11 +254,10 @@ moon_pattern_base_hscroll       equ     108
 
 ; Set the value of the h scroll
         macro   SET_HSCROLL value
-.X = (value + 7) / 8
-        ld      a, .X
-        VDPREG  26
-        ld      a, .X * 8 - value
-        VDPREG  27
+        ld      a, (value + 7) / 8
+        VDPREG vdp_hscroll_h
+        ld      a, ((value + 7) and 01F8h) - value
+        VDPREG vdp_hscroll_l
         endm
 
 ; ----------------------------------------------------------------
@@ -656,7 +658,7 @@ title_bounce:
         ld      d, 0
         add     hl, de
         ld      a, (hl)
-        VDPREG  23
+        VDPREG vdp_vscroll
         ld      a, (vertical_scroll)
         inc     a
         ld      (vertical_scroll), a
@@ -727,10 +729,10 @@ title_slide_scroll:
         add     hl, de
         add     hl, de
         ld      a, (hl)
-        VDPREG  26
+        VDPREG vdp_hscroll_h
         inc     hl
         ld      a, (hl)
-        VDPREG  27
+        VDPREG vdp_hscroll_l
         inc     e
         ld      a, e
         ld      (horizontal_scroll), a
@@ -844,7 +846,7 @@ cloud_fade_common:
         add     a, 2
         ld      (vertical_scroll), a
 1:
-        VDPREG 23
+        VDPREG vdp_vscroll
         ld      hl, (palette_fade)
         ld      a, (palette_fade_counter)
         dec     a
@@ -940,7 +942,7 @@ cloud_fade_second_bottom:
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
-        VDPREG 23
+        VDPREG vdp_vscroll
         SET_PAGE 1
         SPRITES_OFF
         exx
@@ -958,18 +960,7 @@ cloud_fade_moon_sprites:
         DISABLE_HIRQ
 cloud_fade_moon_set_sprite:
         exx
-        ; Scroll clouds every 4 frames.
-        ld      hl, cloud1_scroll
-        ld      a, (cloud_tick)
-        dec     a
-        jr      nz, 2f
-        dec     (hl)
-        inc     hl
-        inc     (hl)
-        dec     hl
-        ld      a, 4 + 1
-2:
-        ld      (cloud_tick), a
+        call    update_cloud_scroll
         ; Set sprite pattern base.
         ld      a, (cloud1_scroll)
         sub     moon_pattern_base_hscroll
@@ -998,6 +989,21 @@ cloud_fade_moon_set_sprite:
         call    smart_zblit
         jp      frame_end
 
+update_cloud_scroll:        
+        ; Scroll clouds every 4 frames.
+        ld      hl, cloud1_scroll
+        ld      a, (cloud_tick)
+        dec     a
+        jr      nz, 1f
+        dec     (hl)
+        inc     hl
+        inc     (hl)
+        dec     hl
+        ld      a, 4 + 1
+1:
+        ld      (cloud_tick), a
+        ret
+
 ; ----------------------------------------------------------------
 ; State: cloud_down2
 ; Start scrolling down the clouds, step 2.
@@ -1011,25 +1017,16 @@ cloud_down2:
         ld      a, (vertical_scroll)
         add     a, 2
         ld      (vertical_scroll), a
-        VDPREG 23
+        VDPREG vdp_vscroll
         exx
         ld      hl, cloud_palette_final
         call    smart_palette
 
         VDP_STATUS 1
         ENABLE_HIRQ
-        ld      a, (cloud1_scroll)
         ; Set directly the scroll values for cloud 1.
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        VDPREG  26
-        inc     hl
-        ld      a, (hl)
-        VDPREG  27
+        ld      a, (cloud1_scroll)
+        call    set_absolute_scroll
         HSPLIT_LINE 40
         ; Patch the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
@@ -1047,6 +1044,20 @@ cloud_down2:
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
 
+set_absolute_scroll:
+        ; Set an absolute horizontal scroll.
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        VDPREG vdp_hscroll_h
+        inc     hl
+        ld      a, (hl)
+        VDPREG vdp_hscroll_l
+        ret
+ 
 ; ----------------------------------------------------------------
 ; State: cloud_down3
 ; Start scrolling down the clouds, step 3.
@@ -1060,7 +1071,7 @@ cloud_down3:
         ld      a, (vertical_scroll)
         add     a, 2
         ld      (vertical_scroll), a
-        VDPREG 23
+        VDPREG vdp_vscroll
         exx
         ld      hl, cloud_palette_final
         call    smart_palette
@@ -1107,25 +1118,14 @@ cloud_down3_second_bottom:
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
-        VDPREG 23
+        VDPREG vdp_vscroll
         SET_PAGE 1
         exx
         ld      hl, city_palette_final
         call    smart_palette
         VDP_STATUS 0
         DISABLE_HIRQ
-        ; Scroll clouds every 4 frames.
-        ld      hl, cloud1_scroll
-        ld      a, (cloud_tick)
-        dec     a
-        jr      nz, 2f
-        dec     (hl)
-        inc     hl
-        inc     (hl)
-        dec     hl
-        ld      a, 4 + 1
-2:
-        ld      (cloud_tick), a
+        call    update_cloud_scroll
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1140,7 +1140,7 @@ cloud_down4:
         ld      a, (vertical_scroll)
         add     a, 2
         ld      (vertical_scroll), a
-        VDPREG 23
+        VDPREG vdp_vscroll
         exx
         ld      hl, cloud_palette_final
         call    smart_palette
@@ -1148,16 +1148,7 @@ cloud_down4:
         ENABLE_HIRQ
         ; Set directly the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        VDPREG  26
-        inc     hl
-        ld      a, (hl)
-        VDPREG  27
+        call    set_absolute_scroll
         HSPLIT_LINE 79
         VDP_AUTOINC 26
         NEXT_HANDLE cloud_down4_second_bottom
@@ -1173,25 +1164,14 @@ cloud_down4_second_bottom:
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
-        VDPREG 23
+        VDPREG vdp_vscroll
         SET_PAGE 1
         exx
         ld      hl, city_palette_final
         call    smart_palette
         VDP_STATUS 0
         DISABLE_HIRQ
-        ; Scroll clouds every 4 frames.
-        ld      hl, cloud1_scroll
-        ld      a, (cloud_tick)
-        dec     a
-        jr      nz, 2f
-        dec     (hl)
-        inc     hl
-        inc     (hl)
-        dec     hl
-        ld      a, 4 + 1
-2:
-        ld      (cloud_tick), a
+        call    update_cloud_scroll
         jp      frame_end
 
 ; ----------------------------------------------------------------
