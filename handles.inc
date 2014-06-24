@@ -816,22 +816,22 @@
 		dw	cloud_down3	; 815
 		dw	cloud_down3	; 816
 		dw	cloud_down3	; 817
-		dw	disable_screen_black	; 818
-		dw	disable_screen	; 819
-		dw	disable_screen	; 820
-		dw	disable_screen	; 821
-		dw	disable_screen	; 822
-		dw	disable_screen	; 823
-		dw	disable_screen	; 824
-		dw	disable_screen	; 825
-		dw	disable_screen	; 826
-		dw	disable_screen	; 827
-		dw	disable_screen	; 828
-		dw	disable_screen	; 829
-		dw	disable_screen	; 830
-		dw	disable_screen	; 831
-		dw	disable_screen	; 832
-		dw	disable_screen	; 833
+		dw	cloud_down4	; 818
+		dw	cloud_down4	; 819
+		dw	cloud_down4	; 820
+		dw	cloud_down4	; 821
+		dw	cloud_down4	; 822
+		dw	cloud_down4	; 823
+		dw	cloud_down4	; 824
+		dw	cloud_down4	; 825
+		dw	cloud_down4	; 826
+		dw	cloud_down4	; 827
+		dw	cloud_down4	; 828
+		dw	cloud_down4	; 829
+		dw	cloud_down4	; 830
+		dw	cloud_down4	; 831
+		dw	cloud_down4	; 832
+		dw	disable_screen_black	; 833
 		dw	disable_screen	; 834
 		dw	disable_screen	; 835
 		dw	disable_screen	; 836
