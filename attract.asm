@@ -1142,6 +1142,146 @@ cloud_down1_moon_set_sprite:
         jp      frame_end
 
 ; ----------------------------------------------------------------
+; State: cloud_down2
+; Start scrolling down the clouds, step 2.
+
+cloud_down2:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        SPRITES_ON
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 2
+        ld      (vertical_scroll), a
+        VDPREG 23
+        exx
+        ld      hl, cloud_palette_final
+        call    smart_palette
+
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        ld      a, (cloud1_scroll)
+        ; Set directly the scroll values for cloud 1.
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        VDPREG  26
+        inc     hl
+        ld      a, (hl)
+        VDPREG  27
+        HSPLIT_LINE 40
+        ; Patch the scroll values for cloud 2.
+        ld      a, (cloud2_scroll)
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        ld      (cloud_down2_patch3 + 1), a
+        inc     hl
+        ld      a, (hl)
+        ld      (cloud_down2_patch4 + 1), a
+        VDP_AUTOINC 26
+        NEXT_HANDLE cloud_down2_first_bottom
+        jp      return_irq_exx
+
+cloud_down2_first_bottom:  
+        PREAMBLE_HORIZONTAL
+        ld      a, 32
+        out     (09Bh), a
+        xor     a
+        out     (09Bh), a
+        HSPLIT_LINE 49
+        exx
+        NEXT_HANDLE cloud_down2_second_top
+        VDP_AUTOINC 26
+        jp      return_irq_exx
+
+cloud_down2_second_top:
+        PREAMBLE_HORIZONTAL
+cloud_down2_patch3:
+        ld      a, 0
+        out     (09Bh), a
+cloud_down2_patch4:
+        ld      a, 0
+        out     (09Bh), a
+        exx
+        HSPLIT_LINE 79
+        VDP_AUTOINC 26
+        NEXT_HANDLE cloud_down2_second_bottom
+        jp      return_irq_exx
+
+cloud_down2_second_bottom:
+        PREAMBLE_HORIZONTAL
+        ; Set h scroll
+        ld      a, 32
+        out     (09Bh), a
+        xor     a
+        out     (09Bh), a
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 256 - 80
+        VDPREG 23
+        SET_PAGE 1
+        SPRITES_OFF
+        exx
+        ld      hl, city_palette_final
+        call    smart_palette
+        HSPLIT_LINE 150 - 79
+        NEXT_HANDLE cloud_down2_moon_sprites
+        jp      return_irq_exx
+
+cloud_down2_moon_sprites:
+        PREAMBLE_HORIZONTAL
+        VDP_STATUS 0
+        DISABLE_HIRQ
+cloud_down2_moon_set_sprite:
+        exx
+        ; Scroll clouds every 4 frames.
+        ld      hl, cloud1_scroll
+        ld      a, (cloud_tick)
+        dec     a
+        jr      nz, 2f
+        dec     (hl)
+        inc     hl
+        inc     (hl)
+        dec     hl
+        ld      a, 4 + 1
+2:
+        ld      (cloud_tick), a
+        ; Set sprite pattern base.
+        ld      a, (cloud1_scroll)
+        sub     moon_pattern_base_hscroll
+        ld      d, a
+        srl     a
+        srl     a
+        srl     a
+        VDPREG 6
+        ; Set sprite attributes.
+        ld      b, 8
+        ld      a, d
+        and     7
+        rrca
+        rrca
+        rrca
+        ld      hl, dynamic_moon_attr + 3
+        ld      de, 4
+1:
+        ld      (hl), a
+        add     a, e
+        add     hl, de
+        djnz    1b
+        ; Copy moon attributes to VRAM.
+        SET_VRAM_WRITE moon_attr_addr
+        ld      hl, dynamic_moon_attr
+        call    smart_zblit
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: disable_screen_title
 ; Disable the screen just before the title
 

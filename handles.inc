@@ -799,20 +799,20 @@
 		dw	cloud_down1	; 798
 		dw	cloud_down1	; 799
 		dw	cloud_down1	; 800
-		dw	disable_screen_black	; 801
-		dw	disable_screen	; 802
-		dw	disable_screen	; 803
-		dw	disable_screen	; 804
-		dw	disable_screen	; 805
-		dw	disable_screen	; 806
-		dw	disable_screen	; 807
-		dw	disable_screen	; 808
-		dw	disable_screen	; 809
-		dw	disable_screen	; 810
-		dw	disable_screen	; 811
-		dw	disable_screen	; 812
-		dw	disable_screen	; 813
-		dw	disable_screen	; 814
+		dw	cloud_down2	; 801
+		dw	cloud_down2	; 802
+		dw	cloud_down2	; 803
+		dw	cloud_down2	; 804
+		dw	cloud_down2	; 805
+		dw	cloud_down2	; 806
+		dw	cloud_down2	; 807
+		dw	cloud_down2	; 808
+		dw	cloud_down2	; 809
+		dw	cloud_down2	; 810
+		dw	cloud_down2	; 811
+		dw	cloud_down2	; 812
+		dw	cloud_down2	; 813
+		dw	disable_screen_black	; 814
 		dw	disable_screen	; 815
 		dw	disable_screen	; 816
 		dw	disable_screen	; 817
