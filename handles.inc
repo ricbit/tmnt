@@ -826,12 +826,12 @@
 		dw	cloud_down4	; 825
 		dw	cloud_down4	; 826
 		dw	cloud_down4	; 827
-		dw	cloud_down4	; 828
-		dw	cloud_down4	; 829
-		dw	cloud_down4	; 830
-		dw	cloud_down4	; 831
-		dw	cloud_down4	; 832
-		dw	disable_screen_black	; 833
+		dw	disable_screen_black	; 828
+		dw	disable_screen	; 829
+		dw	disable_screen	; 830
+		dw	disable_screen	; 831
+		dw	disable_screen	; 832
+		dw	disable_screen	; 833
 		dw	disable_screen	; 834
 		dw	disable_screen	; 835
 		dw	disable_screen	; 836
