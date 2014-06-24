@@ -792,14 +792,14 @@
 		dw	cloud_fade	; 791
 		dw	cloud_fade	; 792
 		dw	cloud_fade	; 793
-		dw	disable_screen_black	; 794
-		dw	disable_screen	; 795
-		dw	disable_screen	; 796
-		dw	disable_screen	; 797
-		dw	disable_screen	; 798
-		dw	disable_screen	; 799
-		dw	disable_screen	; 800
-		dw	disable_screen	; 801
+		dw	cloud_down1	; 794
+		dw	cloud_down1	; 795
+		dw	cloud_down1	; 796
+		dw	cloud_down1	; 797
+		dw	cloud_down1	; 798
+		dw	cloud_down1	; 799
+		dw	cloud_down1	; 800
+		dw	disable_screen_black	; 801
 		dw	disable_screen	; 802
 		dw	disable_screen	; 803
 		dw	disable_screen	; 804

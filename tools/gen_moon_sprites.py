@@ -3,7 +3,7 @@ raw = [ord(i) for i in open("moon.raw", "rb").read()]
 colors = [1,3,6,7]
 sprites = []
 startx, starty = 72, 15
-for cloudx in xrange(114, 159):
+for cloudx in xrange(108, 159):
   for c in colors:
     for oi in xrange(2):
       for i in xrange(2):
