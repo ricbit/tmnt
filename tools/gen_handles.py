@@ -2,7 +2,6 @@ handle = [
     (574,  "cloud_setup"),
     (576,  "cloud_fade_first"),
     (575,  "cloud_fade"),
-    (794,  "cloud_down1"),
     (801,  "cloud_down2"),
     (814,  "cloud_down3"),
     (818,  "cloud_down4"),

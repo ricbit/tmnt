@@ -792,13 +792,13 @@
 		dw	cloud_fade	; 791
 		dw	cloud_fade	; 792
 		dw	cloud_fade	; 793
-		dw	cloud_down1	; 794
-		dw	cloud_down1	; 795
-		dw	cloud_down1	; 796
-		dw	cloud_down1	; 797
-		dw	cloud_down1	; 798
-		dw	cloud_down1	; 799
-		dw	cloud_down1	; 800
+		dw	cloud_fade	; 794
+		dw	cloud_fade	; 795
+		dw	cloud_fade	; 796
+		dw	cloud_fade	; 797
+		dw	cloud_fade	; 798
+		dw	cloud_fade	; 799
+		dw	cloud_fade	; 800
 		dw	cloud_down2	; 801
 		dw	cloud_down2	; 802
 		dw	cloud_down2	; 803
