@@ -812,11 +812,11 @@
 		dw	cloud_down2	; 811
 		dw	cloud_down2	; 812
 		dw	cloud_down2	; 813
-		dw	disable_screen_black	; 814
-		dw	disable_screen	; 815
-		dw	disable_screen	; 816
-		dw	disable_screen	; 817
-		dw	disable_screen	; 818
+		dw	cloud_down3	; 814
+		dw	cloud_down3	; 815
+		dw	cloud_down3	; 816
+		dw	cloud_down3	; 817
+		dw	disable_screen_black	; 818
 		dw	disable_screen	; 819
 		dw	disable_screen	; 820
 		dw	disable_screen	; 821

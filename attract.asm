@@ -1282,6 +1282,94 @@ cloud_down2_moon_set_sprite:
         jp      frame_end
 
 ; ----------------------------------------------------------------
+; State: cloud_down3
+; Start scrolling down the clouds, step 3.
+
+cloud_down3:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        SPRITES_OFF
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 2
+        ld      (vertical_scroll), a
+        VDPREG 23
+        exx
+        ld      hl, cloud_palette_final
+        call    smart_palette
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        ; Patch the scroll values for cloud 2.
+        ld      a, (cloud2_scroll)
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        ld      (cloud_down3_patch3 + 1), a
+        inc     hl
+        ld      a, (hl)
+        ld      (cloud_down3_patch4 + 1), a
+        HSPLIT_LINE 49
+        NEXT_HANDLE cloud_down3_second_top
+        VDP_AUTOINC 26
+        jp      return_irq_exx
+
+cloud_down3_second_top:
+        PREAMBLE_HORIZONTAL
+cloud_down3_patch3:
+        ld      a, 0
+        out     (09Bh), a
+cloud_down3_patch4:
+        ld      a, 0
+        out     (09Bh), a
+        exx
+        HSPLIT_LINE 79
+        VDP_AUTOINC 26
+        NEXT_HANDLE cloud_down3_second_bottom
+        jp      return_irq_exx
+
+cloud_down3_second_bottom:
+        PREAMBLE_HORIZONTAL
+        ; Set h scroll
+        ld      a, 32
+        out     (09Bh), a
+        xor     a
+        out     (09Bh), a
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 256 - 80
+        VDPREG 23
+        SET_PAGE 1
+        exx
+        ld      hl, city_palette_final
+        call    smart_palette
+        HSPLIT_LINE 150 - 79
+        NEXT_HANDLE cloud_down3_moon_sprites
+        jp      return_irq_exx
+
+cloud_down3_moon_sprites:
+        PREAMBLE_HORIZONTAL
+        VDP_STATUS 0
+        DISABLE_HIRQ
+cloud_down3_moon_set_sprite:
+        exx
+        ; Scroll clouds every 4 frames.
+        ld      hl, cloud1_scroll
+        ld      a, (cloud_tick)
+        dec     a
+        jr      nz, 2f
+        dec     (hl)
+        inc     hl
+        inc     (hl)
+        dec     hl
+        ld      a, 4 + 1
+2:
+        ld      (cloud_tick), a
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: disable_screen_title
 ; Disable the screen just before the title
 
