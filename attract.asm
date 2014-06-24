@@ -55,6 +55,7 @@ temp            equ     04000h  ; Temp buffer for disk loading
 vdp_vscroll     equ     00017h  ; VDP register for vertical scroll
 vdp_hscroll_h   equ     0001Ah  ; VDP register for horizontal scroll, high
 vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
+vdp_sprite_patt equ     00006h  ; VDP register for sprite pattern base addr
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -63,7 +64,7 @@ cloud2_addr             equ     10000h
 cloud3_addr             equ     18000h
 city1_addr              equ     08000h
 title_addr              equ     08000h
-moon_pattern_addr       equ     00000h
+moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
 
 ; ----------------------------------------------------------------
@@ -219,7 +220,7 @@ moon_pattern_base_hscroll       equ     108
         macro   SPRITE_PATTERN addr
         assert  (addr and ((1 << 11) - 1)) == 0
         ld      a, addr >> 11
-        VDPREG  6
+        VDPREG vdp_sprite_patt
         endm
         
 ; Set a VDP register to auto-increment
@@ -921,7 +922,8 @@ cloud_fade_moon_set_sprite:
         srl     a
         srl     a
         srl     a
-        VDPREG 6
+        add     a, moon_pattern_addr >> 11
+        VDPREG vdp_sprite_patt
         ; Set sprite attributes.
         ld      b, 8
         ld      a, d
