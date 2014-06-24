@@ -6,7 +6,6 @@
         output  attract.com
             
         org     0100h
-        jp      start_main
 
 ; Required memory, in mapper 16kb selectors
 selectors       equ     11
@@ -58,21 +57,6 @@ vdp_hscroll_h   equ     0001Ah  ; VDP register for horizontal scroll, high
 vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
 
 ; ----------------------------------------------------------------
-; Animation states.
-state_start:
-current_frame:          dw      520
-vertical_scroll:        db      0
-horizontal_scroll:      db      0
-palette_fade:           dw      cloud_fade_palette
-palette_fade_counter:   db      16
-cloud1_scroll:          db      158
-cloud2_scroll:          db      146
-cloud_tick:             db      1
-is_playing:             db      0
-pcm_mapper_page:        dw      mapper_selectors
-state_end:
-
-; ----------------------------------------------------------------
 ; VRAM layout
 
 cloud2_addr             equ     10000h
@@ -90,30 +74,22 @@ pcm_timer_period                equ     23
 moon_pattern_base_hscroll       equ     108
 
 ; ----------------------------------------------------------------
-; Set a VDP register
-; Input: A = value
-; Destroys: A
+; Helpers for the states.
 
+; Set a VDP register
         macro   VDPREG reg
         out     (099h), a
         ld      a, 128 + reg
         out     (099h), a
         endm
 
-; ----------------------------------------------------------------
 ; Set entire palette
-; Input: HL = palette
-; Destroys: A, HL, BC
-
         macro   SET_PALETTE
         xor     a
         VDPREG  16
         ld      bc, (16 * 2) * 256 + 09Ah
         otir
         endm
-
-; ----------------------------------------------------------------
-; Helpers for the states.
 
 ; Set VRAM address to write
         macro   SET_VRAM_WRITE addr
@@ -239,7 +215,7 @@ moon_pattern_base_hscroll       equ     108
         VDPREG  11
         endm
 
- ; Set sprite pattern table.
+; Set sprite pattern table.
         macro   SPRITE_PATTERN addr
         assert  (addr and ((1 << 11) - 1)) == 0
         ld      a, addr >> 11
@@ -258,6 +234,14 @@ moon_pattern_base_hscroll       equ     108
         VDPREG vdp_hscroll_h
         ld      a, ((value + 7) and 01F8h) - value
         VDPREG vdp_hscroll_l
+        endm
+
+; Set the value of the h scroll using indirect register access
+        macro   FAST_SET_HSCROLL value
+        ld      a, (value + 7) / 8
+        out     (09Bh), a
+        ld      a, ((value + 7) and 01F8h) - value
+        out     (09Bh), a
         endm
 
 ; ----------------------------------------------------------------
@@ -847,11 +831,11 @@ cloud_fade_common:
         ld      (vertical_scroll), a
 1:
         VDPREG vdp_vscroll
+        ; Change palette every 6 frames.
         ld      hl, (palette_fade)
         ld      a, (palette_fade_counter)
         dec     a
         jr      nz, 1f
-        ; Change palette every 6 frames.
         ld      hl, (palette_fade)
         ld      de, 16 * 2
         add     hl, de
@@ -864,81 +848,55 @@ cloud_fade_common:
         HSPLIT_LINE 14
         VDP_STATUS 1
         ENABLE_HIRQ
-        ld      a, (cloud1_scroll)
         ; Patch the scroll values for cloud 1.
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        ld      (cloud_fade_patch1 + 1), a
-        inc     hl
-        ld      a, (hl)
-        ld      (cloud_fade_patch2 + 1), a
-        VDP_AUTOINC 26
+        ld      a, (cloud1_scroll)
+        ld      ix, cloud_fade_patch
+        call    patch_scroll_values
+        VDP_AUTOINC vdp_hscroll_h
         NEXT_HANDLE cloud_fade_first_top
         jp      return_irq_exx
 
 cloud_fade_first_top:  
         PREAMBLE_HORIZONTAL
-cloud_fade_patch1:
-        ld      a, 0
-        out     (09Bh), a
-cloud_fade_patch2:
-        ld      a, 0
-        out     (09Bh), a
+cloud_fade_patch:
+        FAST_SET_HSCROLL 0
         HSPLIT_LINE 40
         exx
         ; Patch the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        ld      (cloud_fade_patch3 + 1), a
-        inc     hl
-        ld      a, (hl)
-        ld      (cloud_fade_patch4 + 1), a
-        VDP_AUTOINC 26
+        ld      ix, cloud_fade_patch2
+        call    patch_scroll_values
+        VDP_AUTOINC vdp_hscroll_h
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
 
 cloud_fade_first_bottom:  
         PREAMBLE_HORIZONTAL
-        ld      a, 32
-        out     (09Bh), a
-        xor     a
-        out     (09Bh), a
+        FAST_SET_HSCROLL 256
         HSPLIT_LINE 49
         exx
         NEXT_HANDLE cloud_fade_second_top
-        VDP_AUTOINC 26
+        VDP_AUTOINC vdp_hscroll_h
         jp      return_irq_exx
 
 cloud_fade_second_top:
         PREAMBLE_HORIZONTAL
-cloud_fade_patch3:
+cloud_fade_patch2:
+        FAST_SET_HSCROLL 0
         ld      a, 0
         out     (09Bh), a
-cloud_fade_patch4:
         ld      a, 0
         out     (09Bh), a
         exx
         HSPLIT_LINE 79
-        VDP_AUTOINC 26
+        VDP_AUTOINC vdp_hscroll_h
         NEXT_HANDLE cloud_fade_second_bottom
         jp      return_irq_exx
 
 cloud_fade_second_bottom:
         PREAMBLE_HORIZONTAL
         ; Set h scroll
-        ld      a, 32
-        out     (09Bh), a
-        xor     a
-        out     (09Bh), a
+        FAST_SET_HSCROLL 256
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
@@ -989,6 +947,9 @@ cloud_fade_moon_set_sprite:
         call    smart_zblit
         jp      frame_end
 
+; ----------------------------------------------------------------
+; Helpers for the cloud states.
+
 update_cloud_scroll:        
         ; Scroll clouds every 4 frames.
         ld      hl, cloud1_scroll
@@ -1004,7 +965,35 @@ update_cloud_scroll:
         ld      (cloud_tick), a
         ret
 
-; ----------------------------------------------------------------
+patch_scroll_values:
+        ; Patch scroll values for very fast response to HIRQ.
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        ld      (ix + 1), a
+        inc     hl
+        ld      a, (hl)
+        ld      (ix + 5), a
+        ret
+
+set_absolute_scroll:
+        ; Set an absolute horizontal scroll.
+        ld      e, a
+        ld      d, 0
+        ld      hl, absolute_scroll
+        add     hl, de
+        add     hl, de
+        ld      a, (hl)
+        VDPREG vdp_hscroll_h
+        inc     hl
+        ld      a, (hl)
+        VDPREG vdp_hscroll_l
+        ret
+
+ ; ----------------------------------------------------------------
 ; State: cloud_down2
 ; Start scrolling down the clouds, step 2.
 ; Cloud 1 still visible.
@@ -1030,34 +1019,12 @@ cloud_down2:
         HSPLIT_LINE 40
         ; Patch the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        ld      (cloud_fade_patch3 + 1), a
-        inc     hl
-        ld      a, (hl)
-        ld      (cloud_fade_patch4 + 1), a
-        VDP_AUTOINC 26
+        ld      ix, cloud_fade_patch2
+        call    patch_scroll_values
+        VDP_AUTOINC vdp_hscroll_h
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
 
-set_absolute_scroll:
-        ; Set an absolute horizontal scroll.
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        VDPREG vdp_hscroll_h
-        inc     hl
-        ld      a, (hl)
-        VDPREG vdp_hscroll_l
-        ret
- 
 ; ----------------------------------------------------------------
 ; State: cloud_down3
 ; Start scrolling down the clouds, step 3.
@@ -1079,42 +1046,27 @@ cloud_down3:
         ENABLE_HIRQ
         ; Patch the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
-        ld      e, a
-        ld      d, 0
-        ld      hl, absolute_scroll
-        add     hl, de
-        add     hl, de
-        ld      a, (hl)
-        ld      (cloud_down3_patch3 + 1), a
-        inc     hl
-        ld      a, (hl)
-        ld      (cloud_down3_patch4 + 1), a
+        ld      ix, cloud_down3_patch
+        call    patch_scroll_values
         HSPLIT_LINE 49
         NEXT_HANDLE cloud_down3_second_top
-        VDP_AUTOINC 26
+        VDP_AUTOINC vdp_hscroll_h
         jp      return_irq_exx
 
 cloud_down3_second_top:
         PREAMBLE_HORIZONTAL
-cloud_down3_patch3:
-        ld      a, 0
-        out     (09Bh), a
-cloud_down3_patch4:
-        ld      a, 0
-        out     (09Bh), a
+cloud_down3_patch:
+        FAST_SET_HSCROLL 0
         exx
         HSPLIT_LINE 79
-        VDP_AUTOINC 26
+        VDP_AUTOINC vdp_hscroll_h
         NEXT_HANDLE cloud_down3_second_bottom
         jp      return_irq_exx
 
 cloud_down3_second_bottom:
         PREAMBLE_HORIZONTAL
         ; Set h scroll
-        ld      a, 32
-        out     (09Bh), a
-        xor     a
-        out     (09Bh), a
+        FAST_SET_HSCROLL 256
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
@@ -1150,17 +1102,14 @@ cloud_down4:
         ld      a, (cloud2_scroll)
         call    set_absolute_scroll
         HSPLIT_LINE 79
-        VDP_AUTOINC 26
+        VDP_AUTOINC vdp_hscroll_h
         NEXT_HANDLE cloud_down4_second_bottom
         jp      return_irq_exx
 
 cloud_down4_second_bottom:
         PREAMBLE_HORIZONTAL
         ; Set h scroll
-        ld      a, 32
-        out     (09Bh), a
-        xor     a
-        out     (09Bh), a
+        FAST_SET_HSCROLL 256
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
@@ -1519,7 +1468,21 @@ graphics_on:            db      0
 save_palette:           dw      0
 mapper_selectors:       ds      selectors, 0
 
+; ----------------------------------------------------------------
+; Animation states.
 
+state_start:
+current_frame:          dw      520
+vertical_scroll:        db      0
+horizontal_scroll:      db      0
+palette_fade:           dw      cloud_fade_palette
+palette_fade_counter:   db      16
+cloud1_scroll:          db      158
+cloud2_scroll:          db      146
+cloud_tick:             db      1
+is_playing:             db      0
+pcm_mapper_page:        dw      mapper_selectors
+state_end:
 state_backup:           ds      state_end - state_start, 0
 
 ; ----------------------------------------------------------------
