@@ -776,6 +776,8 @@ copy_title_vram:
         SET_VRAM_WRITE title_addr
         ld      a, (mapper_selectors + 9)
         call    fast_put_p2
+        xor     a
+        ld      (vertical_scroll), a
         exx
         ld      hl, opening_title
         call    smart_zblit
@@ -1345,16 +1347,8 @@ cloud_down3_second_bottom:
         exx
         ld      hl, city_palette_final
         call    smart_palette
-        HSPLIT_LINE 150 - 79
-        NEXT_HANDLE cloud_down3_moon_sprites
-        jp      return_irq_exx
-
-cloud_down3_moon_sprites:
-        PREAMBLE_HORIZONTAL
         VDP_STATUS 0
         DISABLE_HIRQ
-cloud_down3_moon_set_sprite:
-        exx
         ; Scroll clouds every 4 frames.
         ld      hl, cloud1_scroll
         ld      a, (cloud_tick)
