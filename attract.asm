@@ -1165,14 +1165,18 @@ cloud_down5_second_bottom:
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 256 - 80
+        ld      (city1_scroll), a
         VDPREG vdp_vscroll
         SET_PAGE 1
         exx
         ld      hl, city_palette_final
         call    smart_palette
-        ld      a, (city_scroll)
-        sub     2
-        //ld      (city_scroll), a
+        ld      a, (city1_scroll)
+        ld      b, a
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        add     a, b
         VDPREG vdp_hsplit_line
         NEXT_HANDLE cloud_down5_city
         jp      return_irq_exx
@@ -1181,9 +1185,10 @@ cloud_down5_city:
         PREAMBLE_HORIZONTAL
         SET_PAGE 0
         exx
-        ld      a, (city_scroll)
-        neg
-        sub     3
+        ld      a, (city_split_line)
+        ld      b, a
+        ld      a, 255
+        sub     b
         VDPREG vdp_vscroll
         DISABLE_HIRQ
         VDP_STATUS 0
@@ -1547,7 +1552,8 @@ palette_fade_counter:   db      16
 cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
-city_scroll:            db      179 + 2
+city_split_line:        db      189 + 10
+city1_scroll:           db      0
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
