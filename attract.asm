@@ -8,7 +8,7 @@
         org     0100h
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     11
+selectors       equ     13
 
 ; MSX bios
 restart         equ     00000h  ; Return to DOS
@@ -56,6 +56,7 @@ vdp_vscroll     equ     00017h  ; VDP register for vertical scroll
 vdp_hscroll_h   equ     0001Ah  ; VDP register for horizontal scroll, high
 vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
 vdp_sprite_patt equ     00006h  ; VDP register for sprite pattern base addr
+vdp_hsplit_line equ     00013h  ; VDP register for horizontal split line
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -63,6 +64,7 @@ vdp_sprite_patt equ     00006h  ; VDP register for sprite pattern base addr
 cloud2_addr             equ     10000h
 cloud3_addr             equ     18000h
 city1_addr              equ     08000h
+city2_addr              equ     00000h
 title_addr              equ     08000h
 moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
@@ -143,7 +145,7 @@ moon_pattern_base_hscroll       equ     108
 ; Set the line where the hsplit will happen
         macro   HSPLIT_LINE line
         ld      a, line
-        VDPREG  19
+        VDPREG  vdp_hsplit_line
         endm
 
 ; Select which VDP status will be the default
@@ -545,6 +547,19 @@ local_init:
         SET_VRAM_WRITE city1_addr
         ei
         ld      hl, city_page1
+        call    zblit
+
+        ; Copy city2 to vram.
+        di
+        SET_VRAM_WRITE city2_addr
+        ei
+        ld      a, (mapper_selectors + 11)
+        call    fast_put_p2
+        ld      hl, city2a
+        call    zblit
+        ld      a, (mapper_selectors + 12)
+        call    fast_put_p2
+        ld      hl, city2b
         call    zblit
 
         ; Reset the animation.
@@ -1119,6 +1134,63 @@ cloud_down4_second_bottom:
         jp      frame_end
 
 ; ----------------------------------------------------------------
+; State: cloud_down5
+; Start scrolling down the clouds, step 5.
+; Bottom cloud visible and city starting to appear.
+
+cloud_down5:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 2
+        ld      (vertical_scroll), a
+        VDPREG vdp_vscroll
+        exx
+        ld      hl, cloud_palette_final
+        call    smart_palette
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        ; Set directly the scroll values for cloud 2.
+        ld      a, (cloud2_scroll)
+        call    set_absolute_scroll
+        HSPLIT_LINE 79
+        VDP_AUTOINC vdp_hscroll_h
+        NEXT_HANDLE cloud_down5_second_bottom
+        jp      return_irq_exx
+
+cloud_down5_second_bottom:
+        PREAMBLE_HORIZONTAL
+        FAST_SET_HSCROLL 256
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 256 - 80
+        VDPREG vdp_vscroll
+        SET_PAGE 1
+        exx
+        ld      hl, city_palette_final
+        call    smart_palette
+        ld      a, (city_scroll)
+        sub     2
+        //ld      (city_scroll), a
+        VDPREG vdp_hsplit_line
+        NEXT_HANDLE cloud_down5_city
+        jp      return_irq_exx
+
+cloud_down5_city:
+        PREAMBLE_HORIZONTAL
+        SET_PAGE 0
+        exx
+        ld      a, (city_scroll)
+        neg
+        sub     3
+        VDPREG vdp_vscroll
+        DISABLE_HIRQ
+        VDP_STATUS 0
+        call    update_cloud_scroll
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: disable_screen_title
 ; Disable the screen just before the title
 
@@ -1475,6 +1547,7 @@ palette_fade_counter:   db      16
 cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
+city_scroll:            db      179 + 2
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -1570,6 +1643,18 @@ cloud_page3:            incbin "cloud3.z5"
 city_page1:             incbin "city1.z5"
 moon_pattern:           incbin "moon_pattern.z5"
 moon_attr:              incbin "moon_attr.z5"
+                        PAGE_LIMIT
+                        align 16384
+
+; Mapper page 11
+                        .phase  08000h
+city2a:                 incbin "city2a.z5"
+                        PAGE_LIMIT
+                        align 16384
+
+; Mapper page 12
+                        .phase  08000h
+city2b:                 incbin "city2b.z5"
                         PAGE_LIMIT
                         align 16384
 
