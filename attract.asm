@@ -57,6 +57,7 @@ vdp_hscroll_h   equ     0001Ah  ; VDP register for horizontal scroll, high
 vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
 vdp_sprite_patt equ     00006h  ; VDP register for sprite pattern base addr
 vdp_hsplit_line equ     00013h  ; VDP register for horizontal split line
+vdp_timp        equ     00008h  ; VDP logic operator TIMP
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -192,7 +193,7 @@ moon_pattern_base_hscroll       equ     108
         VDPREG  8
         endm
 
-; Set sprite size to 16x16
+; Set sprite size to 16x16.
         macro   SPRITES_16x16
         ld      a, (vdpr1)
         or      2
@@ -225,13 +226,13 @@ moon_pattern_base_hscroll       equ     108
         VDPREG vdp_sprite_patt
         endm
         
-; Set a VDP register to auto-increment
+; Set a VDP register to auto-increment.
         macro   VDP_AUTOINC reg
         ld      a, reg
         VDPREG 17
         endm
 
-; Set the value of the h scroll
+; Set the value of the h scroll.
         macro   SET_HSCROLL value
         ld      a, (value + 7) / 8
         VDPREG vdp_hscroll_h
@@ -239,12 +240,66 @@ moon_pattern_base_hscroll       equ     108
         VDPREG vdp_hscroll_l
         endm
 
-; Set the value of the h scroll using indirect register access
+; Set the value of the h scroll using indirect register access.
         macro   FAST_SET_HSCROLL value
         ld      a, (value + 7) / 8
         out     (09Bh), a
         ld      a, ((value + 7) and 01F8h) - value
         out     (09Bh), a
+        endm
+
+; VDP Command HMMV: fill rectangle with a color.
+        macro   VDP_HMMV dx, dy, nx, ny, color
+        db      36
+        db      dx and 255
+        db      dx >> 8
+        db      dy and 255
+        db      dy >> 8
+        db      nx and 255
+        db      nx >> 8
+        db      ny and 255
+        db      ny >> 8
+        db      color
+        db      0
+        db      0C0h
+        endm
+
+; VDP Command YMMM: copy rectangle VRAM->VRAM on the Y direction.
+        macro   VDP_YMMM sy, dx, dy, ny
+        db      34
+        db      sy and 255
+        db      sy >> 8
+        db      dx and 255
+        db      dx >> 8
+        db      dy and 255
+        db      dy >> 8
+        db      0
+        db      0
+        db      ny and 255
+        db      ny >> 8
+        db      0
+        db      0
+        db      0E0h
+        endm
+
+; VDP Command LMMM: copy rectangle VRAM->VRAM using logic operators.
+        macro   VDP_LMMM sx, sy, dx, dy, nx, ny, op
+        db      32
+        db      sx and 255
+        db      sx >> 8
+        db      sy and 255
+        db      sy >> 8
+        db      dx and 255
+        db      dx >> 8
+        db      dy and 255
+        db      dy >> 8
+        db      nx and 255
+        db      nx >> 8
+        db      ny and 255
+        db      ny >> 8
+        db      0
+        db      0
+        db      090h + op
         endm
 
 ; ----------------------------------------------------------------
@@ -561,6 +616,17 @@ local_init:
         call    fast_put_p2
         ld      hl, city2b
         call    zblit
+
+        ; Copy initial frames of city scrolling.
+        di
+        ld      b, 10
+        ld      hl, cmd_copy_city_back
+1:
+        push    bc
+        call    vdp_command
+        pop     bc
+        djnz    1b
+        ei
 
         ; Reset the animation.
         ld      de, state_start
@@ -1086,9 +1152,9 @@ cloud_down3_second_bottom:
         exx
         ld      hl, city_palette_final
         call    smart_palette
+        call    update_cloud_scroll
         VDP_STATUS 0
         DISABLE_HIRQ
-        call    update_cloud_scroll
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1163,21 +1229,19 @@ cloud_down5_second_bottom:
         PREAMBLE_HORIZONTAL
         FAST_SET_HSCROLL 256
         ; Set v scroll.
+        exx
         ld      a, (vertical_scroll)
         add     a, 256 - 80
-        ld      (city1_scroll), a
+        ld      b, a
         VDPREG vdp_vscroll
         SET_PAGE 1
-        exx
-        ld      hl, city_palette_final
-        call    smart_palette
-        ld      a, (city1_scroll)
-        ld      b, a
         ld      a, (city_split_line)
         sub     10
         ld      (city_split_line), a
         add     a, b
         VDPREG vdp_hsplit_line
+        ld      hl, city_palette_final
+        call    smart_palette
         NEXT_HANDLE cloud_down5_city
         jp      return_irq_exx
 
@@ -1553,7 +1617,6 @@ cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
 city_split_line:        db      189 + 10
-city1_scroll:           db      0
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -1603,23 +1666,21 @@ dynamic_moon_attr:
 
 ; VDP commands
 
-        macro   VDP_HMMV dx, dy, nx, ny, color
-        db      36
-        db      dx and 255
-        db      dx >> 8
-        db      dy and 255
-        db      dy >> 8
-        db      nx and 255
-        db      nx >> 8
-        db      ny and 255
-        db      ny >> 8
-        db      color
-        db      0
-        db      0C0h
-        endm
-
-cmd_erase_vram_page0:   VDP_HMMV 0, 0, 256, 192, 0
-cmd_erase_all_vram:     VDP_HMMV 0, 0, 256, 1023, 0
+cmd_erase_vram_page0:           
+        VDP_HMMV 0, 0, 256, 192, 0
+cmd_erase_all_vram:             
+        VDP_HMMV 0, 0, 256, 1023, 0
+cmd_copy_city_back:             
+        VDP_YMMM 256 + 180,      0, 768 + 128,       2 
+        VDP_YMMM 256 + 180 - 10, 0, 768 + 128 + 2,  12
+        VDP_YMMM 256 + 180 - 20, 0, 768 + 128 + 14, 22
+        VDP_YMMM 256 + 180 - 30, 0, 768 + 128 + 36, 32
+        VDP_YMMM 256 + 180 - 40, 0, 768 + 128 + 68, 42
+        VDP_LMMM 0, 0, 0, 768 + 128,      256,  2, vdp_timp
+        VDP_LMMM 0, 0, 0, 768 + 128 + 2,  256, 12, vdp_timp
+        VDP_LMMM 0, 0, 0, 768 + 128 + 14, 256, 22, vdp_timp
+        VDP_LMMM 0, 0, 0, 768 + 128 + 36, 256, 32, vdp_timp
+        VDP_LMMM 0, 0, 0, 768 + 128 + 68, 256, 42, vdp_timp
 
 end_of_code:
         assert  end_of_code <= 04000h
