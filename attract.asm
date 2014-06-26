@@ -6,11 +6,33 @@
         output  attract.com
             
         org     0100h
+        jp      start_main
 
 ; Required memory, in mapper 16kb selectors
 selectors       equ     13
 
+; ----------------------------------------------------------------
+; Animation states.
+
+state_start:
+current_frame:          dw      520
+vertical_scroll:        db      0
+horizontal_scroll:      db      0
+palette_fade:           dw      cloud_fade_palette
+palette_fade_counter:   db      16
+cloud1_scroll:          db      158
+cloud2_scroll:          db      146
+cloud_tick:             db      1
+city_split_line:        db      189 + 10
+city_scroll:            dw      city_scroll_down5
+is_playing:             db      0
+pcm_mapper_page:        dw      mapper_selectors
+state_end:
+state_backup:           ds      state_end - state_start, 0
+
+; ----------------------------------------------------------------
 ; MSX bios
+
 restart         equ     00000h  ; Return to DOS
 bdos            equ     00005h  ; BDOS entry point
 dosver          equ     0006Fh  ; Get MSX-DOS version number
@@ -1247,12 +1269,16 @@ cloud_down5_second_bottom:
 
 cloud_down5_city:
         PREAMBLE_HORIZONTAL
-        SET_PAGE 0
+        SET_PAGE 3
         exx
         ld      a, (city_split_line)
         ld      b, a
-        ld      a, 255
+        ld      hl, (city_scroll)
+        ld      a, (hl)
+        inc     hl
+        ld      (city_scroll), hl
         sub     b
+        dec     a
         VDPREG vdp_vscroll
         DISABLE_HIRQ
         VDP_STATUS 0
@@ -1605,24 +1631,6 @@ save_palette:           dw      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
-; Animation states.
-
-state_start:
-current_frame:          dw      520
-vertical_scroll:        db      0
-horizontal_scroll:      db      0
-palette_fade:           dw      cloud_fade_palette
-palette_fade_counter:   db      16
-cloud1_scroll:          db      158
-cloud2_scroll:          db      146
-cloud_tick:             db      1
-city_split_line:        db      189 + 10
-is_playing:             db      0
-pcm_mapper_page:        dw      mapper_selectors
-state_end:
-state_backup:           ds      state_end - state_start, 0
-
-; ----------------------------------------------------------------
 ; Misc strings.
 
 str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
@@ -1664,18 +1672,21 @@ dynamic_moon_attr:
         endr
         db      0
 
-; VDP commands
+; City scroll positions for state cloud_down5.
+city_scroll_down5:        
+        db      128, 128 + 2, 128 + 14, 128 + 36, 128 + 68
 
+; VDP commands
 cmd_erase_vram_page0:           
         VDP_HMMV 0, 0, 256, 192, 0
 cmd_erase_all_vram:             
         VDP_HMMV 0, 0, 256, 1023, 0
 cmd_copy_city_back:             
-        VDP_YMMM 256 + 180,      0, 768 + 128,       2 
-        VDP_YMMM 256 + 180 - 10, 0, 768 + 128 + 2,  12
-        VDP_YMMM 256 + 180 - 20, 0, 768 + 128 + 14, 22
-        VDP_YMMM 256 + 180 - 30, 0, 768 + 128 + 36, 32
-        VDP_YMMM 256 + 180 - 40, 0, 768 + 128 + 68, 42
+        VDP_YMMM 256 + 180,          0, 768 + 128,       2 
+        VDP_YMMM 256 + 180 - 10 + 2, 0, 768 + 128 + 2,  12
+        VDP_YMMM 256 + 180 - 20 + 4, 0, 768 + 128 + 14, 22
+        VDP_YMMM 256 + 180 - 30 + 6, 0, 768 + 128 + 36, 32
+        VDP_YMMM 256 + 180 - 40 + 8, 0, 768 + 128 + 68, 42
         VDP_LMMM 0, 0, 0, 768 + 128,      256,  2, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 2,  256, 12, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 14, 256, 22, vdp_timp
