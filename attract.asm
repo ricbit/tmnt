@@ -80,6 +80,7 @@ vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
 vdp_sprite_patt equ     00006h  ; VDP register for sprite pattern base addr
 vdp_hsplit_line equ     00013h  ; VDP register for horizontal split line
 vdp_timp        equ     00008h  ; VDP logic operator TIMP
+vdp_set_page    equ     00002h  ; VDP register for set page
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -130,7 +131,7 @@ moon_pattern_base_hscroll       equ     108
 ; Set display page.
         macro   SET_PAGE page
         ld      a, (page << 5) or 011111b
-        VDPREG  2
+        VDPREG  vdp_set_page
         endm
 
 ; Check if a virq has happened.
@@ -641,7 +642,7 @@ local_init:
 
         ; Copy initial frames of city scrolling.
         di
-        ld      b, 10
+        ld      b, 12
         ld      hl, cmd_copy_city_back
 1:
         push    bc
@@ -1261,15 +1262,36 @@ cloud_down5_second_bottom:
         sub     10
         ld      (city_split_line), a
         add     a, b
+        sub     5
         VDPREG vdp_hsplit_line
         ld      hl, city_palette_final
-        call    smart_palette
-        NEXT_HANDLE cloud_down5_city
+        call    smart_palette        
+        NEXT_HANDLE cloud_down5_city_setup
         jp      return_irq_exx
 
+cloud_down5_city_setup:
+        PREAMBLE_HORIZONTAL
+        exx
+        ld      a, (vertical_scroll)
+        add     a, 256 - 80
+        ld      b, a
+        ld      a, (city_split_line)
+        add     a, b
+        ld      b, a
+        VDPREG vdp_hsplit_line
+        ld      a, 093h
+        cp      b
+        jr      z, 1f
+        VDP_AUTOINC vdp_vscroll
+        NEXT_HANDLE cloud_down5_city
+        jp      return_irq_exx
+1:
+        VDP_AUTOINC vdp_set_page
+        NEXT_HANDLE cloud_down5_city_last
+        jp      return_irq_exx
+        
 cloud_down5_city:
         PREAMBLE_HORIZONTAL
-        SET_PAGE 3
         exx
         ld      a, (city_split_line)
         ld      b, a
@@ -1279,11 +1301,26 @@ cloud_down5_city:
         ld      (city_scroll), hl
         sub     b
         dec     a
-        VDPREG vdp_vscroll
+        out     (09Bh), a
+1:
         DISABLE_HIRQ
         VDP_STATUS 0
         call    update_cloud_scroll
         jp      frame_end
+
+cloud_down5_city_last:
+        PREAMBLE_HORIZONTAL
+        ; Set page 3.
+        ld      a, (3 << 5) or 011111b
+        out     (09Bh), a
+        exx
+        ld      a, (city_split_line)
+        ld      b, a
+        ld      a, 128 + 68
+        sub     b
+        dec     a
+        VDPREG  vdp_vscroll
+        jr      1b
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -1674,7 +1711,7 @@ dynamic_moon_attr:
 
 ; City scroll positions for state cloud_down5.
 city_scroll_down5:        
-        db      128, 128 + 2, 128 + 14, 128 + 36, 128 + 68
+        db      180, 180 + 2, 180 + 14, 180 + 36
 
 ; VDP commands
 cmd_erase_vram_page0:           
@@ -1692,6 +1729,8 @@ cmd_copy_city_back:
         VDP_LMMM 0, 0, 0, 768 + 128 + 14, 256, 22, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 36, 256, 32, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 68, 256, 42, vdp_timp
+        VDP_YMMM 768 + 128,          0, 256 + 180,      68
+        VDP_YMMM 768 + 128 + 68,     0, 768 + 148,       1
 
 end_of_code:
         assert  end_of_code <= 04000h
