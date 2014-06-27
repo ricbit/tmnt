@@ -1713,11 +1713,18 @@ dynamic_moon_attr:
 city_scroll_down5:        
         db      180, 180 + 2, 180 + 14, 180 + 36
 
+; ----------------------------------------------------------------
 ; VDP commands
+
+; Erase page 0 of vram.
 cmd_erase_vram_page0:           
         VDP_HMMV 0, 0, 256, 192, 0
+
+; Erase all vram.        
 cmd_erase_all_vram:             
         VDP_HMMV 0, 0, 256, 1023, 0
+
+; Copy the parallax scroll of cloud_down5 to the right place.
 cmd_copy_city_back:             
         VDP_YMMM 256 + 180,          0, 768 + 128,       2 
         VDP_YMMM 256 + 180 - 10 + 2, 0, 768 + 128 + 2,  12
