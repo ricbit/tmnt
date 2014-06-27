@@ -1301,8 +1301,8 @@ cloud_down5_city:
         ld      (city_scroll), hl
         sub     b
         dec     a
-        out     (09Bh), a
 1:
+        out     (09Bh), a
         DISABLE_HIRQ
         VDP_STATUS 0
         call    update_cloud_scroll
@@ -1312,14 +1312,7 @@ cloud_down5_city_last:
         PREAMBLE_HORIZONTAL
         ; Set page 3.
         ld      a, (3 << 5) or 011111b
-        out     (09Bh), a
         exx
-        ld      a, (city_split_line)
-        ld      b, a
-        ld      a, 128 + 68
-        sub     b
-        dec     a
-        VDPREG  vdp_vscroll
         jr      1b
 
 ; ----------------------------------------------------------------
@@ -1737,7 +1730,7 @@ cmd_copy_city_back:
         VDP_LMMM 0, 0, 0, 768 + 128 + 36, 256, 32, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 68, 256, 42, vdp_timp
         VDP_YMMM 768 + 128,          0, 256 + 180,      68
-        VDP_YMMM 768 + 128 + 68,     0, 768 + 148,       1
+        VDP_YMMM 768 + 128 + 68,     0, 768 + 148,      42
 
 end_of_code:
         assert  end_of_code <= 04000h
