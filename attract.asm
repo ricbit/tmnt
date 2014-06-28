@@ -25,6 +25,7 @@ cloud2_scroll:          db      146
 cloud_tick:             db      1
 city_split_line:        db      189 + 10
 city_scroll:            dw      city_scroll_down5
+top_building_command:   dw      cmd_top_building_scroll - vdp_hmmm_size
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -81,6 +82,7 @@ vdp_sprite_patt equ     00006h  ; VDP register for sprite pattern base addr
 vdp_hsplit_line equ     00013h  ; VDP register for horizontal split line
 vdp_timp        equ     00008h  ; VDP logic operator TIMP
 vdp_set_page    equ     00002h  ; VDP register for set page
+vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -325,6 +327,26 @@ moon_pattern_base_hscroll       equ     108
         db      0
         db      0
         db      090h + op
+        endm
+
+; VDP Command HMMM: copy rectangle VRAM->VRAM using bytes.
+        macro   VDP_HMMM sx, sy, dx, dy, nx, ny
+        db      32
+        db      sx and 255
+        db      sx >> 8
+        db      sy and 255
+        db      sy >> 8
+        db      dx and 255
+        db      dx >> 8
+        db      dy and 255
+        db      dy >> 8
+        db      nx and 255
+        db      nx >> 8
+        db      ny and 255
+        db      ny >> 8
+        db      0
+        db      0
+        db      0D0h
         endm
 
 ; ----------------------------------------------------------------
@@ -1248,7 +1270,6 @@ cloud_down4_second_bottom:
 cloud_down5:
         PREAMBLE_VERTICAL
         SET_PAGE 3
-        SPRITES_ON
         SPRITE_ATTR top_building_attr_addr
         SPRITE_PATTERN top_building_patt_addr
         ; Set v scroll.
@@ -1276,21 +1297,52 @@ cloud_down5_second_bottom:
         exx
         ld      a, (vertical_scroll)
         add     a, 256 - 80
-        ld      b, a
+        ld      (city_line), a
         VDPREG vdp_vscroll
         SET_PAGE 1
+        ld      a, (city_line)
+        ld      b, a
+        ld      a, (city_split_line)
+        sub     10
+        add     a, b
+        sub     90
+        VDPREG vdp_hsplit_line
+        ld      hl, city_palette_final
+        call    smart_palette        
+        NEXT_HANDLE cloud_down5_sprite_setup
+        jp      return_irq_exx
+
+cloud_down5_sprite_setup:
+        PREAMBLE_HORIZONTAL
+        SPRITES_ON
+        exx
+        ld      a, (city_line)
+        ld      b, a
         ld      a, (city_split_line)
         sub     10
         ld      (city_split_line), a
         add     a, b
         sub     5
         VDPREG vdp_hsplit_line
-        ld      hl, city_palette_final
-        call    smart_palette        
+        ld      hl, (top_building_command)
+        ld      de, cmd_top_building_scroll - vdp_hmmm_size
+        or      a
+        sbc     hl, de
+        jr      z, 1f
+        ld      hl, (top_building_command)
+        call    smart_vdp_command
+        VDP_STATUS 1
+1:
+        ld      hl, (top_building_command)
+        ld      de, vdp_hmmm_size
+        add     hl, de
+        ld      (top_building_command), hl
         NEXT_HANDLE cloud_down5_city_setup
         jp      return_irq_exx
 
 cloud_down5_city_setup:
+        ; In the first four frames: setup autoinc to change the scroll fast.
+        ; In the last frame: setup autoinc to change page fast.
         PREAMBLE_HORIZONTAL
         exx
         ld      a, (vertical_scroll)
@@ -1326,6 +1378,7 @@ cloud_down5_city:
         out     (09Bh), a
         DISABLE_HIRQ
         VDP_STATUS 0
+        SPRITES_OFF        
         call    update_cloud_scroll
         jp      frame_end
 
@@ -1679,6 +1732,7 @@ file_handle:            db      0
 mapper:                 dw      0
 graphics_on:            db      0
 save_palette:           dw      0
+city_line:              db      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
@@ -1752,6 +1806,10 @@ cmd_copy_city_back:
         VDP_LMMM 0, 0, 0, 768 + 128 + 68, 256, 42, vdp_timp
         VDP_YMMM 768 + 128,          0, 256 + 180,      68
         VDP_YMMM 768 + 128 + 68,     0, 768 + 148,      42
+
+; Move the top building sprites by copying the attr table with vdp commands.
+cmd_top_building_scroll:
+        include "top_building_scroll.inc"
 
 end_of_code:
         assert  end_of_code <= 04000h

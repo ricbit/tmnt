@@ -20,11 +20,19 @@ for st in start:
   for c in colors:
     attr.extend([c] * 16)
 attr.extend([0] * (512 - len(attr)))
-pattern = 0
-for st in start:
-  for c in colors:
-    attr.extend([(180 - 38 + st[1] - 1) % 256, st[0], pattern, 0])
-    pattern += 4
+for f in xrange(5):
+  frame = []
+  pattern = 0
+  for st in start:
+    for c in colors:
+      y = (180 - 38 - f * 8 + st[1] - 1) % 256
+      if y == 0xD8:
+        print "error in sprite"
+      frame.extend([y, st[0], pattern, 0])
+      pattern += 4
+  frame.append(0xD8)
+  frame.extend([0] * (64 - len(frame)))
+  attr.extend(frame)
 f = open("top_building_attr.sc5", "wb")
 f.write("".join(chr(i) for i in attr))
 f.close()
