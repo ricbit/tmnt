@@ -816,7 +816,7 @@
 		dw	cloud_down3	; 815
 		dw	cloud_down3	; 816
 		dw	cloud_down3	; 817
-		dw	cloud_down4	; 818
+		dw	cloud_down4_first	; 818
 		dw	cloud_down4	; 819
 		dw	cloud_down4	; 820
 		dw	cloud_down4	; 821

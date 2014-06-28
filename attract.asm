@@ -25,7 +25,7 @@ cloud2_scroll:          db      146
 cloud_tick:             db      1
 city_split_line:        db      189 + 10
 city_scroll:            dw      city_scroll_down5
-top_building_command:   dw      cmd_top_building_scroll - vdp_hmmm_size
+top_building_command:   dw      cmd_top_building_scroll
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -87,6 +87,19 @@ vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 ; ----------------------------------------------------------------
 ; VRAM layout
 
+; VRAM Layout during cloud states:
+; 00000-07FFF city2 pixels
+; 08000-0D9FF city1 pixels
+; 0DA00-0FBFF city1 parallax scroll, frames 1-4
+; 10700-114FF cloud2 pixels
+; 11900-1287F must be all zeros, don't use
+; 13000-1321F moon attributes
+; 13800-16AFF moon patterns
+; 17000-174FF top building attributes
+; 17800-1797F top building patterns
+; 18000-1A87F cloud3 pixels
+; 1CA00-1DEFF city1 parallax scroll, frame 5
+
 cloud2_addr             equ     10000h
 cloud3_addr             equ     18000h
 city1_addr              equ     08000h
@@ -94,8 +107,8 @@ city2_addr              equ     00000h
 title_addr              equ     08000h
 moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
-top_building_attr_addr  equ     13600h
-top_building_patt_addr  equ     17000h
+top_building_attr_addr  equ     17200h
+top_building_patt_addr  equ     17800h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1221,12 +1234,25 @@ cloud_down3_second_bottom:
         jp      frame_end
 
 ; ----------------------------------------------------------------
+; State: cloud_down4_first
+; Start scrolling down the clouds, step 4, first frame.
+; Bottom cloud visible.
+
+cloud_down4_first:
+        PREAMBLE_VERTICAL
+        SPRITE_ATTR top_building_attr_addr
+        SPRITE_PATTERN top_building_patt_addr
+        SPRITES_ON
+        jr      cloud_down4_start
+
+; ----------------------------------------------------------------
 ; State: cloud_down4
 ; Start scrolling down the clouds, step 4.
 ; Bottom cloud visible.
 
 cloud_down4:
         PREAMBLE_VERTICAL
+cloud_down4_start:
         SET_PAGE 3
         ; Set v scroll.
         ld      a, (vertical_scroll)
@@ -1257,6 +1283,29 @@ cloud_down4_second_bottom:
         exx
         ld      hl, city_palette_final
         call    smart_palette
+        ld      hl, (current_frame)
+        ld      de, 822
+        or      a
+        sbc     hl, de
+        jr      nc, 1f
+        VDP_STATUS 0
+        DISABLE_HIRQ
+        call    update_cloud_scroll
+        jp      frame_end
+1:
+        HSPLIT_LINE 100
+        NEXT_HANDLE cloud_down4_sprites
+        jp      return_irq_exx
+
+cloud_down4_sprites:
+        PREAMBLE_HORIZONTAL
+        exx
+        ld      hl, (top_building_command)
+        call    smart_vdp_command
+        ld      hl, (top_building_command)
+        ld      de, vdp_hmmm_size
+        add     hl, de
+        ld      (top_building_command), hl
         VDP_STATUS 0
         DISABLE_HIRQ
         call    update_cloud_scroll
@@ -1270,8 +1319,6 @@ cloud_down4_second_bottom:
 cloud_down5:
         PREAMBLE_VERTICAL
         SET_PAGE 3
-        SPRITE_ATTR top_building_attr_addr
-        SPRITE_PATTERN top_building_patt_addr
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 2
@@ -1325,14 +1372,8 @@ cloud_down5_sprite_setup:
         sub     5
         VDPREG vdp_hsplit_line
         ld      hl, (top_building_command)
-        ld      de, cmd_top_building_scroll - vdp_hmmm_size
-        or      a
-        sbc     hl, de
-        jr      z, 1f
-        ld      hl, (top_building_command)
         call    smart_vdp_command
         VDP_STATUS 1
-1:
         ld      hl, (top_building_command)
         ld      de, vdp_hmmm_size
         add     hl, de
