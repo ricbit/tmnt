@@ -993,13 +993,13 @@ cloud_fade_common:
         ld      hl, (palette_fade)
         ld      a, (palette_fade_counter)
         dec     a
-        jr      nz, 1f
+        jr      nz, 2f
         ld      hl, (palette_fade)
         ld      de, 16 * 2
         add     hl, de
         ld      (palette_fade), hl
         ld      a, 6 + 1
-1:
+2:
         ld      (palette_fade_counter), a
         call    smart_palette
 
@@ -1283,6 +1283,7 @@ cloud_down4_second_bottom:
         exx
         ld      hl, city_palette_final
         call    smart_palette
+        ; Update top building sprites only on the last frames.
         ld      hl, (current_frame)
         ld      de, 822
         or      a
@@ -1415,7 +1416,7 @@ cloud_down5_city:
         ld      (city_scroll), hl
         sub     b
         dec     a
-1:
+2:
         out     (09Bh), a
         DISABLE_HIRQ
         VDP_STATUS 0
@@ -1428,7 +1429,7 @@ cloud_down5_city_last:
         ; Set page 3.
         ld      a, (3 << 5) or 011111b
         exx
-        jr      1b
+        jr      2b
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -1510,10 +1511,10 @@ vdp_command:
         ld      c, 09Bh
         inc     hl
         otir
-1:
+2:
         in      a, (099h)
         rrca
-        jr      c, 1b
+        jr      c, 2b
         VDP_STATUS 0
         ret
 
@@ -1529,7 +1530,6 @@ smart_vdp_command:
         pop     hl
         ; Check for VDP overrun.
         VDP_STATUS 2
-1:
         in      a, (099h)
         rrca
         ld      de, str_vdp_error
