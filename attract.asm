@@ -92,6 +92,8 @@ city2_addr              equ     00000h
 title_addr              equ     08000h
 moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
+top_building_attr_addr  equ     13600h
+top_building_patt_addr  equ     17000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -650,6 +652,22 @@ local_init:
         pop     bc
         djnz    1b
         ei
+
+        ; Copy top building sprite patterns to vram.
+        di
+        ld      a, (mapper_selectors + 11)
+        call    fast_put_p2
+        SET_VRAM_WRITE top_building_patt_addr
+        ei
+        ld      hl, top_building_pattern
+        call    zblit
+
+        ; Copy top building sprite attributes to vram.
+        di
+        SET_VRAM_WRITE (top_building_attr_addr - 512)
+        ei
+        ld      hl, top_building_attr
+        call    zblit
 
         ; Reset the animation.
         ld      de, state_start
@@ -1230,6 +1248,9 @@ cloud_down4_second_bottom:
 cloud_down5:
         PREAMBLE_VERTICAL
         SET_PAGE 3
+        SPRITES_ON
+        SPRITE_ATTR top_building_attr_addr
+        SPRITE_PATTERN top_building_patt_addr
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 2
@@ -1766,6 +1787,8 @@ moon_attr:              incbin "moon_attr.z5"
 ; Mapper page 11
                         .phase  08000h
 city2a:                 incbin "city2a.z5"
+top_building_pattern:   incbin "top_building_patt.z5"
+top_building_attr:      incbin "top_building_attr.z5"
                         PAGE_LIMIT
                         align 16384
 
