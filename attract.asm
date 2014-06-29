@@ -476,22 +476,8 @@ finish_animation:
         cp      27
         jp      nz, start_attract
 
-        ; Restore palette.
-        ld      iy, (subrom)
-        ld      ix, iniplt
-        call    callf
-
-        ; Restore text mode.
-        ld      iy, (subrom)
-        ld      ix, chgmod
-        xor     a
-        call    callf
-
-        ; Restore mapper.
-        ld      a, (mapper_selectors)
-        call    fast_put_p1
-        ld      a, (mapper_selectors + 1)
-        call    fast_put_p2
+        ; Restore environment.
+        call    restore_environment
                 
         ; Exit to DOS.
         ld      de, str_credits
@@ -581,8 +567,6 @@ allocate_memory:
         ld      ix, chgmod
         ld      a, 5
         call    callf
-        ld      a, 1
-        ld      (graphics_on), a
 
         ; Backup animation state on startup.
         ld      hl, state_start
@@ -1549,7 +1533,7 @@ smart_vdp_command:
         in      a, (099h)
         rrca
         ld      de, str_vdp_error
-        jp      c, abort
+        jp      c, graphic_abort
         ; Set VDP to autoincrement. 
         ld      a, (hl)
         VDPREG 17
@@ -1674,7 +1658,7 @@ check_foreground:
         or      a
         sbc     hl, de
         ld      de, str_foreground_error
-        jp      nz, abort
+        jp      nz, graphic_abort
         ret
 
 ; ----------------------------------------------------------------
@@ -1741,21 +1725,37 @@ check_bdos_error:
 ; Print error message, abort and return to dos.
 ; Input: de = error message terminated in $
 abort:
-        ; Restore text mode.
-        ld      a, (graphics_on)
-        or      a
-        jr      z, 1f
-        push    de
-        ld      iy, (subrom)
-        ld      ix, chgmod
-        xor     a
-        call    callf
-        pop     de
-1:
         ; Print the message.
         ld      c, strout
         call    bdos
         jp      restart
+
+; Restore DOS2 environment, print error message, abort and return to dos.
+; Input: de = error message terminated in $
+graphic_abort:
+        push    de
+        call    restore_irq
+        call    restore_environment
+        pop     de
+        jr      abort
+
+restore_environment:
+        ; Restore palette.
+        ld      iy, (subrom)
+        ld      ix, iniplt
+        call    callf
+
+        ; Restore text mode.
+        ld      iy, (subrom)
+        ld      ix, chgmod
+        xor     a
+        call    callf
+
+        ; Restore mapper.
+        ld      a, (mapper_selectors)
+        call    fast_put_p1
+        ld      a, (mapper_selectors + 1)
+        jp      fast_put_p2
 
 ; Copy RAM to VRAM, assumes VRAM address is already set.
 ; Input: HL = RAM source, BC = size
@@ -1787,7 +1787,6 @@ fast_put_p2:
 save_irq:               db      0,0,0
 file_handle:            db      0
 mapper:                 dw      0
-graphics_on:            db      0
 save_palette:           dw      0
 city_line:              db      0
 mapper_selectors:       ds      selectors, 0
@@ -1805,7 +1804,7 @@ str_loading:            db      "Loading$"
 str_dot:                db      ".$"
 str_press_any_key:      db      13, 10, "Press any key to start.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
-                        db      "by Ricardo Bittencourt 2014.$"
+                        db      "by Ricardo Bittencourt 2014.", 13, 10, "$"
 mapper_data_filename:   dz      "attract.dat"
 
 ; ----------------------------------------------------------------
