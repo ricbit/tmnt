@@ -21,17 +21,17 @@ for st in start:
     attr.extend([c] * 16)
 attr.extend([0] * (512 - len(attr)))
 attr.extend([0xD8] + [0] * 63)
-for f in xrange(-6, 5):
+for f in xrange(-6, 21):
   frame = []
   pattern = 0
   for st in start:
     for c in colors:
-      y = (180 - 38 - f * 8 + st[1] - 1) % 256
+      y = 180 - 38 - f * 8 + st[1] - 1
       if y == 0xD8:
         print "error in sprite"
-      if y >= 192:
+      if y >= 192 or y <= -32:
         y = 192
-      frame.extend([y, st[0], pattern, 0])
+      frame.extend([(y + 256) % 256, st[0], pattern, 0])
       pattern += 4
   frame.append(0xD8)
   frame.extend([0] * (64 - len(frame)))

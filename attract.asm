@@ -91,12 +91,12 @@ vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 ; 00000-07FFF city2 pixels
 ; 08000-0D9FF city1 pixels
 ; 0DA00-0FBFF city1 parallax scroll, frames 1-4
+; 10000-1017F top building patterns
 ; 10700-114FF cloud2 pixels
 ; 11900-1287F must be all zeros, don't use
 ; 13000-1321F moon attributes
 ; 13800-16AFF moon patterns
-; 17000-174FF top building attributes
-; 17800-1797F top building patterns
+; 17000-17AFF top building attributes
 ; 18000-1A87F cloud3 pixels
 ; 1CA00-1DEFF city1 parallax scroll, frame 5
 
@@ -108,7 +108,7 @@ title_addr              equ     08000h
 moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
-top_building_patt_addr  equ     17800h
+top_building_patt_addr  equ     10000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1422,6 +1422,7 @@ cloud_down5_city_last:
 city_scroll1:
         PREAMBLE_VERTICAL
         SET_PAGE 1
+        SPRITES_ON
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 2
@@ -1429,6 +1430,13 @@ city_scroll1:
         add     a, 256 - 80
         VDPREG vdp_vscroll
         exx
+        ld      hl, (top_building_command)
+        call    smart_vdp_command
+        VDP_STATUS 0
+        ld      hl, (top_building_command)
+        ld      de, vdp_hmmm_size
+        add     hl, de
+        ld      (top_building_command), hl
         jp      frame_end
 
 ; ----------------------------------------------------------------
