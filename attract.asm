@@ -1432,6 +1432,22 @@ cloud_down5_city_last:
         jr      2b
 
 ; ----------------------------------------------------------------
+; State: city_scroll1
+; Scroll down the city with parallax, part 1.
+
+city_scroll1:
+        PREAMBLE_VERTICAL
+        SET_PAGE 1
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 2
+        ld      (vertical_scroll), a
+        add     a, 256 - 80
+        VDPREG vdp_vscroll
+        exx
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: disable_screen_title
 ; Disable the screen just before the title
 

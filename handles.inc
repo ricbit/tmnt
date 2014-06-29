@@ -831,27 +831,27 @@
 		dw	cloud_down5	; 830
 		dw	cloud_down5	; 831
 		dw	cloud_down5	; 832
-		dw	disable_screen_black	; 833
-		dw	disable_screen	; 834
-		dw	disable_screen	; 835
-		dw	disable_screen	; 836
-		dw	disable_screen	; 837
-		dw	disable_screen	; 838
-		dw	disable_screen	; 839
-		dw	disable_screen	; 840
-		dw	disable_screen	; 841
-		dw	disable_screen	; 842
-		dw	disable_screen	; 843
-		dw	disable_screen	; 844
-		dw	disable_screen	; 845
-		dw	disable_screen	; 846
-		dw	disable_screen	; 847
-		dw	disable_screen	; 848
-		dw	disable_screen	; 849
-		dw	disable_screen	; 850
-		dw	disable_screen	; 851
-		dw	disable_screen	; 852
-		dw	disable_screen	; 853
+		dw	city_scroll1	; 833
+		dw	city_scroll1	; 834
+		dw	city_scroll1	; 835
+		dw	city_scroll1	; 836
+		dw	city_scroll1	; 837
+		dw	city_scroll1	; 838
+		dw	city_scroll1	; 839
+		dw	city_scroll1	; 840
+		dw	city_scroll1	; 841
+		dw	city_scroll1	; 842
+		dw	city_scroll1	; 843
+		dw	city_scroll1	; 844
+		dw	city_scroll1	; 845
+		dw	city_scroll1	; 846
+		dw	city_scroll1	; 847
+		dw	city_scroll1	; 848
+		dw	city_scroll1	; 849
+		dw	city_scroll1	; 850
+		dw	city_scroll1	; 851
+		dw	city_scroll1	; 852
+		dw	disable_screen_black	; 853
 		dw	disable_screen	; 854
 		dw	disable_screen	; 855
 		dw	disable_screen	; 856
