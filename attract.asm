@@ -104,11 +104,11 @@ cloud2_addr             equ     10000h
 cloud3_addr             equ     18000h
 city1_addr              equ     08000h
 city2_addr              equ     00000h
-title_addr              equ     08000h
 moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
 top_building_patt_addr  equ     10000h
+title_addr              equ     08000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -116,6 +116,8 @@ top_building_patt_addr  equ     10000h
 theme_start_frame               equ     750
 pcm_timer_period                equ     23
 moon_pattern_base_hscroll       equ     108
+down4_sprite_start_frame        equ     822
+cloud_scroll_start_frame        equ     794
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -965,7 +967,7 @@ cloud_fade_common:
         exx
         ld      hl, (current_frame)
         xor     a
-        ld      de, 794
+        ld      de, cloud_scroll_start_frame
         sbc     hl, de
         jr      c, 1f
         ld      a, (vertical_scroll)
@@ -1269,7 +1271,7 @@ cloud_down4_second_bottom:
         call    smart_palette
         ; Update top building sprites only on the last frames.
         ld      hl, (current_frame)
-        ld      de, 822
+        ld      de, down4_sprite_start_frame
         or      a
         sbc     hl, de
         jr      nc, 1f
@@ -1834,12 +1836,12 @@ advance_pcm:            incbin  "advance_pcm.bin"
 
 ; Dynamic sprite attr data for the moon.
 dynamic_moon_attr:
-        db      8 * 4
+        db      8 * 4 + 1
         rept    4
         db      14, 72, 0, 0
         db      14, 72 + 16, 0, 0
         endr
-        db      0
+        db      0xD8, 0
 
 ; City scroll positions for state cloud_down5.
 city_scroll_down5:        
