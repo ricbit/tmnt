@@ -1871,7 +1871,7 @@ dynamic_moon_attr:
 
 ; City scroll positions for state cloud_down5.
 city_scroll_down5:        
-        db      180, 180 + 2, 180 + 14, 180 + 36
+        db      188, 188 + 2, 188 + 14, 188 + 36
 
 ; ----------------------------------------------------------------
 ; VDP commands
@@ -1896,7 +1896,7 @@ cmd_copy_city_back:
         VDP_LMMM 0, 0, 0, 768 + 128 + 14, 256, 22, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 36, 256, 32, vdp_timp
         VDP_LMMM 0, 0, 0, 768 + 128 + 68, 256, 42, vdp_timp
-        VDP_YMMM 768 + 128,          0, 256 + 180,      68
+        VDP_YMMM 768 + 128,          0, 256 + 188,      68
         VDP_YMMM 768 + 128 + 68,     0, 768 + 148,      42
 
 ; Move the top building sprites by copying the attr table with vdp commands.
