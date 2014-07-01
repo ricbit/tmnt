@@ -1373,8 +1373,7 @@ cloud_down5_city_setup:
         ; In the last frame: setup autoinc to change page fast.
         PREAMBLE_HORIZONTAL
         exx
-        ld      a, (vertical_scroll)
-        add     a, 256 - 80
+        ld      a, (city_line)
         ld      b, a
         ld      a, (city_split_line)
         add     a, b
@@ -1430,8 +1429,10 @@ city_scroll1:
         add     a, 2
         ld      (vertical_scroll), a
         add     a, 256 - 80
+        ld      (city_line), a
         VDPREG vdp_vscroll
         exx
+        ; Copy top building sprites.
         ld      hl, (top_building_command)
         call    smart_vdp_command
         VDP_STATUS 0
@@ -1439,6 +1440,23 @@ city_scroll1:
         ld      de, vdp_hmmm_size
         add     hl, de
         ld      (top_building_command), hl
+        ; H split to city2.
+        ld      a, (city_line)
+        ld      b, a
+        ld      a, (city_split_line)
+        add     a, b
+        ld      b, a
+        VDPREG vdp_hsplit_line
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE city_scroll1_foreground
+        jp      return_irq_exx
+
+city_scroll1_foreground:
+        PREAMBLE_HORIZONTAL
+        VDP_STATUS 0
+        DISABLE_HIRQ
+        exx
         jp      frame_end
 
 ; ----------------------------------------------------------------
