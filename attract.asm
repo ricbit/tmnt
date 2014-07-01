@@ -1444,6 +1444,8 @@ city_scroll1:
         ld      a, (city_line)
         ld      b, a
         ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
         add     a, b
         ld      b, a
         VDPREG vdp_hsplit_line
@@ -1454,6 +1456,12 @@ city_scroll1:
 
 city_scroll1_foreground:
         PREAMBLE_HORIZONTAL
+        SET_PAGE 0
+        ld      a, (city_split_line)
+        neg
+        dec     a
+        VDPREG  vdp_vscroll
+        SPRITES_OFF
         VDP_STATUS 0
         DISABLE_HIRQ
         exx
