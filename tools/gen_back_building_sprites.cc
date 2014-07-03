@@ -27,10 +27,10 @@ struct SpriteCover {
   Solution solve(int scroll1, int scroll2, int start, int size) {
     systart = start - 15;
     syend = start + size - 1;
-    //const int ysize = yend - ystart + 1;
-    const int n = 32;
-    xsprite.resize(n);
-    ysprite.resize(n);
+    xsprite.resize(32);
+    ysprite.resize(32);
+    pixel.resize(32);
+    color.resize(32, vector<vector<Variable>>(16));
     // Y position of each sprite.
     for (int j = 0; j < 32; j++) {
       for (int i = systart; i <= syend; i++) {
@@ -59,6 +59,43 @@ struct SpriteCover {
         xsprite[j].push_back(mip.binary_variable(0));
       }
     }
+    // Each sprite may be used or not.
+    for (int j = 0; j < 32; j++) {
+      used.push_back(mip.binary_variable(1));
+    }
+    // Each pixel may be turned on or off.
+    for (int j = 0; j < 32; j++) {
+      for (int i = 0; i < 256; i++) {
+        pixel[j].push_back(mip.binary_variable(0));
+      }
+    }
+    // Each line of each sprite has a color.
+    for (int j = 0; j < 32; j++) {
+      for (int i = 0; i < 16; i++) {
+        for (int c = 0; c < 16; c++) {
+          color[j][i].push_back(mip.binary_variable(0));
+        }
+      }
+    }
+    // Each line of each sprite has only one color.
+    for (int j = 0; j < 32; j++) {
+      for (int i = 0; i < 16; i++) {
+        auto cons = mip.constraint();
+        for (int c = 0; c < 16; c++) {
+          cons.add_variable(color[j][i][c], 1);
+        }
+        cons.commit(1, 1);
+      }
+    }
+    // A sprite is used if any of its pixels are on.
+    for (int j = 0; j < 32; j++) {
+      auto cons = mip.constraint();
+      for (int i = 0; i < 256; i++) {
+        cons.add_variable(pixel[j][i], 1);
+      }
+      cons.add_variable(used[j], -256);
+      cons.commit(-255, 0);
+    }
     // Each sprite must have only one Y position.
     for (int j = 0; j < 32; j++) {
       auto cons = mip.constraint();
@@ -79,7 +116,10 @@ struct SpriteCover {
   }
   MIPSolver mip;
   const vector<uint8_t>& city1_, city2_;
+  vector<vector<vector<Variable>>> color;
   vector<vector<Variable>> ysprite, xsprite;
+  vector<vector<Variable>> pixel;
+  vector<Variable> used;
   int systart, syend, sxstart, sxend;
 };
 
@@ -97,6 +137,7 @@ int main() {
   SpriteCover cover(city1, city2);
   auto sol = cover.solve(0, 116, 116, 32);
   for (int j = 0; j < 32; j++) {
+    if (sol.value(cover.used[j]) < 0.5) continue;
     cout << "Sprite " << j << " : ";
     for (int i = cover.systart; i <= cover.syend; i++) {
       if (sol.value(cover.ysprite[j][i - cover.systart]) > 0.5) {
