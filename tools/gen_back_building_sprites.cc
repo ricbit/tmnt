@@ -16,7 +16,9 @@ int pos(int y, int x) {
 
 struct SpriteCover {
   SpriteCover(const vector<uint8_t>& city1, const vector<uint8_t>& city2) 
-      : city1_(city1), city2_(city2) {
+      : city1_(city1), city2_(city2),
+        color(32, vector<vector<Variable>>(16)), 
+        ysprite(32), xsprite(32), lineused(32) {
   }
   int city1(int y, int x) {
     return city1_[y * 256 + x];
@@ -27,10 +29,6 @@ struct SpriteCover {
   Solution solve(int scroll1, int scroll2, int start, int size) {
     systart = start - 15;
     syend = start + size - 1;
-    xsprite.resize(32);
-    ysprite.resize(32);
-    pixel.resize(32);
-    color.resize(32, vector<vector<Variable>>(16));
     // Y position of each sprite.
     for (int j = 0; j < 32; j++) {
       for (int i = systart; i <= syend; i++) {
@@ -63,12 +61,6 @@ struct SpriteCover {
     for (int j = 0; j < 32; j++) {
       used.push_back(mip.binary_variable(1));
     }
-    // Each pixel may be turned on or off.
-    for (int j = 0; j < 32; j++) {
-      for (int i = 0; i < 256; i++) {
-        pixel[j].push_back(mip.binary_variable(0));
-      }
-    }
     // Each line of each sprite has a color.
     for (int j = 0; j < 32; j++) {
       for (int i = 0; i < 16; i++) {
@@ -77,48 +69,101 @@ struct SpriteCover {
         }
       }
     }
-    // Each line of each sprite has only one color.
+    // Each line may be used by a sprite or not.
+    for (int j = 0; j < 32; j++) {
+      for (int i = start; i < start + size; i++) {
+        lineused[j].push_back(mip.binary_variable(0));
+      }
+    }
+    // Mark lines used by a sprite.
+    for (int j = 0; j < 32; j++) {
+      for (int k = systart; k <= syend; k++) {
+        auto cons = mip.constraint();
+        int acc = 0;
+        for (int i = start; i < start + size; i++) {
+          int y = i - k;
+          if (y >= 0 && y < 16) {
+            cons.add_variable(lineused[j][i - start], 1);
+            acc++;
+          }
+        }
+        cons.add_variable(ysprite[j][k - systart], -acc);
+        cons.commit(0, 16);
+      }
+    }
+    // No more than 8 sprites per line.
+    for (int i = start; i < start + size; i++) {
+      auto cons = mip.constraint();
+      for (int j = 0; j < 32; j++) {
+        cons.add_variable(lineused[j][i - start], 1);
+      }
+      cons.commit(0, 8);
+    }
+    // Force all sprites to be used.
+    /*for (int j = 0; j < 16; j++) {
+      auto cons = mip.constraint();
+      cons.add_variable(used[j], 1);
+      cons.commit(1, 1);
+    }*/
+    // Break symmetry by ordering sprites by sprite number.
+    for (int i = 1 ; i < 32; i++) {
+      auto cons = mip.constraint();
+      for (int j = 0; j < i; j++) {
+        cons.add_variable(used[j], 1);
+      }
+      cons.add_variable(used[i], -i);
+      cons.commit(0, 32);
+    }
+    // Break symmetry by ordering sprites by y position.
+    for (int i = 0 ; i < 32 - 1; i++) {
+      for (int j = systart; j <= syend - 1; j++) {
+        auto cons = mip.constraint();
+        int acc = 0;
+        for (int k = i + 1; k < 32; k++) {
+          for (int jj = systart + 1; jj <= syend; jj++) {
+            cons.add_variable(ysprite[k][jj - systart], 1);
+            acc++;
+          }
+        }
+        cons.add_variable(ysprite[i][j - systart], acc);
+        cons.commit(0, acc);
+      }
+    }
+    // If used, each line of each sprite has only one color.
     for (int j = 0; j < 32; j++) {
       for (int i = 0; i < 16; i++) {
         auto cons = mip.constraint();
         for (int c = 0; c < 16; c++) {
           cons.add_variable(color[j][i][c], 1);
         }
-        cons.commit(1, 1);
+        cons.add_variable(used[j], -1);
+        cons.commit(0, 0);
       }
     }
-    // A sprite is used if any of its pixels are on.
-    for (int j = 0; j < 32; j++) {
-      auto cons = mip.constraint();
-      for (int i = 0; i < 256; i++) {
-        cons.add_variable(pixel[j][i], 1);
-      }
-      cons.add_variable(used[j], -256);
-      cons.commit(-255, 0);
-    }
-    // Each sprite must have only one Y position.
+    // If used, each sprite must have only one Y position.
     for (int j = 0; j < 32; j++) {
       auto cons = mip.constraint();
       for (int i = systart; i <= syend; i++) {
         cons.add_variable(ysprite[j][i - systart], 1);
       }
-      cons.commit(1, 1);
+      cons.add_variable(used[j], -1);
+      cons.commit(0, 0);
     } 
-    // Each sprite must have only one X position.
+    // If used, each sprite must have only one X position.
     for (int j = 0; j < 32; j++) {
       auto cons = mip.constraint();
       for (int i = sxstart; i <= sxend; i++) {
         cons.add_variable(xsprite[j][i - sxstart], 1);
       }
-      cons.commit(1, 1);
+      cons.add_variable(used[j], -1);
+      cons.commit(0, 0);
     } 
     return mip.solve();
   }
   MIPSolver mip;
   const vector<uint8_t>& city1_, city2_;
   vector<vector<vector<Variable>>> color;
-  vector<vector<Variable>> ysprite, xsprite;
-  vector<vector<Variable>> pixel;
+  vector<vector<Variable>> ysprite, xsprite, lineused;
   vector<Variable> used;
   int systart, syend, sxstart, sxend;
 };
