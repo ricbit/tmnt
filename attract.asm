@@ -94,6 +94,7 @@ vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 ; 10000-1017F top building patterns
 ; 10700-114FF cloud2 pixels
 ; 11900-1287F must be all zeros, don't use
+; 12880-128FF city line mask
 ; 13000-1321F moon attributes
 ; 13800-16AFF moon patterns
 ; 17000-17AFF top building attributes
@@ -108,6 +109,7 @@ moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
 top_building_patt_addr  equ     10000h
+city_line_mask_addr     equ     12880h
 title_addr              equ     08000h
 
 ; ----------------------------------------------------------------
@@ -118,6 +120,8 @@ pcm_timer_period                equ     23
 moon_pattern_base_hscroll       equ     108
 down4_sprite_start_frame        equ     822
 cloud_scroll_start_frame        equ     794
+expand_city_line_frame          equ     814
+copy_city_line_frame            equ     819
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -690,6 +694,13 @@ local_init:
         ld      hl, top_building_attr
         call    zblit
 
+        ; Copy city line mask to vram.
+        di
+        SET_VRAM_WRITE city_line_mask_addr
+        ei
+        ld      hl, city_line_mask
+        call    zblit
+
         ; Reset the animation.
         ld      de, state_start
         ld      hl, state_backup
@@ -1198,8 +1209,24 @@ cloud_down3_second_top:
 cloud_down3_patch:
         FAST_SET_HSCROLL 0
         exx
+        HSPLIT_LINE 70
+        ld      hl, (current_frame)
+        ld      de, expand_city_line_frame
+        or      a
+        sbc     hl, de
+        jr      nz, 1f
+        ld      hl, cmd_expand_city_line_mask
+        call    smart_vdp_command
+        VDP_STATUS 1
+1:
+        NEXT_HANDLE cloud_down3_set_vdp_hscroll
+        jp      return_irq_exx
+
+cloud_down3_set_vdp_hscroll:
+        PREAMBLE_HORIZONTAL
         HSPLIT_LINE 79
         VDP_AUTOINC vdp_hscroll_h
+        exx
         NEXT_HANDLE cloud_down3_second_bottom
         jp      return_irq_exx
 
@@ -1253,8 +1280,30 @@ cloud_down4_start:
         ; Set directly the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
         call    set_absolute_scroll
+        HSPLIT_LINE 70
+        NEXT_HANDLE cloud_down4_copy_city_line
+        jp      return_irq_exx
+
+cloud_down4_copy_city_line:
+        PREAMBLE_HORIZONTAL
+        HSPLIT_LINE 77
+        exx
+        ld      hl, (current_frame)
+        ld      de, copy_city_line_frame
+        or      a
+        sbc     hl, de
+        jr      nz, 1f
+        ld      hl, cmd_copy_city_line_mask
+        call    smart_vdp_command
+1:
+        NEXT_HANDLE cloud_down4_set_vdp_autoinc
+        jp      return_irq_exx
+
+cloud_down4_set_vdp_autoinc:
+        PREAMBLE_HORIZONTAL
         HSPLIT_LINE 79
         VDP_AUTOINC vdp_hscroll_h
+        exx
         NEXT_HANDLE cloud_down4_second_bottom
         jp      return_irq_exx
 
@@ -1852,6 +1901,7 @@ title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
+city_line_mask:         incbin  "cityline.z5"
 handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
@@ -1902,6 +1952,14 @@ cmd_copy_city_back:
 ; Move the top building sprites by copying the attr table with vdp commands.
 cmd_top_building_scroll:
         include "top_building_scroll.inc"
+
+; Expand the city line mask to cover 140 lines.
+cmd_expand_city_line_mask:
+        VDP_YMMM 593, 0, 594, 140
+
+; Copy city2 over the city line mask.
+cmd_copy_city_line_mask:
+        VDP_LMMM 0, 0, 0, 593, 256, 140, vdp_timp
 
 end_of_code:
         assert  end_of_code <= 04000h

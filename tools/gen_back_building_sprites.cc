@@ -43,6 +43,24 @@ struct SpriteCover {
     }
     return make_pair(false, make_pair(0, 0));
   }
+  void dump() {
+    auto f = fopen("dump.data", "wb");
+    for (int j = 0; j < scroll2; j++) {
+      for (int i = 0; i < 256; i++) {
+        fputc(city1(j + scroll1, i), f);
+      }
+    }
+    for (int j = scroll2; j < 192; j++) {
+      for (int i = 0; i < 256; i++) {
+        if (city2(j - scroll2, i) == 0) {
+          fputc(city1(j + scroll1, i), f);
+        } else {
+          fputc(city2(j - scroll2, i), f);
+        }
+      }
+    }
+    fclose(f);
+  }
   Sprite get_sprite(int y, int x) {
     Sprite sprite;
     sprite.x = x;
@@ -103,6 +121,7 @@ int main() {
   auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 190);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
   SpriteCover cover(city1, city2, 0, 116, 116, 32);
-  cover.solve();
+  //cover.solve();
+  cover.dump();
   return 0;
 }
