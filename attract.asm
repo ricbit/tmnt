@@ -1306,6 +1306,7 @@ cloud_down4_copy_city_line:
         jr      nz, 1f
         ld      hl, cmd_copy_city_line_mask
         call    smart_vdp_command
+        VDP_STATUS 1
 1:
         NEXT_HANDLE cloud_down4_set_vdp_autoinc
         jp      return_irq_exx
