@@ -25,7 +25,7 @@ cloud2_scroll:          db      146
 cloud_tick:             db      1
 city_split_line:        db      189 + 10
 city_scroll:            dw      city_scroll_down5
-top_building_command:   dw      cmd_top_building_scroll
+top_building_current:   dw      top_building_dyn_attr
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -97,7 +97,7 @@ vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 ; 12880-128FF city line mask
 ; 13000-1321F moon attributes
 ; 13800-16AFF moon patterns
-; 17000-17AFF top building attributes
+; 17000-1727F top building attributes
 ; 18000-1A87F cloud3 pixels
 ; 1CA00-1DEFF city1 parallax scroll, frame 5
 
@@ -1144,7 +1144,18 @@ set_absolute_scroll:
         VDPREG vdp_hscroll_l
         ret
 
- ; ----------------------------------------------------------------
+update_top_building_sprite:
+        ; Update the top building sprite attributes.
+        SET_VRAM_WRITE top_building_attr_addr
+        ld      hl, (top_building_current)
+        call    smart_zblit
+        ld      hl, (top_building_current)
+        ld      de, 2 + 64
+        add     hl, de
+        ld      (top_building_current), hl
+        ret
+
+; ----------------------------------------------------------------
 ; State: cloud_down2
 ; Start scrolling down the clouds, step 2.
 ; Cloud 1 still visible.
@@ -1336,12 +1347,7 @@ cloud_down4_second_bottom:
 cloud_down4_sprites:
         PREAMBLE_HORIZONTAL
         exx
-        ld      hl, (top_building_command)
-        call    smart_vdp_command
-        ld      hl, (top_building_command)
-        ld      de, vdp_hmmm_size
-        add     hl, de
-        ld      (top_building_command), hl
+        call    update_top_building_sprite
         VDP_STATUS 0
         DISABLE_HIRQ
         call    update_cloud_scroll
@@ -1407,13 +1413,7 @@ cloud_down5_sprite_setup:
         add     a, b
         sub     5
         VDPREG vdp_hsplit_line
-        ld      hl, (top_building_command)
-        call    smart_vdp_command
-        VDP_STATUS 1
-        ld      hl, (top_building_command)
-        ld      de, vdp_hmmm_size
-        add     hl, de
-        ld      (top_building_command), hl
+        call    update_top_building_sprite
         NEXT_HANDLE cloud_down5_city_setup
         jp      return_irq_exx
 
@@ -1482,13 +1482,7 @@ city_scroll1:
         VDPREG vdp_vscroll
         exx
         ; Copy top building sprites.
-        ld      hl, (top_building_command)
-        call    smart_vdp_command
-        VDP_STATUS 0
-        ld      hl, (top_building_command)
-        ld      de, vdp_hmmm_size
-        add     hl, de
-        ld      (top_building_command), hl
+        call    update_top_building_sprite
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
@@ -1949,10 +1943,6 @@ cmd_copy_city_back:
         VDP_YMMM 768 + 128,          0, 256 + 188,      68
         VDP_YMMM 768 + 128 + 68,     0, 768 + 148,      42
 
-; Move the top building sprites by copying the attr table with vdp commands.
-cmd_top_building_scroll:
-        include "top_building_scroll.inc"
-
 ; Expand the city line mask to cover 140 lines.
 cmd_expand_city_line_mask:
         VDP_YMMM 593, 0, 594, 140
@@ -1997,6 +1987,7 @@ moon_attr:              incbin "moon_attr.z5"
 city2a:                 incbin "city2a.z5"
 top_building_pattern:   incbin "top_building_patt.z5"
 top_building_attr:      incbin "top_building_attr.z5"
+top_building_dyn_attr:  incbin "top_building_dyn_attr.bin"
                         PAGE_LIMIT
                         align 16384
 
