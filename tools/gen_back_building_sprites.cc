@@ -68,6 +68,11 @@ struct SpriteCover {
     Sprite sprite;
     sprite.x = x;
     sprite.y = y;
+    for (int i = 0; i < 16; i++) {
+      for (int j = 0; j < 16; j++) {
+        sprite.pattern[i][j] = 0;
+      }
+    }
     cout << "x " << x << " y " << y << "\n";
     for (int j = y; j < min(start + size, y + 16); j++) {
       int color = 0;
@@ -97,7 +102,6 @@ struct SpriteCover {
     return sprite;
   }
   void solve() {
-    vector<Sprite> sprite;
     while (true) {
       auto pos = find_uncovered_pixel();
       if (!pos.first) break;
@@ -122,9 +126,38 @@ struct SpriteCover {
       }
     }
   }
+  void write() {
+    auto f = fopen("back_building_patt.sc5", "wb");
+    for (int s = 0; s < 32; s++) {
+      for (int ii = 0; ii < 2; ii++) {
+        for (int j = 0; j < 16; j++) {
+          int patt = 0;
+          for (int i = 0; i < 8; i++) {
+            patt |= sprite[s].pattern[j][ii * 8 + i] << (7 - i);
+          }
+          fputc(patt, f);
+        }
+      }
+    }
+    fclose(f);
+    f = fopen("back_building_attr.sc5", "wb");
+    for (int i = 0; i < 32; i++) {
+      for (int j = 0; j < 16; j++) {
+        fputc(sprite[i].color[j], f);
+      }
+    }
+    for (int i = 0; i < 32; i++) {
+      fputc((sprite[i].y + 255 + 256 + 81 - scroll2) % 256, f);
+      fputc(sprite[i].x, f);
+      fputc(i, f);
+      fputc(0, f);
+    }
+    fclose(f);
+  }
   const vector<uint8_t>& city1_, city2_, cityline;
   int scroll1, scroll2, start, size;
   vector<vector<bool>> mask;
+  vector<Sprite> sprite;
 };
 
 vector<uint8_t> read_raw(string file, int lines) {
@@ -141,6 +174,6 @@ int main() {
   auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
   SpriteCover cover(city1, city2, cityline, 0, 116, 145, 64);
   cover.solve();
-  //cover.dump();
+  cover.write();
   return 0;
 }

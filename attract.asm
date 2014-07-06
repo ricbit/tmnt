@@ -99,6 +99,8 @@ vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 ; 13800-16AFF moon patterns
 ; 17000-1727F top building attributes
 ; 18000-1A87F cloud3 pixels
+; 1B000-1B7FF back building patterns
+; 1B800-1BA7F back building attributes
 ; 1CA00-1DEFF city1 parallax scroll, frame 5
 
 cloud2_addr             equ     10000h
@@ -110,6 +112,8 @@ moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
 top_building_patt_addr  equ     10000h
 city_line_mask_addr     equ     12880h
+back_building_patt_addr equ     1B000h
+back_building_attr_addr equ     1BA00h
 title_addr              equ     08000h
 
 ; ----------------------------------------------------------------
@@ -701,6 +705,19 @@ local_init:
         ld      hl, city_line_mask
         call    zblit
 
+        ; Copy back building sprite patterns to vram.
+        di
+        SET_VRAM_WRITE back_building_patt_addr
+        ei
+        ld      hl, back_building_patt
+        call    zblit
+
+        ; Copy back building sprite attributes to vram.
+        di
+        SET_VRAM_WRITE (back_building_attr_addr - 512)
+        ei
+        ld      hl, back_building_attr
+        call    zblit
         ; Reset the animation.
         ld      de, state_start
         ld      hl, state_backup
@@ -1473,6 +1490,8 @@ cloud_down5_city_last:
 city_scroll1:
         PREAMBLE_VERTICAL
         SET_PAGE 1
+        SPRITE_ATTR top_building_attr_addr
+        SPRITE_PATTERN top_building_patt_addr
         SPRITES_ON
         ; Set v scroll.
         ld      a, (vertical_scroll)
@@ -1506,7 +1525,8 @@ city_scroll1_foreground:
         dec     a
         add     a, 81
         VDPREG  vdp_vscroll
-        SPRITES_OFF
+        SPRITE_ATTR back_building_attr_addr
+        SPRITE_PATTERN back_building_patt_addr
         VDP_STATUS 0
         DISABLE_HIRQ
         exx
@@ -1990,6 +2010,8 @@ city2a:                 incbin "city2a.z5"
 top_building_pattern:   incbin "top_building_patt.z5"
 top_building_attr:      incbin "top_building_attr.z5"
 top_building_dyn_attr:  incbin "top_building_dyn_attr.bin"
+back_building_patt:     incbin "back_building_patt.z5"
+back_building_attr:     incbin "back_building_attr.z5"
                         PAGE_LIMIT
                         align 16384
 
