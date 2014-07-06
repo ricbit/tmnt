@@ -20,13 +20,15 @@ struct Sprite {
 
 struct SpriteCover {
   SpriteCover(const vector<uint8_t>& city1, const vector<uint8_t>& city2,
+              const vector<uint8_t>& cityline_,
               int scroll1_, int scroll2_, int start_, int size_)
-      : city1_(city1), city2_(city2), scroll1(scroll1_), scroll2(scroll2_),
+      : city1_(city1), city2_(city2), cityline(cityline_),
+        scroll1(scroll1_), scroll2(scroll2_),
         start(start_), size(size_),
         mask(size, vector<bool>(256, false)) {
   }
   int city1(int y, int x) {
-    return city1_[y * 256 + x];
+    return y < 190 ? city1_[y * 256 + x] : 0;
   }
   int city2(int y, int x) {
     return city2_[(y + 38) * 256 + x];
@@ -36,6 +38,7 @@ struct SpriteCover {
       for (int i = 0; i < 256; i++) {
         if (city1(scroll1 + j, i) != 0 &&
             city2(j - scroll2, i) == 0 &&
+            city1(scroll1 + j, i) != cityline[i] &&
             !mask[j - start][i]) {
           return make_pair(true, make_pair(j, i));
         }
@@ -64,19 +67,20 @@ struct SpriteCover {
   Sprite get_sprite(int y, int x) {
     Sprite sprite;
     sprite.x = x;
-    sprite.y = y - 1;
+    sprite.y = y;
     cout << "x " << x << " y " << y << "\n";
-    for (int j = y; j < y + 16; j++) {
+    for (int j = y; j < min(start + size, y + 16); j++) {
       int color = 0;
-      for (int i = 0; i < 16; i++) {
+      for (int i = 0; i < min(16, 255 - x); i++) {
         if (city1(scroll1 + j, x + i) != 0 &&
             city2(j - scroll2, x + i) == 0 &&
+            city1(scroll1 + j, x + i) != cityline[x + i] &&
             !mask[j - start][x + i]) {
           color = city1(scroll1 + j, x + i);
           break;
         } 
       }
-      cout << "line " << j - y << " color " << color << "\n";
+      //cout << "line " << j - y << " color " << color << "\n";
       if (color == 0) {
         continue;
       }
@@ -103,8 +107,22 @@ struct SpriteCover {
       }
       sprite.push_back(get_sprite(pos.second.first, pos.second.second));
     }
+    vector<int> lines(192, 0);
+    for (auto s : sprite) {
+      for (int i = 0; i < 16; i++) {
+        if (s.y + i < 192) {
+          lines[s.y + i]++;
+        }
+      }
+    }
+    for (int i : lines) {
+      if (i > 8) {
+        cout << "More than 8 sprites per line\n";
+        break;
+      }
+    }
   }
-  const vector<uint8_t>& city1_, city2_;
+  const vector<uint8_t>& city1_, city2_, cityline;
   int scroll1, scroll2, start, size;
   vector<vector<bool>> mask;
 };
@@ -120,8 +138,9 @@ vector<uint8_t> read_raw(string file, int lines) {
 int main() {
   auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 190);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
-  SpriteCover cover(city1, city2, 0, 116, 116, 32);
-  //cover.solve();
-  cover.dump();
+  auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
+  SpriteCover cover(city1, city2, cityline, 0, 116, 145, 64);
+  cover.solve();
+  //cover.dump();
   return 0;
 }

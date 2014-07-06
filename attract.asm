@@ -1500,10 +1500,11 @@ city_scroll1:
 
 city_scroll1_foreground:
         PREAMBLE_HORIZONTAL
-        SET_PAGE 0
+        SET_PAGE 2 ; 0
         ld      a, (city_split_line)
         neg
         dec     a
+        add     a, 81
         VDPREG  vdp_vscroll
         SPRITES_OFF
         VDP_STATUS 0
@@ -1944,13 +1945,13 @@ cmd_copy_city_back:
         VDP_YMMM 768 + 128,          0, 256 + 188,      68
         VDP_YMMM 768 + 128 + 68,     0, 768 + 148,      42
 
-; Expand the city line mask to cover 140 lines.
+; Expand the city line mask to cover 130 lines.
 cmd_expand_city_line_mask:
-        VDP_YMMM 593, 0, 594, 140
+        VDP_YMMM 593, 0, 594, 130
 
 ; Copy city2 over the city line mask.
 cmd_copy_city_line_mask:
-        VDP_LMMM 0, 0, 0, 593, 256, 140, vdp_timp
+        VDP_LMMM 0, 0, 0, 593, 256, 130, vdp_timp
 
 end_of_code:
         assert  end_of_code <= 04000h
