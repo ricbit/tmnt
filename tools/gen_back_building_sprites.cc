@@ -149,7 +149,7 @@ struct SpriteCover {
     for (int i = 0; i < 32; i++) {
       fputc((sprite[i].y + 255 + 256 + 81 - scroll2) % 256, f);
       fputc(sprite[i].x, f);
-      fputc(i, f);
+      fputc(i * 4, f);
       fputc(0, f);
     }
     fclose(f);
