@@ -11,6 +11,9 @@
 ; Required memory, in mapper 16kb selectors
 selectors       equ     13
 
+; Compile in debug mode or not
+debug           equ     1
+
 ; ----------------------------------------------------------------
 ; Animation states.
 
@@ -83,6 +86,8 @@ vdp_hsplit_line equ     00013h  ; VDP register for horizontal split line
 vdp_timp        equ     00008h  ; VDP logic operator TIMP
 vdp_set_page    equ     00002h  ; VDP register for set page
 vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
+openmsx_control equ     0002Eh  ; OpenMSX debug control port
+openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -372,6 +377,13 @@ copy_city_line_frame            equ     819
         db      0D0h
         endm
 
+; Dump the contents of register A to openmsx console
+        macro   DEBUG
+        if debug == 1
+        out     (openmsx_data), a
+        endif
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -577,6 +589,12 @@ allocate_memory:
         ld      ix, chgmod
         ld      a, 5
         call    callf
+
+        ; Init openmsx debug device
+        if debug == 1
+        ld      a, 16 + 4
+        out     (openmsx_control), a
+        endif
 
         ; Backup animation state on startup.
         ld      hl, state_start
@@ -1499,6 +1517,7 @@ city_scroll1:
         ld      (vertical_scroll), a
         add     a, 256 - 80
         ld      (city_line), a
+        DEBUG
         VDPREG vdp_vscroll
         exx
         ; Copy top building sprites.
@@ -1511,6 +1530,7 @@ city_scroll1:
         ld      (city_split_line), a
         add     a, b
         ld      b, a
+        DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1524,6 +1544,7 @@ city_scroll1_foreground:
         neg
         dec     a
         add     a, 81
+        DEBUG
         VDPREG  vdp_vscroll
         SPRITE_ATTR back_building_attr_addr
         SPRITE_PATTERN back_building_patt_addr
