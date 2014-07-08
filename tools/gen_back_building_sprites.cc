@@ -13,19 +13,25 @@ int pos(int y, int x) {
 }
 
 struct Sprite {
+  Sprite() : y(0), x(0), pattern(16, vector<int>(16, 0)), color(16) {}
   int y, x;
-  int pattern[16][16];
-  int color[16];
+  vector<vector<int>> pattern;
+  vector<int> color;
 };
 
 struct SpriteCover {
   SpriteCover(const vector<uint8_t>& city1, const vector<uint8_t>& city2,
               const vector<uint8_t>& cityline_,
-              int scroll1_, int scroll2_, int start_, int size_)
+              int scroll1_, int scroll2_, int split_, int start_, int size_)
       : city1_(city1), city2_(city2), cityline(cityline_),
-        scroll1(scroll1_), scroll2(scroll2_),
+        scroll1(scroll1_), scroll2(scroll2_), split(split_ + 1), 
         start(start_), size(size_),
-        mask(size, vector<bool>(256, false)) {
+        mask(size, vector<bool>(256, false)),
+        colormap(16) {
+    iota(colormap.begin(), colormap.end(), 0);
+    colormap[13] = 8;
+    colormap[14] = 1;
+    colormap[15] = 0;
   }
   int city1(int y, int x) {
     return y < 190 ? city1_[y * 256 + x] : 0;
@@ -36,9 +42,9 @@ struct SpriteCover {
   pair<bool, pair<int, int>> find_uncovered_pixel() {
     for (int j = start; j < start + size; j++) {
       for (int i = 0; i < 256; i++) {
-        if (city1(scroll1 + j, i) != 0 &&
-            city2(j - scroll2, i) == 0 &&
-            city1(scroll1 + j, i) != cityline[i] &&
+        if (city1(split + j, i) != 0 &&
+            city2(j, i) == 0 &&
+            city1(split + j, i) != colormap[cityline[i]] &&
             !mask[j - start][i]) {
           return make_pair(true, make_pair(j, i));
         }
@@ -48,17 +54,18 @@ struct SpriteCover {
   }
   void dump() {
     auto f = fopen("dump.data", "wb");
-    for (int j = 0; j < scroll2; j++) {
+    for (int j = 0; j < split - scroll1; j++) {
       for (int i = 0; i < 256; i++) {
         fputc(city1(j + scroll1, i), f);
       }
     }
-    for (int j = scroll2; j < 192; j++) {
+    for (int j = split - scroll1; j < 192; j++) {
       for (int i = 0; i < 256; i++) {
-        if (city2(j - scroll2, i) == 0) {
+        int ycity2 = j - split + scroll1;
+        if (city2(ycity2, i) == 0) {
           fputc(city1(j + scroll1, i), f);
         } else {
-          fputc(city2(j - scroll2, i), f);
+          fputc(city2(ycity2, i), f);
         }
       }
     }
@@ -68,20 +75,17 @@ struct SpriteCover {
     Sprite sprite;
     sprite.x = x;
     sprite.y = y;
-    for (int i = 0; i < 16; i++) {
-      for (int j = 0; j < 16; j++) {
-        sprite.pattern[i][j] = 0;
-      }
-    }
     cout << "x " << x << " y " << y << "\n";
-    for (int j = y; j < min(start + size, y + 16); j++) {
+    int limit = min(start + size, y + 16);
+    limit = min(limit, 192 - (split - scroll1));
+    for (int j = y; j < limit; j++) {
       int color = 0;
       for (int i = 0; i < min(16, 255 - x); i++) {
-        if (city1(scroll1 + j, x + i) != 0 &&
-            city2(j - scroll2, x + i) == 0 &&
-            city1(scroll1 + j, x + i) != cityline[x + i] &&
+        if (city1(split + j, x + i) != 0 &&
+            city2(j, x + i) == 0 &&
+            city1(split + j, x + i) != colormap[cityline[x + i]] &&
             !mask[j - start][x + i]) {
-          color = city1(scroll1 + j, x + i);
+          color = city1(split + j, x + i);
           break;
         } 
       }
@@ -91,8 +95,8 @@ struct SpriteCover {
       }
       sprite.color[j - y] = color;
       for (int i = 0; i < 16; i++) {
-        if (city1(scroll1 + j, x + i) == color &&
-            city2(j - scroll2, x + i) == 0 &&
+        if (city1(split + j, x + i) == color &&
+            city2(j, x + i) == 0 &&
             !mask[j - start][x + i]) {
           mask[j - start][x + i] = true;
           sprite.pattern[j - y][i] = 1;
@@ -101,13 +105,13 @@ struct SpriteCover {
     }
     return sprite;
   }
-  void solve() {
+  bool solve() {
     while (true) {
       auto pos = find_uncovered_pixel();
       if (!pos.first) break;
       if (sprite.size() == 32) {
-        cout << "Abort: too many sprites\n";
-        break;
+        // cout << "Abort: too many sprites\n";
+        return false;
       }
       sprite.push_back(get_sprite(pos.second.first, pos.second.second));
     }
@@ -121,13 +125,19 @@ struct SpriteCover {
     }
     for (int i : lines) {
       if (i > 8) {
-        cout << "More than 8 sprites per line\n";
-        break;
+        // cout << "More than 8 sprites per line\n";
+        return false;
       }
     }
+    return true;
   }
   void write() {
     auto f = fopen("back_building_patt.sc5", "wb");
+    while (sprite.size() != 32) {
+      Sprite s;
+      s.x = 255;
+      sprite.push_back(s);
+    }
     for (int s = 0; s < 32; s++) {
       for (int ii = 0; ii < 2; ii++) {
         for (int j = 0; j < 16; j++) {
@@ -147,7 +157,7 @@ struct SpriteCover {
       }
     }
     for (int i = 0; i < 32; i++) {
-      fputc((sprite[i].y + 255 + 256 + 81 - scroll2) % 256, f);
+      fputc((sprite[i].y + 255 + 256 + scroll2 - split) % 256, f);
       fputc(sprite[i].x, f);
       fputc(i * 4, f);
       fputc(0, f);
@@ -155,9 +165,10 @@ struct SpriteCover {
     fclose(f);
   }
   const vector<uint8_t>& city1_, city2_, cityline;
-  int scroll1, scroll2, start, size;
+  int scroll1, scroll2, split, start, size;
   vector<vector<bool>> mask;
   vector<Sprite> sprite;
+  vector<int> colormap;
 };
 
 vector<uint8_t> read_raw(string file, int lines) {
@@ -172,8 +183,14 @@ int main() {
   auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 190);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
   auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
-  SpriteCover cover(city1, city2, cityline, 0, 116, 145, 64);
-  cover.solve();
-  cover.write();
+  for (int i = 0; i < 192; i++) {
+    SpriteCover cover(city1, city2, cityline, 0, 197, 139, i, 64);
+    cout << "---\n";
+    if (cover.solve()) {
+      cover.dump();
+      cover.write();
+      break;
+    }
+  }
   return 0;
 }
