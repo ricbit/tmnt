@@ -34,7 +34,7 @@ struct SpriteCover {
     colormap[15] = 0;
   }
   int city1(int y, int x) {
-    return y < 190 ? city1_[y * 256 + x] : 0;
+    return y < 212 ? city1_[y * 256 + x] : 0;
   }
   int city2(int y, int x) {
     return city2_[(y + 38) * 256 + x];
@@ -77,7 +77,6 @@ struct SpriteCover {
     sprite.y = y;
     cout << "x " << x << " y " << y << "\n";
     int limit = min(start + size, y + 16);
-    limit = min(limit, 192 - (split - scroll1));
     for (int j = y; j < limit; j++) {
       int color = 0;
       for (int i = 0; i < min(16, 255 - x); i++) {
@@ -110,7 +109,7 @@ struct SpriteCover {
       auto pos = find_uncovered_pixel();
       if (!pos.first) break;
       if (sprite.size() == 32) {
-        // cout << "Abort: too many sprites\n";
+        cout << "Abort: too many sprites\n";
         return false;
       }
       sprite.push_back(get_sprite(pos.second.first, pos.second.second));
@@ -125,7 +124,7 @@ struct SpriteCover {
     }
     for (int i : lines) {
       if (i > 8) {
-        // cout << "More than 8 sprites per line\n";
+        cout << "More than 8 sprites per line\n";
         return false;
       }
     }
@@ -157,7 +156,7 @@ struct SpriteCover {
       }
     }
     for (int i = 0; i < 32; i++) {
-      fputc((sprite[i].y + 255 + 256 + scroll2 - split) % 256, f);
+      fputc((sprite[i].y + 255 + 256 + 81) % 256, f);
       fputc(sprite[i].x, f);
       fputc(i * 4, f);
       fputc(0, f);
@@ -180,14 +179,18 @@ vector<uint8_t> read_raw(string file, int lines) {
 }
 
 int main() {
-  auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 190);
+  auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 212);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
   auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
   for (int i = 0; i < 192; i++) {
-    SpriteCover cover(city1, city2, cityline, 0, 197, 139, i, 64);
+    int split = 139;
+    int scroll1 = 0;
+    int limit = min(64, 192 - (split - scroll1 + i));
+    cout << limit << "\n";
+    SpriteCover cover(city1, city2, cityline, 0, 197, 139, i, limit);
+    cover.dump();
     cout << "---\n";
     if (cover.solve()) {
-      cover.dump();
       cover.write();
       break;
     }
