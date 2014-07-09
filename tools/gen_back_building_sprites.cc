@@ -1,8 +1,5 @@
 #include <iostream>
-#include <fstream>
 #include <vector>
-#include <set>
-#include <ctime>
 #include <cstdlib>
 #include <algorithm>
 
@@ -13,9 +10,11 @@ int pos(int y, int x) {
 }
 
 struct Sprite {
-  Sprite() : y(0), x(0), pattern(16, vector<int>(16, 0)), color(16) {}
+  Sprite() : y(0), x(0), pattern(16, vector<int>(16, 0)), 
+             bitpattern(32), color(16) {}
   int y, x;
   vector<vector<int>> pattern;
+  vector<int> bitpattern;
   vector<int> color;
 };
 
@@ -75,7 +74,6 @@ struct SpriteCover {
     Sprite sprite;
     sprite.x = x;
     sprite.y = y;
-    cout << "x " << x << " y " << y << "\n";
     int limit = min(start + size, y + 16);
     for (int j = y; j < limit; j++) {
       int color = 0;
@@ -88,7 +86,6 @@ struct SpriteCover {
           break;
         } 
       }
-      //cout << "line " << j - y << " color " << color << "\n";
       if (color == 0) {
         continue;
       }
@@ -102,6 +99,17 @@ struct SpriteCover {
         } 
       }
     }
+    // Create bit pattern.
+    int index = 0;
+    for (int ii = 0; ii < 2; ii++) {
+      for (int j = 0; j < 16; j++) {
+        int patt = 0;
+        for (int i = 0; i < 8; i++) {
+          patt |= sprite.pattern[j][ii * 8 + i] << (7 - i);
+        }
+        sprite.bitpattern[index++] = patt;
+      }
+    }
     return sprite;
   }
   bool solve() {
@@ -109,7 +117,7 @@ struct SpriteCover {
       auto pos = find_uncovered_pixel();
       if (!pos.first) break;
       if (sprite.size() == 32) {
-        cout << "Abort: too many sprites\n";
+        //cout << "Abort: too many sprites\n";
         return false;
       }
       sprite.push_back(get_sprite(pos.second.first, pos.second.second));
@@ -124,7 +132,7 @@ struct SpriteCover {
     }
     for (int i : lines) {
       if (i > 8) {
-        cout << "More than 8 sprites per line\n";
+        //cout << "More than 8 sprites per line\n";
         return false;
       }
     }
@@ -138,14 +146,8 @@ struct SpriteCover {
       sprite.push_back(s);
     }
     for (int s = 0; s < 32; s++) {
-      for (int ii = 0; ii < 2; ii++) {
-        for (int j = 0; j < 16; j++) {
-          int patt = 0;
-          for (int i = 0; i < 8; i++) {
-            patt |= sprite[s].pattern[j][ii * 8 + i] << (7 - i);
-          }
-          fputc(patt, f);
-        }
+      for (int j = 0; j < 16 * 2; j++) {
+        fputc(sprite[s].bitpattern[j], f);
       }
     }
     fclose(f);
@@ -178,22 +180,67 @@ vector<uint8_t> read_raw(string file, int lines) {
   return raw;
 }
 
+SpriteCover find_cover(
+    const vector<uint8_t>& city1, const vector<uint8_t>& city2,
+    const vector<uint8_t>& cityline,
+    int scroll1, int scroll2, int split) {
+  for (int i = 0; i < 192; i++) {
+    int limit = min(86, 192 - (split - scroll1 + i));
+    SpriteCover cover(city1, city2, cityline, 0, 197, 139, i, limit);
+    if (cover.solve()) {
+      cout << "scroll1: " << scroll1 << " : " << cover.sprite.size() << "\n";
+      return cover;
+    }
+  }
+  return SpriteCover(city1, city2, cityline, 0, 197, 139, 192, 0);
+}
+
+struct SpriteBlock {
+  vector<vector<int>> patterns;
+  bool find_sprite(const Sprite& s) {
+    for (auto patt : patterns) {
+      if (s.bitpattern == patt) {
+        return true;
+      }
+    }
+    return false;
+  }
+  bool check(const SpriteCover& cover) {
+    int not_found = 0;
+    for (const auto s : cover.sprite) {
+      if (!find_sprite(s)) {
+        not_found++;
+      }
+    }
+    return cover.sprite.size() + not_found <= 32;
+  }
+  void insert(const SpriteCover& cover) {
+    for (const auto s : cover.sprite) {
+      if (!find_sprite(s)) {
+        patterns.push_back(s.bitpattern);
+      }
+    }
+  }
+};
+
 int main() {
   auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 212);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
   auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
-  for (int i = 0; i < 192; i++) {
-    int split = 139;
-    int scroll1 = 0;
-    int limit = min(64, 192 - (split - scroll1 + i));
-    cout << limit << "\n";
-    SpriteCover cover(city1, city2, cityline, 0, 197, 139, i, limit);
-    cover.dump();
-    cout << "---\n";
-    if (cover.solve()) {
-      cover.write();
-      break;
+  vector<SpriteBlock*> block;
+  block.push_back(new SpriteBlock());
+  for (int i = 0; i < 14; i++) {
+    auto cover = find_cover(
+        city1, city2, cityline, i * 2, 197 + i * 10, 139 - i * 8);
+    SpriteBlock* last = *block.rbegin();
+    if (!last->check(cover)) {
+      block.push_back(new SpriteBlock());
+      last = *block.rbegin();
     }
+    last->insert(cover);
+  }
+  for (const auto& b : block) {
+    cout << "block size " << b->patterns.size() << "\n";
   }
   return 0;
 }

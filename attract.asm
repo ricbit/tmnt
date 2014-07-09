@@ -1879,18 +1879,6 @@ restore_environment:
         ld      a, (mapper_selectors + 1)
         jp      fast_put_p2
 
-; Copy RAM to VRAM, assumes VRAM address is already set.
-; Input: HL = RAM source, BC = size
-blit:
-        ld      a, (hl)
-        out     (098h), a
-        inc     hl
-        dec     bc
-        ld      a, b
-        or      c
-        jr      nz, blit
-        ret
-
 ; Call HL.
 call_hl:
         jp      (hl)
