@@ -248,9 +248,44 @@ int main() {
     auto patt = last->insert(cover);
     attr.push_back(make_tuple(block_number, patt, cover));
   }
+  auto f = fopen("back_building_patt.sc5", "wb");
   for (const auto& b : block) {
     cout << "block size " << b->patterns.size() << "\n";
+    for (const auto& patt : b->patterns) {
+      for (int p : patt) {
+        fputc(p, f);
+      }
+    }
+    for (int i = 0; i < int(32 - b->patterns.size()) * 32; i++) {
+      fputc(0, f);
+    }
     delete b;
   }
+  fclose(f);
+  f = fopen("back_building_attr.sc5", "wb");
+  for (const auto& a : attr) {
+    vector<int> contents;
+    for (const auto& s : get<2>(a).sprite) {
+      for (int color : s.color) {
+        contents.push_back(color);
+      }
+    }
+    for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 16; i++) {
+      contents.push_back(0);
+    }
+    for (int i = 0; i < int(get<1>(a).size()); i++) {
+      contents.push_back((get<2>(a).sprite[i].y + 255 + 256 + 81) % 256);
+      contents.push_back(get<2>(a).sprite[i].x);
+      contents.push_back(get<1>(a)[i] * 4);
+      contents.push_back(0);
+    }
+    for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 4; i++) {
+      contents.push_back(0);
+    }
+    for (int i : contents) {
+      fputc(i, f);
+    }
+  }
+  fclose(f);
   return 0;
 }
