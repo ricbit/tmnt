@@ -2,6 +2,7 @@
 #include <vector>
 #include <cstdlib>
 #include <algorithm>
+#include <tuple>
 
 using namespace std;
 
@@ -197,29 +198,34 @@ SpriteCover find_cover(
 
 struct SpriteBlock {
   vector<vector<int>> patterns;
-  bool find_sprite(const Sprite& s) {
-    for (auto patt : patterns) {
-      if (s.bitpattern == patt) {
-        return true;
+  int find_sprite(const Sprite& s) {
+    for (int i = 0; i < int(patterns.size()); i++) {
+      if (s.bitpattern == patterns[i]) {
+        return i;
       }
     }
-    return false;
+    return -1;
   }
   bool check(const SpriteCover& cover) {
     int not_found = 0;
     for (const auto s : cover.sprite) {
-      if (!find_sprite(s)) {
+      if (find_sprite(s) < 0) {
         not_found++;
       }
     }
     return cover.sprite.size() + not_found <= 32;
   }
-  void insert(const SpriteCover& cover) {
+  vector<int> insert(const SpriteCover& cover) {
+    vector<int> answer;
     for (const auto s : cover.sprite) {
-      if (!find_sprite(s)) {
+      int index = find_sprite(s);
+      if (index < 0) {
         patterns.push_back(s.bitpattern);
+        index = patterns.size() - 1;
       }
+      answer.push_back(index);
     }
+    return answer;
   }
 };
 
@@ -228,6 +234,7 @@ int main() {
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
   auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
   vector<SpriteBlock*> block;
+  vector<tuple<int, vector<int>, SpriteCover>> attr;
   block.push_back(new SpriteBlock());
   for (int i = 0; i < 14; i++) {
     auto cover = find_cover(
@@ -237,10 +244,13 @@ int main() {
       block.push_back(new SpriteBlock());
       last = *block.rbegin();
     }
-    last->insert(cover);
+    int block_number = block.size() - 1;
+    auto patt = last->insert(cover);
+    attr.push_back(make_tuple(block_number, patt, cover));
   }
   for (const auto& b : block) {
     cout << "block size " << b->patterns.size() << "\n";
+    delete b;
   }
   return 0;
 }
