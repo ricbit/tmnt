@@ -229,6 +229,29 @@ struct SpriteBlock {
   }
 };
 
+template<typename T>
+vector<int> gen_attr(T a) {
+  vector<int> contents;
+  for (const auto& s : get<2>(a).sprite) {
+    for (int color : s.color) {
+      contents.push_back(color);
+    }
+  }
+  for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 16; i++) {
+    contents.push_back(0);
+  }
+  for (int i = 0; i < int(get<1>(a).size()); i++) {
+    contents.push_back((get<2>(a).sprite[i].y + 255 + 256 + 81) % 256);
+    contents.push_back(get<2>(a).sprite[i].x);
+    contents.push_back(get<1>(a)[i] * 4);
+    contents.push_back(0);
+  }
+  for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 4; i++) {
+    contents.push_back(0);
+  }
+  return contents;
+}
+
 int main() {
   auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 212);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
@@ -264,24 +287,7 @@ int main() {
   fclose(f);
   f = fopen("back_building_attr.sc5", "wb");
   for (const auto& a : attr) {
-    vector<int> contents;
-    for (const auto& s : get<2>(a).sprite) {
-      for (int color : s.color) {
-        contents.push_back(color);
-      }
-    }
-    for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 16; i++) {
-      contents.push_back(0);
-    }
-    for (int i = 0; i < int(get<1>(a).size()); i++) {
-      contents.push_back((get<2>(a).sprite[i].y + 255 + 256 + 81) % 256);
-      contents.push_back(get<2>(a).sprite[i].x);
-      contents.push_back(get<1>(a)[i] * 4);
-      contents.push_back(0);
-    }
-    for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 4; i++) {
-      contents.push_back(0);
-    }
+    vector<int> contents = get_attr(a);
     for (int i : contents) {
       fputc(i, f);
     }
