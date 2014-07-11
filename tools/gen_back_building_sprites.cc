@@ -139,33 +139,6 @@ struct SpriteCover {
     }
     return true;
   }
-  void write() {
-    auto f = fopen("back_building_patt.sc5", "wb");
-    while (sprite.size() != 32) {
-      Sprite s;
-      s.x = 255;
-      sprite.push_back(s);
-    }
-    for (int s = 0; s < 32; s++) {
-      for (int j = 0; j < 16 * 2; j++) {
-        fputc(sprite[s].bitpattern[j], f);
-      }
-    }
-    fclose(f);
-    f = fopen("back_building_attr.sc5", "wb");
-    for (int i = 0; i < 32; i++) {
-      for (int j = 0; j < 16; j++) {
-        fputc(sprite[i].color[j], f);
-      }
-    }
-    for (int i = 0; i < 32; i++) {
-      fputc((sprite[i].y + 255 + 256 + 81) % 256, f);
-      fputc(sprite[i].x, f);
-      fputc(i * 4, f);
-      fputc(0, f);
-    }
-    fclose(f);
-  }
   const vector<uint8_t>& city1_, city2_, cityline;
   int scroll1, scroll2, split, start, size;
   vector<vector<bool>> mask;
@@ -187,7 +160,8 @@ SpriteCover find_cover(
     int scroll1, int scroll2, int split) {
   for (int i = 0; i < 192; i++) {
     int limit = min(86, 192 - (split - scroll1 + i));
-    SpriteCover cover(city1, city2, cityline, 0, 197, 139, i, limit);
+    SpriteCover cover(
+        city1, city2, cityline, scroll1, scroll2, split, i, limit);
     if (cover.solve()) {
       cout << "scroll1: " << scroll1 << " : " << cover.sprite.size() << "\n";
       return cover;
@@ -213,7 +187,7 @@ struct SpriteBlock {
         not_found++;
       }
     }
-    return cover.sprite.size() + not_found <= 32;
+    return patterns.size() + not_found <= 64;
   }
   vector<int> insert(const SpriteCover& cover) {
     vector<int> answer;
@@ -279,6 +253,7 @@ int main() {
   for (int i = 0; i < 14; i++) {
     auto cover = find_cover(
         city1, city2, cityline, i * 2, 197 + i * 10, 139 - i * 8);
+    if (i == 8) cover.dump();
     SpriteBlock* last = *block.rbegin();
     if (!last->check(cover)) {
       block.push_back(new SpriteBlock());
@@ -296,7 +271,7 @@ int main() {
         fputc(p, f);
       }
     }
-    for (int i = 0; i < int(32 - b->patterns.size()) * 32; i++) {
+    for (int i = 0; i < int(64 - b->patterns.size()) * 32; i++) {
       fputc(0, f);
     }
     delete b;
