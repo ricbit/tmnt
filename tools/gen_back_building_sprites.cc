@@ -230,7 +230,7 @@ struct SpriteBlock {
 };
 
 template<typename T>
-vector<int> gen_attr(T a) {
+vector<int> get_attr(T a) {
   vector<int> contents;
   for (const auto& s : get<2>(a).sprite) {
     for (int color : s.color) {
@@ -250,6 +250,23 @@ vector<int> gen_attr(T a) {
     contents.push_back(0);
   }
   return contents;
+}
+
+vector<int> compress(const vector<int>& stream) {
+  int size = stream.size();
+  int pos = 0;
+  vector<int> ans;
+  while (size) {
+    int s = min(127, size);
+    ans.push_back(s);
+    for (int i = 0; i < s; i++) {
+      ans.push_back(stream[pos + i]);
+      pos++;
+    }
+    size -= s;
+  }
+  ans.push_back(0);
+  return ans;
 }
 
 int main() {
@@ -285,12 +302,21 @@ int main() {
     delete b;
   }
   fclose(f);
-  f = fopen("back_building_attr.sc5", "wb");
+  f = fopen("back_building_attr.z5", "wb");
+  vector<int> attr_size;
   for (const auto& a : attr) {
     vector<int> contents = get_attr(a);
-    for (int i : contents) {
+    vector<int> compressed = compress(contents);
+    attr_size.push_back(compressed.size());
+    for (int i : compressed) {
       fputc(i, f);
     }
+  }
+  fclose(f);
+  f = fopen("back_building_size.bin", "wb");
+  for (int i : attr_size) {
+    fputc(i % 256, f);
+    fputc(i / 256, f);
   }
   fclose(f);
   return 0;

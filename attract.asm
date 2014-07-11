@@ -9,7 +9,7 @@
         jp      start_main
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     13
+selectors       equ     14
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -384,6 +384,12 @@ copy_city_line_frame            equ     819
         endif
         endm
 
+; Select a mapper block on page 2
+        macro   MAPPER_P2 block
+        ld      a, (mapper_selectors + block)
+        call    fast_put_p2
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -638,8 +644,7 @@ local_init:
         ei
 
         ; Copy cloud2 to vram.
-        ld      a, (mapper_selectors + 9)
-        call    fast_put_p2
+        MAPPER_P2 9
         di
         SET_VRAM_WRITE cloud2_addr
         ei
@@ -654,8 +659,7 @@ local_init:
         call    zblit
 
         ; Copy moon sprite patterns to vram.
-        ld      a, (mapper_selectors + 10)
-        call    fast_put_p2
+        MAPPER_P2 10
         di
         SET_VRAM_WRITE moon_pattern_addr
         ei
@@ -680,12 +684,10 @@ local_init:
         di
         SET_VRAM_WRITE city2_addr
         ei
-        ld      a, (mapper_selectors + 11)
-        call    fast_put_p2
+        MAPPER_P2 13
         ld      hl, city2a
         call    zblit
-        ld      a, (mapper_selectors + 12)
-        call    fast_put_p2
+        MAPPER_P2 12
         ld      hl, city2b
         call    zblit
 
@@ -702,8 +704,7 @@ local_init:
 
         ; Copy top building sprite patterns to vram.
         di
-        ld      a, (mapper_selectors + 11)
-        call    fast_put_p2
+        MAPPER_P2 11
         SET_VRAM_WRITE top_building_patt_addr
         ei
         ld      hl, top_building_pattern
@@ -950,8 +951,7 @@ erase_title_vram:
 copy_title_vram:
         PREAMBLE_VERTICAL
         SET_VRAM_WRITE title_addr
-        ld      a, (mapper_selectors + 9)
-        call    fast_put_p2
+        MAPPER_P2 9
         xor     a
         ld      (vertical_scroll), a
         exx
@@ -2015,18 +2015,24 @@ moon_attr:              incbin "moon_attr.z5"
 
 ; Mapper page 11
                         .phase  08000h
-city2a:                 incbin "city2a.z5"
 top_building_pattern:   incbin "top_building_patt.z5"
 top_building_attr:      incbin "top_building_attr.z5"
 top_building_dyn_attr:  incbin "top_building_dyn_attr.bin"
 back_building_patt:     incbin "back_building_patt.z5"
 back_building_attr:     incbin "back_building_attr.z5"
+back_building_dyn_size: incbin "back_building_size.bin"
                         PAGE_LIMIT
                         align 16384
 
 ; Mapper page 12
                         .phase  08000h
 city2b:                 incbin "city2b.z5"
+                        PAGE_LIMIT
+                        align 16384
+
+; Mapper page 13
+                        .phase  08000h
+city2a:                 incbin "city2a.z5"
                         PAGE_LIMIT
                         align 16384
 
