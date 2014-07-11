@@ -243,6 +243,45 @@ vector<int> compress(const vector<int>& stream) {
   return ans;
 }
 
+template<typename T>
+void save_patterns(T block) {
+  auto f = fopen("back_building_patt.sc5", "wb");
+  for (const auto& b : block) {
+    cout << "block size " << b->patterns.size() << "\n";
+    for (const auto& patt : b->patterns) {
+      for (int p : patt) {
+        fputc(p, f);
+      }
+    }
+    for (int i = 0; i < int(64 - b->patterns.size()) * 32; i++) {
+      fputc(0, f);
+    }
+    delete b;
+  }
+  fclose(f);
+}
+
+template<typename T>
+void save_attr(T attr) {
+  auto f = fopen("back_building_attr.z5", "wb");
+  vector<int> attr_size;
+  for (const auto& a : attr) {
+    vector<int> contents = get_attr(a);
+    vector<int> compressed = compress(contents);
+    attr_size.push_back(compressed.size());
+    for (int i : compressed) {
+      fputc(i, f);
+    }
+  }
+  fclose(f);
+  f = fopen("back_building_size.bin", "wb");
+  for (int i : attr_size) {
+    fputc(i % 256, f);
+    fputc(i / 256, f);
+  }
+  fclose(f);
+}
+
 int main() {
   auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 212);
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
@@ -263,36 +302,7 @@ int main() {
     auto patt = last->insert(cover);
     attr.push_back(make_tuple(block_number, patt, cover));
   }
-  auto f = fopen("back_building_patt.sc5", "wb");
-  for (const auto& b : block) {
-    cout << "block size " << b->patterns.size() << "\n";
-    for (const auto& patt : b->patterns) {
-      for (int p : patt) {
-        fputc(p, f);
-      }
-    }
-    for (int i = 0; i < int(64 - b->patterns.size()) * 32; i++) {
-      fputc(0, f);
-    }
-    delete b;
-  }
-  fclose(f);
-  f = fopen("back_building_attr.z5", "wb");
-  vector<int> attr_size;
-  for (const auto& a : attr) {
-    vector<int> contents = get_attr(a);
-    vector<int> compressed = compress(contents);
-    attr_size.push_back(compressed.size());
-    for (int i : compressed) {
-      fputc(i, f);
-    }
-  }
-  fclose(f);
-  f = fopen("back_building_size.bin", "wb");
-  for (int i : attr_size) {
-    fputc(i % 256, f);
-    fputc(i / 256, f);
-  }
-  fclose(f);
+  save_patterns(block);
+  save_attr(attr);
   return 0;
 }

@@ -2014,6 +2014,7 @@ end_of_code:
 
         macro   PAGE_LIMIT
         assert  $ <= 0C000h
+        align   16384
         endm
 
 ; Mapper pages 0-8
@@ -2025,7 +2026,6 @@ opening_title:          incbin "tmnt.z5"
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
                         PAGE_LIMIT                
-                        align 16384
 
 ; Mapper page 10
                         .phase  08000h
@@ -2033,7 +2033,6 @@ city_page1:             incbin "city1.z5"
 moon_pattern:           incbin "moon_pattern.z5"
 moon_attr:              incbin "moon_attr.z5"
                         PAGE_LIMIT
-                        align 16384
 
 ; Mapper page 11
                         .phase  08000h
@@ -2044,19 +2043,16 @@ back_building_patt:     incbin "back_building_patt.z5"
 back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
                         PAGE_LIMIT
-                        align 16384
 
 ; Mapper page 12
                         .phase  08000h
 city2b:                 incbin "city2b.z5"
                         PAGE_LIMIT
-                        align 16384
 
 ; Mapper page 13
                         .phase  08000h
 city2a:                 incbin "city2a.z5"
                         PAGE_LIMIT
-                        align 16384
 
         end
 
