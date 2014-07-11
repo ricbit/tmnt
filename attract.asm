@@ -31,6 +31,7 @@ city_scroll:            dw      city_scroll_down5
 top_building_current:   dw      top_building_dyn_attr
 back_building_current:  dw      back_building_attr
 back_building_size:     dw      back_building_dyn_size
+back_building_cur_base: dw      back_building_base
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -1534,6 +1535,8 @@ city_scroll1:
 
 city_scroll1_copy_back:
         PREAMBLE_HORIZONTAL
+        exx
+        ; Set back building attr.
         SET_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
         call    smart_zblit
@@ -1568,11 +1571,16 @@ city_scroll1_foreground:
         dec     a
         add     a, 81
         VDPREG  vdp_vscroll
+        exx
+        ; Set back building base.
+        ld      hl, (back_building_cur_base)
+        ld      a, (hl)
+        VDPREG vdp_sprite_patt
+        inc     hl
+        ld      (back_building_cur_base), hl
         SPRITE_ATTR back_building_attr_addr
-        SPRITE_PATTERN back_building_patt_addr
         VDP_STATUS 0
         DISABLE_HIRQ
-        exx
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2042,6 +2050,7 @@ top_building_dyn_attr:  incbin "top_building_dyn_attr.bin"
 back_building_patt:     incbin "back_building_patt.z5"
 back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
+back_building_base:     incbin "back_building_patt_base.bin"
                         PAGE_LIMIT
 
 ; Mapper page 12

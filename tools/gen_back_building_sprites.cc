@@ -220,8 +220,8 @@ vector<int> get_attr(T a) {
     contents.push_back(get<1>(a)[i] * 4);
     contents.push_back(0);
   }
-  for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 4; i++) {
-    contents.push_back(0);
+  if (get<2>(a).sprite.size() < 32) {
+    contents.push_back(0xD8);
   }
   return contents;
 }
@@ -280,6 +280,11 @@ void save_attr(T attr) {
     fputc(i / 256, f);
   }
   fclose(f);
+  f = fopen("back_building_patt_base.bin", "wb");
+  for (const auto& a : attr) {
+    fputc((0x5800 + 0x800 * get<0>(a)) >> 11, f);
+  }
+  fclose(f);
 }
 
 int main() {
@@ -292,7 +297,6 @@ int main() {
   for (int i = 0; i < 14; i++) {
     auto cover = find_cover(
         city1, city2, cityline, i * 2, 197 + i * 10, 139 - i * 8);
-    if (i == 8) cover.dump();
     SpriteBlock* last = *block.rbegin();
     if (!last->check(cover)) {
       block.push_back(new SpriteBlock());
