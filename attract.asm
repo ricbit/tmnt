@@ -29,6 +29,8 @@ cloud_tick:             db      1
 city_split_line:        db      189 + 10
 city_scroll:            dw      city_scroll_down5
 top_building_current:   dw      top_building_dyn_attr
+back_building_current:  dw      back_building_attr
+back_building_size:     dw      back_building_dyn_size
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 state_end:
@@ -1517,11 +1519,33 @@ city_scroll1:
         ld      (vertical_scroll), a
         add     a, 256 - 80
         ld      (city_line), a
-        DEBUG
+        push    af
         VDPREG vdp_vscroll
+        pop     af
+        inc     a
+        VDPREG vdp_hsplit_line
         exx
         ; Copy top building sprites.
         call    update_top_building_sprite
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE city_scroll1_copy_back
+        jp      return_irq_exx
+
+city_scroll1_copy_back:
+        PREAMBLE_HORIZONTAL
+        SET_VRAM_WRITE (back_building_attr_addr - 512)
+        ld      hl, (back_building_current)
+        call    smart_zblit
+        ld      hl, (back_building_current)
+        ld      ix, (back_building_size)
+        ld      e, (ix + 0)
+        ld      d, (ix + 1)
+        add     hl, de
+        ld      (back_building_current), hl
+        inc     ix
+        inc     ix
+        ld      (back_building_size), ix
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
@@ -1530,7 +1554,6 @@ city_scroll1:
         ld      (city_split_line), a
         add     a, b
         ld      b, a
-        DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1544,7 +1567,6 @@ city_scroll1_foreground:
         neg
         dec     a
         add     a, 81
-        DEBUG
         VDPREG  vdp_vscroll
         SPRITE_ATTR back_building_attr_addr
         SPRITE_PATTERN back_building_patt_addr

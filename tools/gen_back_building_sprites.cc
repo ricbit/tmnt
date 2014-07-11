@@ -261,8 +261,8 @@ vector<int> compress(const vector<int>& stream) {
     ans.push_back(s);
     for (int i = 0; i < s; i++) {
       ans.push_back(stream[pos + i]);
-      pos++;
     }
+    pos += s;
     size -= s;
   }
   ans.push_back(0);
