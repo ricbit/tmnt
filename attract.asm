@@ -393,6 +393,14 @@ copy_city_line_frame            equ     819
         call    fast_put_p2
         endm
 
+; Create a hook for debugging purposes.
+        macro   CREATE_HOOK addr, label
+        ld      a, 0C3h
+        ld      (addr), a
+        ld      hl, label
+        ld      (addr + 1), hl
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -599,10 +607,13 @@ allocate_memory:
         ld      a, 5
         call    callf
 
-        ; Init openmsx debug device
         if debug == 1
+        ; Init openmsx debug device
         ld      a, 16 + 4
         out     (openmsx_control), a
+        ; Create hooks for breakpoints.
+        CREATE_HOOK 0C000h, smart_zblit_start
+        CREATE_HOOK 0C003h, foreground_ret
         endif
 
         ; Backup animation state on startup.
@@ -1714,7 +1725,13 @@ foreground_vdp_command:
 ; Decompress graphics without stopping the pcm sample.
 ; Input: HL=graphics
 
+        if      debug == 0
 smart_zblit:
+        else
+smart_zblit_start:
+smart_zblit equ 0C000h
+        endif
+
         ld      a, (is_playing)
         or      a
         jp      z, zblit
@@ -1732,7 +1749,11 @@ foreground_zblit:
         ld      a, (hl)
         inc     hl
         or      a
+        if      debug == 0
         jp      z, foreground_ret
+        else
+        jp      z, 0C003h
+        endif
         jp      m, foreground_rle_setup
 
         ; Setup zblit copy.
