@@ -2,8 +2,6 @@ set throttle off
 set running 0
 set current_frame 0
 
-debug set_bp 0x9f {} {type "tmnt"}
-
 proc readmemw {addr} {
   expr {
     [debug read "memory" $addr] + 
@@ -24,6 +22,22 @@ debug set_bp 0xC000 {$current_frame >= 750} {
 
 debug set_bp 0xC003 {} {
   puts stderr "smart_zblit ending at line [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp 0xC006 {$current_frame >= 750} {
+  puts stderr "smart_palette starting at line [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp 0xC009 {} {
+  puts stderr "smart_palette ending at line [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp 0xC00C {$current_frame >= 750} {
+  puts stderr "smart_vdp_command starting at line [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp 0xC00F {} {
+  puts stderr "smart_vdp_command ending at line [machine_info VDP_msx_y_pos]"
 }
 
 debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {

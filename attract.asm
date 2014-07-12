@@ -597,9 +597,11 @@ allocate_memory:
         call    callf
 
         ; Wait for a key.
+        if      debug == 0
         ld      iy, (mainrom)
         ld      ix, chget
         call    callf
+        endif
 
         ; Change to SCREEN 5.
         ld      iy, (subrom)
@@ -614,6 +616,10 @@ allocate_memory:
         ; Create hooks for breakpoints.
         CREATE_HOOK 0C000h, smart_zblit_start
         CREATE_HOOK 0C003h, foreground_ret
+        CREATE_HOOK 0C006h, smart_palette_start
+        CREATE_HOOK 0C009h, foreground_ret
+        CREATE_HOOK 0C00Ch, smart_vdp_command_start
+        CREATE_HOOK 0C00Fh, foreground_ret
         endif
 
         ; Backup animation state on startup.
@@ -1686,7 +1692,13 @@ vdp_command:
 ; Input: HL=table with vdp commands
 ; Destroy: VDP Status
 
+        if      debug == 0
 smart_vdp_command:
+        else
+smart_vdp_command_start:
+smart_vdp_command equ 0C00Ch
+        endif
+
         ; Check for foreground overrun.
         push    hl
         call    check_foreground
@@ -1719,7 +1731,11 @@ foreground_vdp_command:
         inc     hl
         dec     b
         jp      nz, foreground_next
+        if      debug == 0
         jp      foreground_ret
+        else
+        jp      0C00Fh
+        endif
 
 ; ----------------------------------------------------------------
 ; Decompress graphics without stopping the pcm sample.
@@ -1793,7 +1809,12 @@ foreground_rle_step:
 ; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
 
+        if      debug == 0
 smart_palette:
+        else
+smart_palette_start:
+smart_palette equ 0C006h
+        endif
         ld      a, (is_playing)
         or      a
         jr      nz, 1f
@@ -1818,7 +1839,11 @@ foreground_palette:
         inc     hl
         dec     b
         jp      nz, foreground_next
+        if      debug == 0
         ; fall through
+        else
+        jp      0C009h
+        endif
 
 foreground_ret:
         ld      hl, foreground_next
