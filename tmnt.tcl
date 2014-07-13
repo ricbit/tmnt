@@ -2,7 +2,7 @@ set throttle off
 set running 0
 set current_frame 0
 set vdp_command_running 0
-set fast_emulation 1
+set fast_emulation 0
 
 proc readmemw {addr} {
   expr {

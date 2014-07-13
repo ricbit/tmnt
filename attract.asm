@@ -132,7 +132,7 @@ pcm_timer_period                equ     23
 moon_pattern_base_hscroll       equ     108
 down4_sprite_start_frame        equ     822
 cloud_scroll_start_frame        equ     794
-expand_city_line_frame          equ     814
+expand_city_line_frame          equ     805
 copy_city_line_frame            equ     816
 disable_moon_sprites_frame      equ     805
 
@@ -1010,6 +1010,7 @@ cloud_setup:
         WIDE_SCROLL
         SPRITES_16x16
         SPRITE_ATTR moon_attr_addr
+        exx
         jp      cloud_fade_moon_set_sprite
 
 ; ----------------------------------------------------------------
@@ -1120,10 +1121,24 @@ cloud_fade_second_bottom:
 
 cloud_fade_moon_sprites:
         PREAMBLE_HORIZONTAL
-        VDP_STATUS 0
         DISABLE_HIRQ
-cloud_fade_moon_set_sprite:
         exx
+        ld      hl, (current_frame)
+        ld      de, expand_city_line_frame
+        or      a
+        sbc     hl, de
+        jr      z, 1f
+        jr      c, cloud_fade_moon_set_sprite
+        jr      2f
+1:
+        ld      hl, cmd_expand_city_line_mask
+        call    smart_vdp_command
+2:
+        VDP_STATUS 0
+        jp      frame_end
+
+cloud_fade_moon_set_sprite:
+        VDP_STATUS 0
         call    update_cloud_scroll
         ; Set sprite pattern base.
         ld      a, (cloud1_scroll)
@@ -1284,15 +1299,6 @@ cloud_down3_patch:
         FAST_SET_HSCROLL 0
         exx
         HSPLIT_LINE 70
-        ld      hl, (current_frame)
-        ld      de, expand_city_line_frame
-        or      a
-        sbc     hl, de
-        jr      nz, 1f
-        ld      hl, cmd_expand_city_line_mask
-        call    smart_vdp_command
-        VDP_STATUS 1
-1:
         NEXT_HANDLE cloud_down3_set_vdp_hscroll
         jp      return_irq_exx
 
