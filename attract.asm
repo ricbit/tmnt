@@ -133,7 +133,7 @@ moon_pattern_base_hscroll       equ     108
 down4_sprite_start_frame        equ     822
 cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     805
-copy_city_line_frame            equ     816
+copy_city_line_frame            equ     808
 disable_moon_sprites_frame      equ     805
 
 ; ----------------------------------------------------------------
@@ -1129,11 +1129,18 @@ cloud_fade_moon_sprites:
         sbc     hl, de
         jr      z, 1f
         jr      c, cloud_fade_moon_set_sprite
+        ld      hl, (current_frame)
+        ld      de, copy_city_line_frame
+        or      a
+        sbc     hl, de
+        jr      nz, 3f
+        ld      hl, cmd_copy_city_line_mask
         jr      2f
 1:
         ld      hl, cmd_expand_city_line_mask
-        call    smart_vdp_command
 2:
+        call    smart_vdp_command
+3:
         VDP_STATUS 0
         jp      frame_end
 
@@ -1322,23 +1329,6 @@ cloud_down3_second_bottom:
         ld      hl, city_palette_final
         call    smart_palette
         call    update_cloud_scroll
-        ld      a, (vertical_scroll)
-        add     a, 170 - 80
-        VDPREG  vdp_hsplit_line
-        NEXT_HANDLE cloud_down3_start_copy
-        jp      return_irq_exx
-
-cloud_down3_start_copy:
-        PREAMBLE_HORIZONTAL
-        exx
-        ld      hl, (current_frame)
-        ld      de, copy_city_line_frame
-        or      a
-        sbc     hl, de
-        jr      nz, 1f
-        ld      hl, cmd_copy_city_line_mask
-        call    smart_vdp_command
-1:
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end
