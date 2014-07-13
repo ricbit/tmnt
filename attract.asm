@@ -402,6 +402,14 @@ disable_moon_sprites_frame      equ     805
         ld      (addr + 1), hl
         endm
 
+; Compare the current frame with a given value
+        macro   COMPARE_FRAME value
+        ld      hl, (current_frame)
+        ld      de, value
+        or      a
+        sbc     hl, de
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -440,10 +448,7 @@ start_attract:
 
         ; Delay theme music until the correct frame.
 delay_theme_music:
-        ld      hl, theme_start_frame
-        ld      de, (current_frame)
-        or      a
-        sbc     hl, de
+        COMPARE_FRAME theme_start_frame
         jr      nz, delay_theme_music
 
         ; Main theme music loop.
@@ -1033,10 +1038,8 @@ cloud_fade_common:
         SPRITES_ON
         exx
         ; Set v scroll.
-        ld      hl, (current_frame)
         xor     a
-        ld      de, cloud_scroll_start_frame
-        sbc     hl, de
+        COMPARE_FRAME cloud_scroll_start_frame
         jr      c, 1f
         ld      a, (vertical_scroll)
         add     a, 2
@@ -1123,16 +1126,10 @@ cloud_fade_moon_sprites:
         PREAMBLE_HORIZONTAL
         DISABLE_HIRQ
         exx
-        ld      hl, (current_frame)
-        ld      de, expand_city_line_frame
-        or      a
-        sbc     hl, de
+        COMPARE_FRAME expand_city_line_frame
         jr      z, 1f
         jr      c, cloud_fade_moon_set_sprite
-        ld      hl, (current_frame)
-        ld      de, copy_city_line_frame
-        or      a
-        sbc     hl, de
+        COMPARE_FRAME copy_city_line_frame
         jr      nz, 3f
         ld      hl, cmd_copy_city_line_mask
         jr      2f
@@ -1243,10 +1240,7 @@ cloud_down2:
         SET_PAGE 3
         exx
         ; Should moon sprites be enabled?
-        ld      hl, (current_frame)
-        ld      de, disable_moon_sprites_frame
-        or      a
-        sbc     hl, de
+        COMPARE_FRAME disable_moon_sprites_frame
         jr      nc, 1f
         SPRITES_ON
 1:
@@ -1384,10 +1378,7 @@ cloud_down4_second_bottom:
         ld      hl, city_palette_final
         call    smart_palette
         ; Update top building sprites only on the last frames.
-        ld      hl, (current_frame)
-        ld      de, down4_sprite_start_frame
-        or      a
-        sbc     hl, de
+        COMPARE_FRAME down4_sprite_start_frame
         jr      nc, 1f
         VDP_STATUS 0
         DISABLE_HIRQ
