@@ -133,7 +133,8 @@ moon_pattern_base_hscroll       equ     108
 down4_sprite_start_frame        equ     822
 cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     814
-copy_city_line_frame            equ     819
+copy_city_line_frame            equ     816
+disable_moon_sprites_frame      equ     805
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1029,8 +1030,8 @@ cloud_fade:
 cloud_fade_common:
         SET_PAGE 3
         SPRITES_ON
-        ; Set v scroll.
         exx
+        ; Set v scroll.
         ld      hl, (current_frame)
         xor     a
         ld      de, cloud_scroll_start_frame
@@ -1218,13 +1219,20 @@ update_top_building_sprite:
 cloud_down2:
         PREAMBLE_VERTICAL
         SET_PAGE 3
+        exx
+        ; Should moon sprites be enabled?
+        ld      hl, (current_frame)
+        ld      de, disable_moon_sprites_frame
+        or      a
+        sbc     hl, de
+        jr      nc, 1f
         SPRITES_ON
+1:
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 2
         ld      (vertical_scroll), a
         VDPREG vdp_vscroll
-        exx
         ld      hl, cloud_palette_final
         call    smart_palette
 
@@ -1308,6 +1316,23 @@ cloud_down3_second_bottom:
         ld      hl, city_palette_final
         call    smart_palette
         call    update_cloud_scroll
+        ld      a, (vertical_scroll)
+        add     a, 170 - 80
+        VDPREG  vdp_hsplit_line
+        NEXT_HANDLE cloud_down3_start_copy
+        jp      return_irq_exx
+
+cloud_down3_start_copy:
+        PREAMBLE_HORIZONTAL
+        exx
+        ld      hl, (current_frame)
+        ld      de, copy_city_line_frame
+        or      a
+        sbc     hl, de
+        jr      nz, 1f
+        ld      hl, cmd_copy_city_line_mask
+        call    smart_vdp_command
+1:
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end
@@ -1346,31 +1371,8 @@ cloud_down4_start:
         ; Set directly the scroll values for cloud 2.
         ld      a, (cloud2_scroll)
         call    set_absolute_scroll
-        HSPLIT_LINE 70
-        NEXT_HANDLE cloud_down4_copy_city_line
-        jp      return_irq_exx
-
-cloud_down4_copy_city_line:
-        PREAMBLE_HORIZONTAL
-        HSPLIT_LINE 77
-        exx
-        ld      hl, (current_frame)
-        ld      de, copy_city_line_frame
-        or      a
-        sbc     hl, de
-        jr      nz, 1f
-        ld      hl, cmd_copy_city_line_mask
-        call    smart_vdp_command
-        VDP_STATUS 1
-1:
-        NEXT_HANDLE cloud_down4_set_vdp_autoinc
-        jp      return_irq_exx
-
-cloud_down4_set_vdp_autoinc:
-        PREAMBLE_HORIZONTAL
         HSPLIT_LINE 79
         VDP_AUTOINC vdp_hscroll_h
-        exx
         NEXT_HANDLE cloud_down4_second_bottom
         jp      return_irq_exx
 
@@ -2052,11 +2054,11 @@ cmd_copy_city_back:
 
 ; Expand the city line mask to cover 130 lines.
 cmd_expand_city_line_mask:
-        VDP_YMMM 593, 0, 594, 130
+        VDP_HMMM 38, 593, 38, 594, 174 - 38, 140
 
 ; Copy city2 over the city line mask.
 cmd_copy_city_line_mask:
-        VDP_LMMM 0, 0, 0, 593, 256, 130, vdp_timp
+        VDP_LMMM 0, 0, 0, 593, 256, 140, vdp_timp
 
 end_of_code:
         assert  end_of_code <= 04000h
