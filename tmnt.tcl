@@ -39,22 +39,24 @@ debug set_bp 0xC00C {$current_frame >= 750} {
 }
 
 debug set_bp 0xC00F {} {
-  set vdp_command_running 1
   puts stderr "smart_vdp_command ending at [machine_info VDP_msx_y_pos]"
+  if {$fast_emulation == 0} {
+    set vdp_command_running [
+      debug set_condition {
+        $vdp_command_running != 0 && 
+        [expr {[debug read {VDP status regs} 2] & 1}] == 0
+      } {
+        debug remove_condition $vdp_command_running
+        set vdp_command_running 0
+        puts stderr "smart_vdp_command stopping at [machine_info VDP_msx_y_pos]"
+      }
+    ]
+  }
 }
 
 debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {
   record start "/home/ricbit/work/tmnt/tmntmsx.avi"
   set running 1
-  if {$fast_emulation == 0} {
-    debug set_condition {
-      $vdp_command_running == 1 && 
-      [expr {[debug read {VDP status regs} 2] & 1}] == 0
-    } {
-      set vdp_command_running 0
-      puts stderr "smart_vdp_command stopping at [machine_info VDP_msx_y_pos]"
-    }
-  }
 }
 
 debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 900} {
