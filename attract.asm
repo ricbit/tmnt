@@ -133,8 +133,8 @@ moon_pattern_base_hscroll       equ     108
 down4_sprite_start_frame        equ     822
 cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     805
-copy_city_line_frame            equ     808
 disable_moon_sprites_frame      equ     805
+copy_city_mask_last_frame       equ     814
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1127,17 +1127,24 @@ cloud_fade_moon_sprites:
         DISABLE_HIRQ
         exx
         COMPARE_FRAME expand_city_line_frame
-        jr      z, 1f
         jr      c, cloud_fade_moon_set_sprite
-        COMPARE_FRAME copy_city_line_frame
-        jr      nz, 3f
-        ld      hl, cmd_copy_city_line_mask
-        jr      2f
-1:
-        ld      hl, cmd_expand_city_line_mask
-2:
+        ; Execute a vdp_command based on the frame number.
+        ld      hl, (current_frame)
+        ld      de, expand_city_line_frame
+        or      a
+        sbc     hl, de
+        add     hl, hl
+        ld      de, cloud_down2_commands
+        add     hl, de
+        ld      e, (hl)
+        inc     hl
+        ld      d, (hl)
+        ld      a, d
+        or      e
+        jr      z, 1f
+        ex      de, hl
         call    smart_vdp_command
-3:
+1:
         VDP_STATUS 0
         jp      frame_end
 
@@ -1323,6 +1330,19 @@ cloud_down3_second_bottom:
         ld      hl, city_palette_final
         call    smart_palette
         call    update_cloud_scroll
+        ld      a, (vertical_scroll)
+        add     a, 100 - 80
+        VDPREG  vdp_hsplit_line
+        NEXT_HANDLE cloud_down3_vdp_command
+        jp      return_irq_exx
+
+cloud_down3_vdp_command:
+        PREAMBLE_HORIZONTAL
+        COMPARE_FRAME copy_city_mask_last_frame
+        jr      nz, 1f
+        ld      hl, cmd_copy_city_line_mask_5
+        call    smart_vdp_command
+1:
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end
@@ -2045,7 +2065,31 @@ cmd_expand_city_line_mask:
 
 ; Copy city2 over the city line mask.
 cmd_copy_city_line_mask:
-        VDP_LMMM 0, 0, 0, 593, 256, 140, vdp_timp
+        VDP_YMMM 0, 174, 593, 140
+
+cmd_copy_city_line_mask_2:
+        VDP_LMMM 102, 128, 102, 593 + 128, 174 - 102, 140 - 128, vdp_timp
+
+cmd_copy_city_line_mask_3:
+        VDP_LMMM 38, 0, 38, 593, 102 - 38, 63, vdp_timp
+
+cmd_copy_city_line_mask_4:
+        VDP_HMMM 38, 63, 38, 593 + 63, 102 - 38, 140 - 63
+
+cmd_copy_city_line_mask_5:
+        VDP_HMMM 0, 0, 0, 593, 38, 140
+
+; Table of commands to be issued during cloud_down2.
+cloud_down2_commands:
+        dw cmd_expand_city_line_mask    ; 805    
+        dw 0                            ; 806
+        dw 0                            ; 807    
+        dw cmd_copy_city_line_mask      ; 808 
+        dw 0                            ; 809    
+        dw cmd_copy_city_line_mask_2    ; 810
+        dw cmd_copy_city_line_mask_3    ; 811
+        dw 0                            ; 812    
+        dw cmd_copy_city_line_mask_4    ; 813
 
 end_of_code:
         assert  end_of_code <= 04000h
