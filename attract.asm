@@ -1,8 +1,6 @@
 ; TMNT attract mode
 ; by Ricardo Bittencourt 2014
 
-; Keep in mind: 18 frames to copy 192 lines to vram.
-
         output  attract.com
             
         org     0100h
@@ -1338,6 +1336,7 @@ cloud_down3_second_bottom:
 
 cloud_down3_vdp_command:
         PREAMBLE_HORIZONTAL
+        exx
         COMPARE_FRAME copy_city_mask_last_frame
         jr      nz, 1f
         ld      hl, cmd_copy_city_line_mask_5
