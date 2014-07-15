@@ -1230,7 +1230,7 @@ update_top_building_sprite:
         ld      hl, (top_building_current)
         call    smart_zblit
         ld      hl, (top_building_current)
-        ld      de, 2 + 64
+        ld      de, 2 + 65
         add     hl, de
         ld      (top_building_current), hl
         ret
