@@ -133,6 +133,7 @@ cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     805
 disable_moon_sprites_frame      equ     805
 copy_city_mask_last_frame       equ     814
+top_building_attr_size          equ     65
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1230,7 +1231,7 @@ update_top_building_sprite:
         ld      hl, (top_building_current)
         call    smart_zblit
         ld      hl, (top_building_current)
-        ld      de, 2 + 65
+        ld      de, 2 + top_building_attr_size
         add     hl, de
         ld      (top_building_current), hl
         ret
@@ -2098,7 +2099,11 @@ end_of_code:
 
         output  attract.dat
 
-        macro   PAGE_LIMIT
+        macro   PAGE_BEGIN
+        .phase   08000h
+        endm
+
+        macro   PAGE_END
         assert  $ <= 0C000h
         align   16384
         endm
@@ -2107,21 +2112,21 @@ end_of_code:
 theme_music:            incbin "theme.pcm"
 
 ; Mapper page 9
-                        .phase  08000h
+                        PAGE_BEGIN
 opening_title:          incbin "tmnt.z5"
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
-                        PAGE_LIMIT                
+                        PAGE_END
 
 ; Mapper page 10
-                        .phase  08000h
+                        PAGE_BEGIN
 city_page1:             incbin "city1.z5"
 moon_pattern:           incbin "moon_pattern.z5"
 moon_attr:              incbin "moon_attr.z5"
-                        PAGE_LIMIT
+                        PAGE_END
 
 ; Mapper page 11
-                        .phase  08000h
+                        PAGE_BEGIN
 top_building_pattern:   incbin "top_building_patt.z5"
 top_building_attr:      incbin "top_building_attr.z5"
 top_building_dyn_attr:  incbin "top_building_dyn_attr.bin"
@@ -2129,17 +2134,17 @@ back_building_patt:     incbin "back_building_patt.z5"
 back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
-                        PAGE_LIMIT
+                        PAGE_END
 
 ; Mapper page 12
-                        .phase  08000h
+                        PAGE_BEGIN
 city2b:                 incbin "city2b.z5"
-                        PAGE_LIMIT
+                        PAGE_END
 
 ; Mapper page 13
-                        .phase  08000h
+                        PAGE_BEGIN
 city2a:                 incbin "city2a.z5"
-                        PAGE_LIMIT
+                        PAGE_END
 
         end
 
