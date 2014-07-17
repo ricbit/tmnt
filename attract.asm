@@ -133,7 +133,7 @@ cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     805
 disable_moon_sprites_frame      equ     805
 copy_city_mask_last_frame       equ     814
-top_building_attr_size          equ     97
+top_building_attr_size          equ     101
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.

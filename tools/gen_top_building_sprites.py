@@ -7,9 +7,8 @@ start = [
     (0, 48, 9), (16, 48, 9), (32, 48, 9), (48, 48, 9),
     (0, 64, 9), (16, 64, 9), (32, 64, 9), (48, 64, 9), (64, 64, 9),
     (0, 14, 1), (14, 30, 1), (30, 44, 1), (44, 60, 1),
-    (6, 37, 6), (6, 37 + 16, 6),
-    (6, 48, 1), (6, 48 + 16, 1),
-    (6, 54, 7)
+    (6, 37, 6), (6, 37 + 16, 6), (6, 37 + 32, 6),
+    (6, 48, 1), (6, 48 + 16, 1), (6, 48 + 32, 1)
     ]
 # Pattern
 for st_pack in start:
@@ -20,7 +19,7 @@ for st_pack in start:
       b = 0
       for ii in xrange(8):
         pos = st[0] + i * 8 + (j + st[1]) * 256 + ii
-        if city[pos] == c:
+        if city[pos] == c or (city[pos] == 7 and c in [6, 1]):
           b |= 1 << (7 - ii)
       sprites.append(b)
 f = open("top_building_patt.sc5", "wb")
@@ -31,7 +30,7 @@ attr = []
 for st_pack in start:
   st = st_pack[:2]
   c = st_pack[2]
-  attr.extend([c] * 16)
+  attr.extend([c + (0x40 if c == 1 else 0)] * 16)
 attr.extend([0] * (512 - len(attr)))
 attr.extend([0xD8])
 f = open("top_building_attr.sc5", "wb")
