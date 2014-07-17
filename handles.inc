@@ -826,11 +826,11 @@
 		dw	cloud_down4	; 825
 		dw	cloud_down4	; 826
 		dw	cloud_down4	; 827
-		dw	cloud_down5	; 828
-		dw	cloud_down5	; 829
-		dw	cloud_down5	; 830
-		dw	cloud_down5	; 831
-		dw	cloud_down5	; 832
+		dw	cloud_down4	; 828
+		dw	cloud_down4	; 829
+		dw	cloud_down4	; 830
+		dw	cloud_down4	; 831
+		dw	cloud_down4	; 832
 		dw	city_scroll1	; 833
 		dw	city_scroll1	; 834
 		dw	city_scroll1	; 835

@@ -133,7 +133,7 @@ cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     805
 disable_moon_sprites_frame      equ     805
 copy_city_mask_last_frame       equ     814
-top_building_attr_size          equ     65
+top_building_attr_size          equ     81
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1417,118 +1417,6 @@ cloud_down4_sprites:
         DISABLE_HIRQ
         call    update_cloud_scroll
         jp      frame_end
-
-; ----------------------------------------------------------------
-; State: cloud_down5
-; Start scrolling down the clouds, step 5.
-; Bottom cloud visible and city starting to appear.
-
-cloud_down5:
-        PREAMBLE_VERTICAL
-        SET_PAGE 3
-        ; Set v scroll.
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
-        VDPREG vdp_vscroll
-        exx
-        ld      hl, cloud_palette_final
-        call    smart_palette
-        VDP_STATUS 1
-        ENABLE_HIRQ
-        ; Set directly the scroll values for cloud 2.
-        ld      a, (cloud2_scroll)
-        call    set_absolute_scroll
-        HSPLIT_LINE 79
-        VDP_AUTOINC vdp_hscroll_h
-        NEXT_HANDLE cloud_down5_second_bottom
-        jp      return_irq_exx
-
-cloud_down5_second_bottom:
-        PREAMBLE_HORIZONTAL
-        FAST_SET_HSCROLL 256
-        ; Set v scroll.
-        exx
-        ld      a, (vertical_scroll)
-        add     a, 256 - 80
-        ld      (city_line), a
-        VDPREG vdp_vscroll
-        SET_PAGE 1
-        ld      a, (city_line)
-        ld      b, a
-        ld      a, (city_split_line)
-        sub     10
-        add     a, b
-        sub     90
-        VDPREG vdp_hsplit_line
-        ld      hl, city_palette_final
-        call    smart_palette        
-        NEXT_HANDLE cloud_down5_sprite_setup
-        jp      return_irq_exx
-
-cloud_down5_sprite_setup:
-        PREAMBLE_HORIZONTAL
-        SPRITES_ON
-        exx
-        ld      a, (city_line)
-        ld      b, a
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
-        add     a, b
-        sub     5
-        VDPREG vdp_hsplit_line
-        call    update_top_building_sprite
-        NEXT_HANDLE cloud_down5_city_setup
-        jp      return_irq_exx
-
-cloud_down5_city_setup:
-        ; In the first four frames: setup autoinc to change the scroll fast.
-        ; In the last frame: setup autoinc to change page fast.
-        PREAMBLE_HORIZONTAL
-        exx
-        ld      a, (city_line)
-        ld      b, a
-        ld      a, (city_split_line)
-        add     a, b
-        ld      b, a
-        VDPREG vdp_hsplit_line
-        ld      a, 093h
-        cp      b
-        jr      z, 1f
-        VDP_AUTOINC vdp_vscroll
-        NEXT_HANDLE cloud_down5_city
-        jp      return_irq_exx
-1:
-        VDP_AUTOINC vdp_set_page
-        NEXT_HANDLE cloud_down5_city_last
-        jp      return_irq_exx
-        
-cloud_down5_city:
-        PREAMBLE_HORIZONTAL
-        exx
-        ld      a, (city_split_line)
-        ld      b, a
-        ld      hl, (city_scroll)
-        ld      a, (hl)
-        inc     hl
-        ld      (city_scroll), hl
-        sub     b
-        dec     a
-2:
-        out     (09Bh), a
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        SPRITES_OFF        
-        call    update_cloud_scroll
-        jp      frame_end
-
-cloud_down5_city_last:
-        PREAMBLE_HORIZONTAL
-        ; Set page 3.
-        ld      a, (3 << 5) or 011111b
-        exx
-        jr      2b
 
 ; ----------------------------------------------------------------
 ; State: city_scroll1

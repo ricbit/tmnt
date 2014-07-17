@@ -6,7 +6,6 @@ handle = [
     (814,  "cloud_down3"),
     (818,  "cloud_down4_first"),
     (819,  "cloud_down4"),
-    (828,  "cloud_down5"),
     (833,  "city_scroll1"),
     (847,  "disable_screen_black"),
     (848,  "disable_screen"),
