@@ -24,7 +24,7 @@ palette_fade_counter:   db      16
 cloud1_scroll:          db      158
 cloud2_scroll:          db      146
 cloud_tick:             db      1
-city_split_line:        db      189 + 10
+city_split_line:        db      189 + 10 + 6
 city_scroll:            dw      city_scroll_down5
 top_building_current:   dw      top_building_dyn_attr
 back_building_current:  dw      back_building_attr
@@ -128,7 +128,7 @@ title_addr              equ     08000h
 theme_start_frame               equ     750
 pcm_timer_period                equ     23
 moon_pattern_base_hscroll       equ     108
-down4_sprite_start_frame        equ     822
+down4_sprite_start_frame        equ     825
 cloud_scroll_start_frame        equ     794
 expand_city_line_frame          equ     805
 disable_moon_sprites_frame      equ     805
