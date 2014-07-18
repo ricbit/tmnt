@@ -32,6 +32,8 @@ back_building_size:     dw      back_building_dyn_size
 back_building_cur_base: dw      back_building_base
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
+queue_pop:              dw      vdp_command_queue
+queue_push:             dw      vdp_command_queue
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
@@ -87,6 +89,7 @@ vdp_hsplit_line equ     00013h  ; VDP register for horizontal split line
 vdp_timp        equ     00008h  ; VDP logic operator TIMP
 vdp_set_page    equ     00002h  ; VDP register for set page
 vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
+vdp_status      equ     0000Fh  ; VDP register to select status
 openmsx_control equ     0002Eh  ; OpenMSX debug control port
 openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 
@@ -210,7 +213,8 @@ top_building_attr_size          equ     101
 ; Select which VDP status will be the default
         macro   VDP_STATUS reg
         ld      a, reg
-        VDPREG  15
+        ld      (current_vdp_status), a
+        VDPREG  vdp_status
         endm
 
 ; Load the next handle in the irq pointer.
@@ -475,6 +479,12 @@ sample_loop:
 foreground:
         jp      foreground_next
 foreground_next:
+        ld      iy, (queue_pop)
+        ld      a, (iy + 0)
+        or      (iy + 1)
+        call    nz, process_vdp_command_queue
+
+foreground_continue:
         ; Avoid jitter by stopping foreground thread 
         ; a few ticks before the limit.
         in      a, (systml)
@@ -488,6 +498,7 @@ foreground_next:
         ld      iyl, a
         xor     a
         out     (systml), a
+
         ; Increment the pcm counter.
         ld      iyh, high advance_pcm
         ld      a, (iy)
@@ -625,6 +636,7 @@ allocate_memory:
         CREATE_HOOK 0C009h, foreground_ret
         CREATE_HOOK 0C00Ch, smart_vdp_command_start
         CREATE_HOOK 0C00Fh, foreground_ret
+        CREATE_HOOK 0C012h, smart_vdp_command_begin
         endif
 
         ; Backup animation state on startup.
@@ -1430,6 +1442,11 @@ city_scroll1:
         inc     a
         VDPREG vdp_hsplit_line
         exx
+        ; queue
+        ld      hl, cmd_small_test
+        call    queue_vdp_command
+        ld      hl, cmd_small_test
+        call    queue_vdp_command
         ; Copy top building sprites.
         call    update_top_building_sprite
         COMPARE_FRAME 833
@@ -1583,6 +1600,66 @@ vdp_command:
         ret
 
 ; ----------------------------------------------------------------
+; Queue a VDP command to execute as soon as possible.
+; Input: HL=table with vdp commands
+
+queue_vdp_command:
+        ld      ix, (queue_push)
+        ld      (ix + 0), l
+        ld      (ix + 1), h
+        inc     ix
+        inc     ix
+        ld      a, ixh
+        and     0FEh
+        ld      ixh, a
+        ld      (queue_push), ix
+        ret
+
+        ; Process vdp command queue.
+process_vdp_command_queue:
+        ; Don't start if there's another foreground task running.
+        ld      a, (foreground + 1)
+        cp      low foreground_next
+        ret     nz
+        ld      a, (foreground + 2)
+        cp      high foreground_next
+        ret     nz
+        ; Don't start if there's another vdp command running.
+        di
+        ld      a, 2
+        VDPREG vdp_status
+        in      a, (099h)
+        rrca
+        jr      nc, 1f
+        ; Not ready yet.
+        ld      a, (current_vdp_status)
+        VDPREG vdp_status
+        ei
+        ret
+1:
+        ld      a, (current_vdp_status)
+        VDPREG vdp_status
+        exx
+        ld      l, (iy + 0)
+        ld      h, (iy + 1)
+        ld      (iy + 0), 0
+        ld      (iy + 1), 0
+        inc     iy
+        inc     iy
+        ld      a, iyh
+        and     0FEh
+        ld      iyh, a
+        ld      (queue_pop), iy
+        if      debug == 0
+        call    smart_vdp_command_begin
+        else
+        call    0C012h
+        endif
+        exx
+        ei
+        ret
+
+; ----------------------------------------------------------------
 ; Start a VDP command without stopping the pcm sample.
 ; Input: HL=table with vdp commands
 ; Destroy: VDP Status
@@ -1604,6 +1681,7 @@ smart_vdp_command equ 0C00Ch
         rrca
         ld      de, str_vdp_error
         jp      c, graphic_abort
+smart_vdp_command_begin:
         ; Set VDP to autoincrement. 
         ld      a, (hl)
         VDPREG 17
@@ -1625,7 +1703,7 @@ foreground_vdp_command:
         out     (09Bh), a
         inc     hl
         dec     b
-        jp      nz, foreground_next
+        jp      nz, foreground_continue
         if      debug == 0
         jp      foreground_ret
         else
@@ -1671,7 +1749,7 @@ foreground_zblit:
         ld      bc, foreground_copy_step
         ld      (foreground + 1), bc
         ld      b, a
-        jp      foreground_next
+        jp      foreground_continue
 
         ; Setup zblit rle.
 foreground_rle_setup:
@@ -1679,27 +1757,27 @@ foreground_rle_setup:
         ld      (foreground + 1), bc
         sub     080h
         ld      b, a
-        jp      foreground_next
+        jp      foreground_continue
 
 foreground_copy_step:
         ld      a, (hl)
         inc     hl
         out     (098h), a
         dec     b
-        jp      nz, foreground_next
+        jp      nz, foreground_continue
         ld      bc, foreground_zblit
         ld      (foreground + 1), bc
-        jp      foreground_next
+        jp      foreground_continue
 
 foreground_rle_step:
         ld      a, (hl)
         out     (098h), a
         dec     b
-        jp      nz, foreground_next
+        jp      nz, foreground_continue
         inc     hl
         ld      bc, foreground_zblit
         ld      (foreground + 1), bc
-        jp      foreground_next
+        jp      foreground_continue
 
 ; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
@@ -1733,7 +1811,7 @@ foreground_palette:
         out     (09Ah), a
         inc     hl
         dec     b
-        jp      nz, foreground_next
+        jp      nz, foreground_continue
         if      debug == 0
         ; fall through
         else
@@ -1865,11 +1943,14 @@ fast_put_p2:
 ; ----------------------------------------------------------------
 ; Variables.
 
+                        align   512
+vdp_command_queue:      ds      256, 0
 save_irq:               db      0,0,0
 file_handle:            db      0
 mapper:                 dw      0
 save_palette:           dw      0
 city_line:              db      0
+current_vdp_status:     db      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
@@ -1961,6 +2042,9 @@ cloud_down2_commands:
         dw cmd_copy_city_line_mask_3    ; 811
         dw 0                            ; 812    
         dw cmd_copy_city_line_mask_4    ; 813
+
+cmd_small_test:
+        VDP_YMMM 0, 0, 1023, 1
 
 end_of_code:
         assert  end_of_code <= 04000h
