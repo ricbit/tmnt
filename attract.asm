@@ -716,17 +716,6 @@ local_init:
         ld      hl, city2b
         call    zblit
 
-        ; Copy initial frames of city scrolling.
-        di
-        ld      b, 12
-        ld      hl, cmd_copy_city_back
-1:
-        push    bc
-        call    vdp_command
-        pop     bc
-        djnz    1b
-        ei
-
         ; Copy top building sprite patterns to vram.
         di
         MAPPER_P2 11
@@ -1427,7 +1416,8 @@ city_scroll1:
         SET_PAGE 1
         SPRITE_ATTR top_building_attr_addr
         SPRITE_PATTERN top_building_patt_addr
-        SPRITES_ON
+        ;SPRITES_ON
+        SPRITES_OFF
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 2
@@ -1479,14 +1469,15 @@ city_scroll1_copy_back:
         add     a, b
         ld      b, a
         VDPREG vdp_hsplit_line
-        VDP_STATUS 1
-        ENABLE_HIRQ
+        VDP_AUTOINC vdp_set_page
         NEXT_HANDLE city_scroll1_foreground
         jp      return_irq_exx
 
 city_scroll1_foreground:
         PREAMBLE_HORIZONTAL
-        SET_PAGE 2 ; 0
+        ; Set page 2.
+        ld      a, (2 << 5) or 011111b
+        out     (09Bh), a
         ld      a, (city_split_line)
         neg
         dec     a
@@ -1938,21 +1929,6 @@ cmd_erase_vram_page0:
 ; Erase all vram.        
 cmd_erase_all_vram:             
         VDP_HMMV 0, 0, 256, 1023, 0
-
-; Copy the parallax scroll of cloud_down5 to the right place.
-cmd_copy_city_back:             
-        VDP_YMMM 256 + 180,          0, 768 + 128,       2 
-        VDP_YMMM 256 + 180 - 10 + 2, 0, 768 + 128 + 2,  12
-        VDP_YMMM 256 + 180 - 20 + 4, 0, 768 + 128 + 14, 22
-        VDP_YMMM 256 + 180 - 30 + 6, 0, 768 + 128 + 36, 32
-        VDP_YMMM 256 + 180 - 40 + 8, 0, 768 + 128 + 68, 42
-        VDP_LMMM 0, 0, 0, 768 + 128,      256,  2, vdp_timp
-        VDP_LMMM 0, 0, 0, 768 + 128 + 2,  256, 12, vdp_timp
-        VDP_LMMM 0, 0, 0, 768 + 128 + 14, 256, 22, vdp_timp
-        VDP_LMMM 0, 0, 0, 768 + 128 + 36, 256, 32, vdp_timp
-        VDP_LMMM 0, 0, 0, 768 + 128 + 68, 256, 42, vdp_timp
-        VDP_YMMM 768 + 128,          0, 256 + 188,      68
-        VDP_YMMM 768 + 128 + 68,     0, 768 + 148,      42
 
 ; Expand the city line mask to cover 130 lines.
 cmd_expand_city_line_mask:
