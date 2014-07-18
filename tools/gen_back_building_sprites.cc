@@ -37,7 +37,7 @@ struct SpriteCover {
     return y < 212 ? city1_[y * 256 + x] : 0;
   }
   int city2(int y, int x) {
-    return city2_[(y + 38) * 256 + x];
+    return city2_[(y + 70) * 256 + x];
   }
   pair<bool, pair<int, int>> find_uncovered_pixel() {
     for (int j = start; j < start + size; j++) {
@@ -294,9 +294,9 @@ int main() {
   vector<SpriteBlock*> block;
   vector<tuple<int, vector<int>, SpriteCover>> attr;
   block.push_back(new SpriteBlock());
-  for (int i = 0; i < 14; i++) {
+  for (int i = 1; i < 14; i++) {
     auto cover = find_cover(
-        city1, city2, cityline, i * 2, 197 + i * 10, 139 - i * 8);
+        city1, city2, cityline, i * 2, 195 + i * 10, 195 - i * 8);
     SpriteBlock* last = *block.rbegin();
     if (!last->check(cover)) {
       block.push_back(new SpriteBlock());

@@ -1442,10 +1442,17 @@ city_scroll1:
         exx
         ; Copy top building sprites.
         call    update_top_building_sprite
+        COMPARE_FRAME 833
+        jr      z, 1f
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE city_scroll1_copy_back
         jp      return_irq_exx
+1:
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        jp      frame_end
 
 city_scroll1_copy_back:
         PREAMBLE_HORIZONTAL
