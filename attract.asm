@@ -108,7 +108,7 @@ openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 ; 17000-1727F top building attributes
 ; 18000-1A87F cloud3 pixels
 ; 1B800-1BA7F back building attributes
-; 1C000-1FFFF city line mask
+; 1E680-1FFFF city line mask
 
 cloud2_addr             equ     10000h
 cloud3_addr             equ     18000h
@@ -118,7 +118,7 @@ moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
 top_building_patt_addr  equ     10000h
-city_line_mask_addr     equ     1C000h
+city_line_mask_addr     equ     1E680h
 back_building_patt_addr equ     05800h
 back_building_attr_addr equ     1BA00h
 title_addr              equ     08000h
@@ -1440,10 +1440,17 @@ city_scroll1:
         inc     a
         VDPREG vdp_hsplit_line
         exx
-        ; queue
-        ld      hl, cmd_small_test
+        ; Queue the overlay commands.
+        ld      a, (city_line)
+        ld      b, a
+        ld      a, (city_split_line)
+        add     a, b
+        sub     9
+        ld      (cmd_overlay_city + 7), a
+        ld      (cmd_overlay_city_2 + 1), a
+        ld      hl, cmd_overlay_city
         call    queue_vdp_command
-        ld      hl, cmd_small_test
+        ld      hl, cmd_overlay_city_2
         call    queue_vdp_command
         ; Copy top building sprites.
         call    update_top_building_sprite
@@ -1482,7 +1489,6 @@ city_scroll1_copy_back:
         sub     10
         ld      (city_split_line), a
         add     a, b
-        ld      b, a
         VDPREG vdp_hsplit_line
         VDP_AUTOINC vdp_set_page
         NEXT_HANDLE city_scroll1_foreground
@@ -1490,14 +1496,16 @@ city_scroll1_copy_back:
 
 city_scroll1_foreground:
         PREAMBLE_HORIZONTAL
-        ; Set page 3.
-        ld      a, (3 << 5) or 011111b
-        out     (09Bh), a
+        ; Order is important here!
+        ; 1: turn off sprites
+        SPRITES_OFF
+        ; 2: change scroll
         ld      a, (city_split_line)
         neg
-        dec     a
-        add     a, 81 + 47
+        add     a, 204
         VDPREG  vdp_vscroll
+        ; 3: change page
+        SET_PAGE 3
         exx
         ; Set back building base.
         ld      hl, (back_building_cur_base)
@@ -1506,6 +1514,7 @@ city_scroll1_foreground:
         inc     hl
         ld      (back_building_cur_base), hl
         SPRITE_ATTR back_building_attr_addr
+        ;SPRITES_ON
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end
@@ -2011,11 +2020,11 @@ cmd_erase_all_vram:
 
 ; Expand the city line mask to cover 130 lines.
 cmd_expand_city_line_mask:
-        VDP_HMMM 64, 896, 64, 897, 174 - 64, 127
+        VDP_HMMM 64, 973, 64, 974, 174 - 64, 50
 
 ; Copy city2 over the city line mask.
 cmd_copy_city_line_mask:
-        VDP_LMMM 0, 0, 0, 896, 256, 128, vdp_timp
+        VDP_LMMM 0, 0, 0, 973, 256, 51, vdp_timp
 
 ; Table of commands to be issued during cloud_down2.
 cloud_down2_commands:
@@ -2029,8 +2038,11 @@ cloud_down2_commands:
         dw 0                            ; 812    
         dw 0                            ; 813
 
-cmd_small_test:
-        VDP_YMMM 0, 0, 1023, 1
+cmd_overlay_city:
+        VDP_LMMM 0, 0, 0, 256 + 100, 256, 1, vdp_timp
+
+cmd_overlay_city_2:
+        VDP_YMMM 256 + 100, 0, 256 + 973 - 768, 1 
 
 end_of_code:
         assert  end_of_code <= 04000h
