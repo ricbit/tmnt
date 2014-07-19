@@ -163,7 +163,8 @@ SpriteCover find_cover(
     SpriteCover cover(
         city1, city2, cityline, scroll1, scroll2, split, i, limit);
     if (cover.solve()) {
-      cout << "scroll1: " << scroll1 << " : " << cover.sprite.size() << "\n";
+      cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
+           << " start y : " << i << "\n";
       return cover;
     }
   }
@@ -215,7 +216,7 @@ vector<int> get_attr(T a) {
     contents.push_back(0);
   }
   for (int i = 0; i < int(get<1>(a).size()); i++) {
-    contents.push_back((get<2>(a).sprite[i].y + 255 + 256 + 81) % 256);
+    contents.push_back((get<2>(a).sprite[i].y + 255 + 256 - 51) % 256);
     contents.push_back(get<2>(a).sprite[i].x);
     contents.push_back(get<1>(a)[i] * 4);
     contents.push_back(0);
@@ -296,7 +297,7 @@ int main() {
   block.push_back(new SpriteBlock());
   for (int i = 1; i < 14; i++) {
     auto cover = find_cover(
-        city1, city2, cityline, i * 2, 195 + i * 10, 195 - i * 8);
+        city1, city2, cityline, i * 2, 9 + i * 10, 195 - i * 8);
     SpriteBlock* last = *block.rbegin();
     if (!last->check(cover)) {
       block.push_back(new SpriteBlock());

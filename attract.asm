@@ -1118,14 +1118,8 @@ cloud_fade_second_bottom:
         call    smart_palette
         HSPLIT_LINE 150 - 79
         NEXT_HANDLE cloud_fade_moon_sprites
-        jp      return_irq_exx
-
-cloud_fade_moon_sprites:
-        PREAMBLE_HORIZONTAL
-        DISABLE_HIRQ
-        exx
         COMPARE_FRAME expand_city_line_frame
-        jr      c, cloud_fade_moon_set_sprite
+        jp      c, return_irq_exx
         ; Execute a vdp_command based on the frame number.
         ld      hl, (current_frame)
         ld      de, expand_city_line_frame
@@ -1141,8 +1135,17 @@ cloud_fade_moon_sprites:
         or      e
         jr      z, 1f
         ex      de, hl
-        call    smart_vdp_command
+        call    queue_vdp_command
 1:
+        VDP_STATUS 0
+        jp      frame_end
+
+cloud_fade_moon_sprites:
+        PREAMBLE_HORIZONTAL
+        DISABLE_HIRQ
+        exx
+        COMPARE_FRAME expand_city_line_frame
+        jr      c, cloud_fade_moon_set_sprite
         VDP_STATUS 0
         jp      frame_end
 
@@ -1435,9 +1438,10 @@ city_scroll1:
         add     a, 256 - 80
         ld      (city_line), a
         push    af
+        DEBUG
         VDPREG vdp_vscroll
         pop     af
-        inc     a
+        add     a, 10
         VDPREG vdp_hsplit_line
         exx
         ; Queue the overlay commands.
@@ -1448,9 +1452,12 @@ city_scroll1:
         sub     9
         ld      (cmd_overlay_city + 7), a
         ld      (cmd_overlay_city_2 + 1), a
+        ld      (cmd_overlay_city_3 + 1), a
         ld      hl, cmd_overlay_city
         call    queue_vdp_command
         ld      hl, cmd_overlay_city_2
+        call    queue_vdp_command
+        ld      hl, cmd_overlay_city_3
         call    queue_vdp_command
         ; Copy top building sprites.
         call    update_top_building_sprite
@@ -1464,6 +1471,8 @@ city_scroll1:
         ld      a, (city_split_line)
         sub     10
         ld      (city_split_line), a
+        ;ld      hl, cmd_copy_city_line_mask_4
+        ;call    queue_vdp_command
         jp      frame_end
 
 city_scroll1_copy_back:
@@ -1489,6 +1498,7 @@ city_scroll1_copy_back:
         sub     10
         ld      (city_split_line), a
         add     a, b
+        DEBUG
         VDPREG vdp_hsplit_line
         VDP_AUTOINC vdp_set_page
         NEXT_HANDLE city_scroll1_foreground
@@ -1503,9 +1513,11 @@ city_scroll1_foreground:
         ld      a, (city_split_line)
         neg
         add     a, 204
+        DEBUG
         VDPREG  vdp_vscroll
         ; 3: change page
         SET_PAGE 3
+        SPRITE_ATTR back_building_attr_addr
         exx
         ; Set back building base.
         ld      hl, (back_building_cur_base)
@@ -1513,8 +1525,7 @@ city_scroll1_foreground:
         VDPREG vdp_sprite_patt
         inc     hl
         ld      (back_building_cur_base), hl
-        SPRITE_ATTR back_building_attr_addr
-        ;SPRITES_ON
+        SPRITES_ON
         VDP_STATUS 0
         DISABLE_HIRQ
         jp      frame_end
@@ -2024,25 +2035,33 @@ cmd_expand_city_line_mask:
 
 ; Copy city2 over the city line mask.
 cmd_copy_city_line_mask:
-        VDP_LMMM 0, 0, 0, 973, 256, 51, vdp_timp
+        VDP_HMMM 0, 0, 0, 973, 70, 51
+cmd_copy_city_line_mask_2:
+        VDP_LMMM 70, 0, 70, 973, 174 - 70, 51, vdp_timp
+cmd_copy_city_line_mask_3:
+        VDP_YMMM 0, 174, 973, 51
+cmd_copy_city_line_mask_4:
+        VDP_YMMM 51, 0, 768, 20
 
 ; Table of commands to be issued during cloud_down2.
 cloud_down2_commands:
         dw cmd_expand_city_line_mask    ; 805    
-        dw 0                            ; 806
-        dw 0                            ; 807    
-        dw cmd_copy_city_line_mask      ; 808 
-        dw 0                            ; 809    
+        dw cmd_copy_city_line_mask      ; 806
+        dw cmd_copy_city_line_mask_2    ; 807
+        dw 0                            ; 808 
+        dw cmd_copy_city_line_mask_3    ; 809
         dw 0                            ; 810
         dw 0                            ; 811
         dw 0                            ; 812    
         dw 0                            ; 813
 
+; Copy city2 over city1 to allow smooth screen split on city_scroll1.
 cmd_overlay_city:
-        VDP_LMMM 0, 0, 0, 256 + 100, 256, 1, vdp_timp
-
+        VDP_LMMM 0, 0, 0, 256 + 100, 256, 2, vdp_timp
 cmd_overlay_city_2:
-        VDP_YMMM 256 + 100, 0, 256 + 973 - 768, 1 
+        VDP_YMMM 256 + 100, 0, 256 + 973 - 768, 1
+cmd_overlay_city_3:
+        VDP_YMMM 256 + 100, 0, 973, 2
 
 end_of_code:
         assert  end_of_code <= 04000h
