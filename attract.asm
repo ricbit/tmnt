@@ -1625,8 +1625,8 @@ queue_vdp_command:
         ld      ix, (queue_push)
         ld      (ix + 0), l
         ld      (ix + 1), h
-        inc     ix
-        inc     ix
+        ld      de, 8
+        add     ix, de
         ld      a, ixh
         and     0FEh
         ld      ixh, a
@@ -1662,8 +1662,8 @@ process_vdp_command_queue:
         ld      h, (iy + 1)
         ld      (iy + 0), 0
         ld      (iy + 1), 0
-        inc     iy
-        inc     iy
+        ld      bc, 8
+        add     iy, bc
         ld      a, iyh
         and     0FEh
         ld      iyh, a
