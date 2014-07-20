@@ -1470,12 +1470,24 @@ city_scroll1:
         call    queue_vdp_command
         ld      hl, cmd_overlay_city_3
         call    queue_vdp_command
-        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
-        ld      hl, (back_building_current)
-        call    queue_zblit
         COMPARE_FRAME 833
         jr      z, 1f
         ; Set back building attr.
+        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
+        ld      hl, (back_building_current)
+        call    queue_zblit
+        ld      hl, (back_building_current)
+        ld      ix, (back_building_size)
+        ld      e, (ix + 0)
+        ld      d, (ix + 1)
+        add     hl, de
+        ld      (back_building_current), hl
+        inc     ix
+        inc     ix
+        ld      (back_building_size), ix
+        QUEUE_VRAM_WRITE back_building_attr_addr
+        ld      hl, (back_building_current)
+        call    queue_zblit
         ld      hl, (back_building_current)
         ld      ix, (back_building_size)
         ld      e, (ix + 0)
@@ -2142,11 +2154,11 @@ cloud_down2_commands:
 
 ; Copy city2 over city1 to allow smooth screen split on city_scroll1.
 cmd_overlay_city:
-        VDP_LMMM 0, 0, 0, 256 + 100, 256, 2, vdp_timp
+        VDP_LMMM 0, 0, 0, 256 + 100, 256, 3, vdp_timp
 cmd_overlay_city_2:
         VDP_YMMM 256 + 100, 0, 256 + 973 - 768, 1
 cmd_overlay_city_3:
-        VDP_YMMM 256 + 100, 0, 973, 2
+        VDP_YMMM 256 + 100, 0, 973, 3
 
 end_of_code:
         assert  end_of_code <= 04000h

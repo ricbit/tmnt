@@ -205,26 +205,23 @@ struct SpriteBlock {
 };
 
 template<typename T>
-vector<int> get_attr(T a) {
-  vector<int> contents;
+pair<vector<int>, vector<int>> get_attr(T a) {
+  vector<int> colors, attr;
   for (const auto& s : get<2>(a).sprite) {
     for (int color : s.color) {
-      contents.push_back(color);
+      colors.push_back(color);
     }
   }
-  for (int i = 0; i < int(32 - get<2>(a).sprite.size()) * 16; i++) {
-    contents.push_back(0);
-  }
   for (int i = 0; i < int(get<1>(a).size()); i++) {
-    contents.push_back((get<2>(a).sprite[i].y + 255 + 256 - 51) % 256);
-    contents.push_back(get<2>(a).sprite[i].x);
-    contents.push_back(get<1>(a)[i] * 4);
-    contents.push_back(0);
+    attr.push_back((get<2>(a).sprite[i].y + 255 + 256 - 51) % 256);
+    attr.push_back(get<2>(a).sprite[i].x);
+    attr.push_back(get<1>(a)[i] * 4);
+    attr.push_back(0);
   }
   if (get<2>(a).sprite.size() < 32) {
-    contents.push_back(0xD8);
+    attr.push_back(0xD8);
   }
-  return contents;
+  return make_pair(colors, attr);
 }
 
 vector<int> compress(const vector<int>& stream) {
@@ -265,22 +262,27 @@ void save_patterns(T block) {
 template<typename T>
 void save_attr(T attr) {
   auto f = fopen("back_building_attr.z5", "wb");
+  auto f2 = fopen("back_building_size.bin", "wb");
   vector<int> attr_size;
   for (const auto& a : attr) {
-    vector<int> contents = get_attr(a);
-    vector<int> compressed = compress(contents);
-    attr_size.push_back(compressed.size());
+    auto contents = get_attr(a);
+    vector<int> compressed = compress(contents.first);
+    int size = compressed.size();
     for (int i : compressed) {
       fputc(i, f);
     }
+    fputc(size % 256, f2);
+    fputc(size / 256, f2);
+    vector<int> compressed_attr = compress(contents.second);
+    size = compressed_attr.size();
+    for (int i : compressed_attr) {
+      fputc(i, f);
+    }
+    fputc(size % 256, f2);
+    fputc(size / 256, f2);
   }
   fclose(f);
-  f = fopen("back_building_size.bin", "wb");
-  for (int i : attr_size) {
-    fputc(i % 256, f);
-    fputc(i / 256, f);
-  }
-  fclose(f);
+  fclose(f2);
   f = fopen("back_building_patt_base.bin", "wb");
   for (const auto& a : attr) {
     fputc((0x5800 + 0x800 * get<0>(a)) >> 11, f);
