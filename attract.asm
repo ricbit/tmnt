@@ -135,6 +135,7 @@ expand_city_line_frame          equ     805
 disable_moon_sprites_frame      equ     805
 copy_city_mask_last_frame       equ     814
 top_building_attr_size          equ     101
+city_beat                       equ     7
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1471,7 +1472,7 @@ city_scroll1:
         ld      hl, cmd_overlay_city_3
         call    queue_vdp_command
         COMPARE_FRAME 833
-        jr      z, 1f
+        jp      z, 1f
         ; Set back building attr.
         QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
@@ -1497,6 +1498,15 @@ city_scroll1:
         inc     ix
         inc     ix
         ld      (back_building_size), ix
+        ; Copy city2 from page 0 to page 3.
+        ld      a, (cmd_infinite_city_1 + 1)
+        add     a, city_beat
+        ld      (cmd_infinite_city_1 + 1), a
+        ld      a, (cmd_infinite_city_1 + 5)
+        add     a, city_beat
+        ld      (cmd_infinite_city_1 + 5), a
+        ld      hl, cmd_infinite_city_1
+        call    queue_vdp_command
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
@@ -2159,6 +2169,10 @@ cmd_overlay_city_2:
         VDP_YMMM 256 + 100, 0, 256 + 973 - 768, 1
 cmd_overlay_city_3:
         VDP_YMMM 256 + 100, 0, 973, 3
+
+; Copy city2 to page 3 to allow infinite scrolling.
+cmd_infinite_city_1:
+        VDP_YMMM 52 - city_beat, 0, 768 + (256 - city_beat), city_beat
 
 end_of_code:
         assert  end_of_code <= 04000h
