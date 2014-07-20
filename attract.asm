@@ -2093,7 +2093,7 @@ fast_put_p2:
 
                         align   512
 vdp_command_queue:      ds      256, 0
-save_irq:               db      0,0,0
+save_irq:               ds      3, 0
 file_handle:            db      0
 mapper:                 dw      0
 save_palette:           dw      0
@@ -2196,7 +2196,7 @@ cmd_overlay_city_3:
 
 ; Copy city2 to page 3 to allow infinite scrolling.
 cmd_infinite_city_1:
-        VDP_YMMM 52 - city_beat, 0, 768 + (256 - city_beat), city_beat
+        VDP_YMMM 51 - city_beat, 0, 768 + (256 - city_beat), city_beat
 
 end_of_code:
         assert  end_of_code <= 04000h
