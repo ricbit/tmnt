@@ -1150,6 +1150,7 @@ cloud_fade_second_bottom:
         ex      de, hl
         call    queue_vdp_command
 1:
+        DISABLE_HIRQ
         VDP_STATUS 0
         jp      frame_end
 
@@ -1450,11 +1451,7 @@ city_scroll1:
         ld      (vertical_scroll), a
         add     a, 256 - 80
         ld      (city_line), a
-        push    af
         VDPREG vdp_vscroll
-        pop     af
-        add     a, 10
-        VDPREG vdp_hsplit_line
         exx
         ; Queue the overlay commands.
         ld      a, (city_line)
@@ -1478,25 +1475,7 @@ city_scroll1:
         call    queue_zblit
         COMPARE_FRAME 833
         jr      z, 1f
-        VDP_STATUS 1
-        ENABLE_HIRQ
-        NEXT_HANDLE city_scroll1_copy_back
-        jp      return_irq_exx
-1:
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
-        ;ld      hl, cmd_copy_city_line_mask_4
-        ;call    queue_vdp_command
-        jp      frame_end
-
-city_scroll1_copy_back:
-        PREAMBLE_HORIZONTAL
-        exx
         ; Set back building attr.
-        ;SET_VRAM_WRITE (back_building_attr_addr - 512)
-        ;ld      hl, (back_building_current)
-        ;call    smart_zblit
         ld      hl, (back_building_current)
         ld      ix, (back_building_size)
         ld      e, (ix + 0)
@@ -1514,9 +1493,15 @@ city_scroll1_copy_back:
         ld      (city_split_line), a
         add     a, b
         VDPREG vdp_hsplit_line
-        VDP_AUTOINC vdp_set_page
+        VDP_STATUS 1
+        ENABLE_HIRQ
         NEXT_HANDLE city_scroll1_foreground
         jp      return_irq_exx
+1:
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        jp      frame_end
 
 city_scroll1_foreground:
         PREAMBLE_HORIZONTAL
@@ -1539,8 +1524,8 @@ city_scroll1_foreground:
         inc     hl
         ld      (back_building_cur_base), hl
         SPRITES_ON
-        VDP_STATUS 0
         DISABLE_HIRQ
+        VDP_STATUS 0
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1739,10 +1724,19 @@ process_vdp_command_queue:
         rrca
         jr      nc, 1f
         ; Not ready yet.
-        ld      a, (current_vdp_status)
-        VDPREG vdp_status
+        ld      (iy + 0), low process_vdp_command_delay
+        ld      (iy + 1), high process_vdp_command_delay
         ei
         jp      foreground_continue
+
+process_vdp_command_delay:
+        di
+        in      a, (099h)
+        rrca
+        jr      nc, 1f
+        ei
+        jp      foreground_continue
+        
 1:
         ld      a, (current_vdp_status)
         VDPREG vdp_status
