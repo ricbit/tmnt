@@ -42,6 +42,10 @@ debug set_bp 0xC012 {$current_frame >= 750} {
   puts stderr "smart_vdp_command queued at [machine_info VDP_msx_y_pos]"
 }
 
+debug set_bp 0xC015 {$current_frame >= 750} {
+  puts stderr "smart_zblit queued at [machine_info VDP_msx_y_pos]"
+}
+
 debug set_bp 0xC00F {} {
   puts stderr "smart_vdp_command ending at [machine_info VDP_msx_y_pos]"
   if {$fast_emulation == 0} {

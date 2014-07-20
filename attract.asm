@@ -164,6 +164,13 @@ top_building_attr_size          equ     101
         out     (099h), a
         endm
 
+; Queue VRAM address to write
+        macro   QUEUE_VRAM_WRITE addr
+        ld      b, addr >> 14
+        ld      d, addr and 255
+        ld      e, ((addr >> 8) and 03Fh) or 64
+        endm
+
 ; Set display page.
         macro   SET_PAGE page
         ld      a, (page << 5) or 011111b
@@ -640,6 +647,7 @@ allocate_memory:
         CREATE_HOOK 0C00Ch, smart_vdp_command_start
         CREATE_HOOK 0C00Fh, foreground_ret
         CREATE_HOOK 0C012h, smart_vdp_command_begin
+        CREATE_HOOK 0C015h, smart_zblit_begin
         endif
 
         ; Backup animation state on startup.
@@ -1464,6 +1472,9 @@ city_scroll1:
         call    queue_vdp_command
         ld      hl, cmd_overlay_city_3
         call    queue_vdp_command
+        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
+        ld      hl, (back_building_current)
+        call    queue_zblit
         ; Copy top building sprites.
         call    update_top_building_sprite
         COMPARE_FRAME 833
@@ -1484,9 +1495,9 @@ city_scroll1_copy_back:
         PREAMBLE_HORIZONTAL
         exx
         ; Set back building attr.
-        SET_VRAM_WRITE (back_building_attr_addr - 512)
-        ld      hl, (back_building_current)
-        call    smart_zblit
+        ;SET_VRAM_WRITE (back_building_attr_addr - 512)
+        ;ld      hl, (back_building_current)
+        ;call    smart_zblit
         ld      hl, (back_building_current)
         ld      ix, (back_building_size)
         ld      e, (ix + 0)
@@ -1620,6 +1631,79 @@ vdp_command:
         rrca
         jr      c, 2b
         VDP_STATUS 0
+        ret
+
+; ----------------------------------------------------------------
+; Queue a zblit to execute as soon as possible.
+; Input: HL=table with vdp commands, BDE = decoded VRAM address
+
+queue_zblit:
+        ld      ix, (queue_push)
+        ld      a, low process_zblit
+        ld      (ix + 0), a
+        ld      a, high process_zblit
+        ld      (ix + 1), a
+        ld      (ix + 2), l
+        ld      (ix + 3), h
+        ld      (ix + 4), b
+        ld      (ix + 5), d
+        ld      (ix + 6), e
+        ld      de, 8
+        add     ix, de
+        ld      a, ixh
+        and     0FEh
+        ld      ixh, a
+        ld      (queue_push), ix
+        ret
+
+        ; Process zblit.
+process_zblit:
+        ; Don't start if there's another foreground task running.
+        ld      a, (foreground + 1)
+        cp      low foreground_next
+        jp      nz, foreground_continue
+        ld      a, (foreground + 2)
+        cp      high foreground_next
+        jp      nz, foreground_continue
+        di
+        exx
+        ld      a, (iy + 4)
+        VDPREG  14
+        ld      a, (iy + 5)
+        out     (099h), a
+        ld      a, (iy + 6)
+        out     (099h), a
+        ld      l, (iy + 2)
+        ld      h, (iy + 3)
+        ld      (iy + 0), 0
+        ld      (iy + 1), 0
+        ld      (iy + 2), 0
+        ld      (iy + 3), 0
+        ld      (iy + 4), 0
+        ld      (iy + 5), 0
+        ld      (iy + 6), 0
+        ld      bc, 8
+        add     iy, bc
+        ld      a, iyh
+        and     0FEh
+        ld      iyh, a
+        ld      (queue_pop), iy
+        if      debug == 0
+        call    smart_zblit_begin
+        else
+        call    0C015h
+        endif
+        exx
+        ei
+        jp      foreground_continue
+
+smart_zblit_begin:        
+        push    hl
+        exx
+        pop     hl
+        exx
+        ld      hl, foreground_zblit
+        ld      (foreground + 1), hl
         ret
 
 ; ----------------------------------------------------------------
