@@ -3,6 +3,7 @@ set running 0
 set current_frame 0
 set vdp_command_running 0
 set fast_emulation 0
+set print_samples 0
 
 proc readmemw {addr} {
   expr {
@@ -60,6 +61,10 @@ debug set_bp 0xC00F {} {
       }
     ]
   }
+}
+
+debug set_bp 0x195 {$print_samples && $current_frame >= 750} {
+  puts stderr "DE = [reg de]"
 }
 
 debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {
