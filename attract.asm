@@ -137,6 +137,7 @@ disable_moon_sprites_frame      equ     805
 copy_city_mask_last_frame       equ     814
 top_building_attr_size          equ     101
 city_beat                       equ     7
+city_scroll1_first_frame        equ     833
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1446,7 +1447,6 @@ city_scroll1:
         SPRITE_ATTR top_building_attr_addr
         SPRITE_PATTERN top_building_patt_addr
         SPRITES_ON
-        ;SPRITES_OFF
         ; Set v scroll.
         ld      a, (vertical_scroll)
         add     a, 2
@@ -1466,57 +1466,27 @@ city_scroll1:
         ld      (cmd_overlay_city_3 + 1), a
         ld      hl, cmd_overlay_city
         call    queue_vdp_command
-        ; Set palette of back building.
-        ld      a, 13
-        VDPREG vdp_palette
-        ld      hl, cityline_palette_1
-        ld      b, 3
-1:
-        ld      ix, city_palette_final
-        ld      a, (hl)
-        add     a, a
-        ld      e, a
-        ld      d, 0
-        add     ix, de
-        ld      a, (ix + 0)
-        out     (09Ah), a
-        ld      a, (ix + 1)
-        out     (09Ah), a
-        inc     hl        
-        djnz    1b
-        ; Copy top building sprites.
+
+        call    set_back_building_palette
         call    update_top_building_sprite
+
         ld      hl, cmd_overlay_city_2
         call    queue_vdp_command
         ld      hl, cmd_overlay_city_3
         call    queue_vdp_command
-        COMPARE_FRAME 833
-        jp      z, 1f
+        COMPARE_FRAME city_scroll1_first_frame
+        jp      z, city_scroll1_exit_early
+
         ; Set back building attr.
         QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
         call    queue_zblit
-        ld      hl, (back_building_current)
-        ld      ix, (back_building_size)
-        ld      e, (ix + 0)
-        ld      d, (ix + 1)
-        add     hl, de
-        ld      (back_building_current), hl
-        inc     ix
-        inc     ix
-        ld      (back_building_size), ix
+        call    update_back_building_pointers
         QUEUE_VRAM_WRITE back_building_attr_addr
         ld      hl, (back_building_current)
         call    queue_zblit
-        ld      hl, (back_building_current)
-        ld      ix, (back_building_size)
-        ld      e, (ix + 0)
-        ld      d, (ix + 1)
-        add     hl, de
-        ld      (back_building_current), hl
-        inc     ix
-        inc     ix
-        ld      (back_building_size), ix
+        call    update_back_building_pointers
+
         ; Copy city2 from page 0 to page 3.
         ld      a, (cmd_infinite_city_1 + 1)
         add     a, city_beat
@@ -1538,7 +1508,8 @@ city_scroll1:
         ENABLE_HIRQ
         NEXT_HANDLE city_scroll1_foreground
         jp      return_irq_exx
-1:
+
+city_scroll1_exit_early:
         ld      a, (city_split_line)
         sub     10
         ld      (city_split_line), a
@@ -1568,6 +1539,39 @@ city_scroll1_foreground:
         DISABLE_HIRQ
         VDP_STATUS 0
         jp      frame_end
+
+set_back_building_palette:        
+        ; Set palette of back building.
+        ld      a, 13
+        VDPREG vdp_palette
+        ld      hl, cityline_palette_1
+        ld      b, 3
+1:
+        ld      ix, city_palette_final
+        ld      a, (hl)
+        add     a, a
+        ld      e, a
+        ld      d, 0
+        add     ix, de
+        ld      a, (ix + 0)
+        out     (09Ah), a
+        ld      a, (ix + 1)
+        out     (09Ah), a
+        inc     hl        
+        djnz    1b
+        ret
+
+update_back_building_pointers:
+        ld      hl, (back_building_current)
+        ld      ix, (back_building_size)
+        ld      e, (ix + 0)
+        ld      d, (ix + 1)
+        add     hl, de
+        ld      (back_building_current), hl
+        inc     ix
+        inc     ix
+        ld      (back_building_size), ix
+        ret
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
