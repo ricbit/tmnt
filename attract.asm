@@ -90,6 +90,7 @@ vdp_timp        equ     00008h  ; VDP logic operator TIMP
 vdp_set_page    equ     00002h  ; VDP register for set page
 vdp_hmmm_size   equ     00010h  ; Number of bytes required to perform a HMMM
 vdp_status      equ     0000Fh  ; VDP register to select status
+vdp_palette     equ     00010h  ; VDP register to select palette index
 openmsx_control equ     0002Eh  ; OpenMSX debug control port
 openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 
@@ -150,7 +151,7 @@ city_beat                       equ     7
 ; Set entire palette
         macro   SET_PALETTE
         xor     a
-        VDPREG  16
+        VDPREG  vdp_palette
         ld      bc, (16 * 2) * 256 + 09Ah
         otir
         endm
@@ -1465,6 +1466,24 @@ city_scroll1:
         ld      (cmd_overlay_city_3 + 1), a
         ld      hl, cmd_overlay_city
         call    queue_vdp_command
+        ; Set palette of back building.
+        ld      a, 13
+        VDPREG vdp_palette
+        ld      hl, cityline_palette_1
+        ld      b, 3
+1:
+        ld      ix, city_palette_final
+        ld      a, (hl)
+        add     a, a
+        ld      e, a
+        ld      d, 0
+        add     ix, de
+        ld      a, (ix + 0)
+        out     (09Ah), a
+        ld      a, (ix + 1)
+        out     (09Ah), a
+        inc     hl        
+        djnz    1b
         ; Copy top building sprites.
         call    update_top_building_sprite
         ld      hl, cmd_overlay_city_2
@@ -1920,7 +1939,7 @@ smart_palette equ 0C006h
         ret
 1:
         xor     a
-        VDPREG  16
+        VDPREG  vdp_palette
         push    hl
         exx
         pop     hl
@@ -2108,6 +2127,7 @@ handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
 city_palette_final      equ     city_fade_palette + 512
+cityline_palette_1:     db      8, 1, 0
 
                         align   256
 advance_pcm:            incbin  "advance_pcm.bin"

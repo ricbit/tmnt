@@ -42,8 +42,7 @@ struct SpriteCover {
   pair<bool, pair<int, int>> find_uncovered_pixel() {
     for (int j = start; j < start + size; j++) {
       for (int i = 0; i < 256; i++) {
-        if (city1(split + j, i) != 0 &&
-            city2(j, i) == 0 &&
+        if (city2(j, i) == 0 &&
             city1(split + j, i) != colormap[cityline[i]] &&
             !mask[j - start][i]) {
           return make_pair(true, make_pair(j, i));
@@ -79,8 +78,7 @@ struct SpriteCover {
     for (int j = y; j < limit; j++) {
       int color = 0;
       for (int i = 0; i < min(16, 255 - x); i++) {
-        if (city1(split + j, x + i) != 0 &&
-            city2(j, x + i) == 0 &&
+        if (city2(j, x + i) == 0 &&
             city1(split + j, x + i) != colormap[cityline[x + i]] &&
             !mask[j - start][x + i]) {
           color = city1(split + j, x + i);
