@@ -478,9 +478,14 @@ foreground:
         jp      foreground_next
 foreground_next:
         ld      iy, (queue_pop)
-        ld      a, (iy + 0)
+        xor     a
         or      (iy + 1)
-        call    nz, process_vdp_command_queue
+        jr      z, foreground_continue
+        ld      (foreground_patch + 2), a
+        ld      a, (iy + 0)
+        ld      (foreground_patch + 1), a
+foreground_patch:
+        jp      0
 
 foreground_continue:
         ; Avoid jitter by stopping foreground thread 
@@ -1623,8 +1628,11 @@ vdp_command:
 
 queue_vdp_command:
         ld      ix, (queue_push)
-        ld      (ix + 0), l
-        ld      (ix + 1), h
+        ld      de, process_vdp_command_queue
+        ld      (ix + 0), e
+        ld      (ix + 1), d
+        ld      (ix + 2), l
+        ld      (ix + 3), h
         ld      de, 8
         add     ix, de
         ld      a, ixh
@@ -1638,10 +1646,10 @@ process_vdp_command_queue:
         ; Don't start if there's another foreground task running.
         ld      a, (foreground + 1)
         cp      low foreground_next
-        ret     nz
+        jp      nz, foreground_continue
         ld      a, (foreground + 2)
         cp      high foreground_next
-        ret     nz
+        jp      nz, foreground_continue
         ; Don't start if there's another vdp command running.
         di
         ld      a, 2
@@ -1653,15 +1661,17 @@ process_vdp_command_queue:
         ld      a, (current_vdp_status)
         VDPREG vdp_status
         ei
-        ret
+        jp      foreground_continue
 1:
         ld      a, (current_vdp_status)
         VDPREG vdp_status
         exx
-        ld      l, (iy + 0)
-        ld      h, (iy + 1)
+        ld      l, (iy + 2)
+        ld      h, (iy + 3)
         ld      (iy + 0), 0
         ld      (iy + 1), 0
+        ld      (iy + 2), 0
+        ld      (iy + 3), 0
         ld      bc, 8
         add     iy, bc
         ld      a, iyh
@@ -1675,7 +1685,7 @@ process_vdp_command_queue:
         endif
         exx
         ei
-        ret
+        jp      foreground_continue
 
 ; ----------------------------------------------------------------
 ; Start a VDP command without stopping the pcm sample.
