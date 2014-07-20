@@ -1242,9 +1242,9 @@ set_absolute_scroll:
 
 update_top_building_sprite:
         ; Update the top building sprite attributes.
-        SET_VRAM_WRITE top_building_attr_addr
+        QUEUE_VRAM_WRITE top_building_attr_addr
         ld      hl, (top_building_current)
-        call    smart_zblit
+        call    queue_zblit
         ld      hl, (top_building_current)
         ld      de, 2 + top_building_attr_size
         add     hl, de
@@ -1451,7 +1451,6 @@ city_scroll1:
         add     a, 256 - 80
         ld      (city_line), a
         push    af
-        DEBUG
         VDPREG vdp_vscroll
         pop     af
         add     a, 10
@@ -1468,6 +1467,8 @@ city_scroll1:
         ld      (cmd_overlay_city_3 + 1), a
         ld      hl, cmd_overlay_city
         call    queue_vdp_command
+        ; Copy top building sprites.
+        call    update_top_building_sprite
         ld      hl, cmd_overlay_city_2
         call    queue_vdp_command
         ld      hl, cmd_overlay_city_3
@@ -1475,8 +1476,6 @@ city_scroll1:
         QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
         call    queue_zblit
-        ; Copy top building sprites.
-        call    update_top_building_sprite
         COMPARE_FRAME 833
         jr      z, 1f
         VDP_STATUS 1
@@ -1514,7 +1513,6 @@ city_scroll1_copy_back:
         sub     10
         ld      (city_split_line), a
         add     a, b
-        DEBUG
         VDPREG vdp_hsplit_line
         VDP_AUTOINC vdp_set_page
         NEXT_HANDLE city_scroll1_foreground
@@ -1529,7 +1527,6 @@ city_scroll1_foreground:
         ld      a, (city_split_line)
         neg
         add     a, 204
-        DEBUG
         VDPREG  vdp_vscroll
         ; 3: change page
         SET_PAGE 3
