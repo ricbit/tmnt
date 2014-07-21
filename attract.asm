@@ -1453,6 +1453,7 @@ city_scroll1:
         ld      (vertical_scroll), a
         add     a, 256 - 80
         ld      (city_line), a
+        DEBUG
         VDPREG vdp_vscroll
         exx
         ; Queue the overlay commands.
@@ -1503,6 +1504,7 @@ city_scroll1:
         sub     10
         ld      (city_split_line), a
         add     a, b
+        DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1572,6 +1574,103 @@ update_back_building_pointers:
         inc     ix
         ld      (back_building_size), ix
         ret
+
+; ----------------------------------------------------------------
+; State: city_scroll2
+; Scroll down the city with parallax, part 2.
+
+city_scroll2:
+        PREAMBLE_VERTICAL
+        SET_PAGE 1
+        SPRITE_ATTR top_building_attr_addr
+        SPRITE_PATTERN top_building_patt_addr
+        SPRITES_ON
+        ; Set v scroll.
+        ld      a, (vertical_scroll)
+        add     a, 2
+        ld      (vertical_scroll), a
+        add     a, 256 - 80
+        ld      (city_line), a
+        DEBUG
+        VDPREG vdp_vscroll
+        exx
+        ; Queue the overlay commands.
+        ld      a, (city_line)
+        ld      b, a
+        ld      a, (city_split_line)
+        add     a, b
+        sub     9
+        ld      (cmd_overlay_city + 7), a
+        ld      (cmd_overlay_city_2 + 1), a
+        ld      (cmd_overlay_city_3 + 1), a
+        ld      hl, cmd_overlay_city
+        call    queue_vdp_command
+
+        call    set_back_building_palette
+        call    update_top_building_sprite
+
+        ld      hl, cmd_overlay_city_2
+        call    queue_vdp_command
+        ld      hl, cmd_overlay_city_3
+        call    queue_vdp_command
+
+        ; Set back building attr.
+        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
+        ld      hl, (back_building_current)
+        call    queue_zblit
+        call    update_back_building_pointers
+        QUEUE_VRAM_WRITE back_building_attr_addr
+        ld      hl, (back_building_current)
+        call    queue_zblit
+        call    update_back_building_pointers
+
+        ; Copy city2 from page 0 to page 3.
+        ld      a, (cmd_infinite_city_1 + 1)
+        add     a, city_beat
+        ld      (cmd_infinite_city_1 + 1), a
+        ld      a, (cmd_infinite_city_1 + 5)
+        add     a, city_beat
+        ld      (cmd_infinite_city_1 + 5), a
+        ld      hl, cmd_infinite_city_1
+        call    queue_vdp_command
+        ; H split to city2.
+        ld      a, (city_line)
+        ld      b, a
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        add     a, b
+        DEBUG
+        VDPREG vdp_hsplit_line
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE city_scroll2_foreground
+        jp      return_irq_exx
+
+city_scroll2_foreground:
+        PREAMBLE_HORIZONTAL
+        ; Order is important here!
+        ; 1: turn off sprites
+        SPRITES_OFF
+        ; 2: change scroll
+        ld      a, (city_split_line)
+        neg
+        add     a, 204
+        VDPREG  vdp_vscroll
+        ; 3: change page
+        SET_PAGE 3
+        SPRITE_ATTR back_building_attr_addr
+        exx
+        ; Set back building base.
+        ld      hl, (back_building_cur_base)
+        ld      a, (hl)
+        VDPREG vdp_sprite_patt
+        inc     hl
+        ld      (back_building_cur_base), hl
+        SPRITES_ON
+        DISABLE_HIRQ
+        VDP_STATUS 0
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title

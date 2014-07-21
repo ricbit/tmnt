@@ -38,7 +38,7 @@ f.write("".join(chr(i) for i in attr))
 f.close()
 # Attributes
 attr = []
-for f in xrange(-6, 21):
+for f in xrange(-6, 25):
   frame = []
   pattern = 0
   for st_pack in start:
