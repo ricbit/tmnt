@@ -328,7 +328,7 @@ int main() {
   vector<SpriteBlock*> block;
   vector<tuple<int, vector<int>, SpriteCover>> attr;
   block.push_back(new SpriteBlock());
-  for (int i = 1; i < 19; i++) {
+  for (int i = 1; i < 22; i++) {
     cout << "Frame " << i << " (" << (833 + i) << ") ";
     auto cover = find_cover(
         city1, city2, cityline, i * 2, 9 + i * 10, 195 - i * 8, i);

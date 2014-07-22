@@ -13,32 +13,6 @@ selectors       equ     14
 debug           equ     1
 
 ; ----------------------------------------------------------------
-; Animation states.
-
-state_start:
-current_frame:          dw      520
-vertical_scroll:        db      0
-horizontal_scroll:      db      0
-palette_fade:           dw      cloud_fade_palette
-palette_fade_counter:   db      16
-cloud1_scroll:          db      158
-cloud2_scroll:          db      146
-cloud_tick:             db      1
-city_split_line:        db      189 + 10 + 6
-city_scroll:            dw      city_scroll_down5
-top_building_current:   dw      top_building_dyn_attr
-back_building_current:  dw      back_building_attr
-back_building_size:     dw      back_building_dyn_size
-back_building_cur_base: dw      back_building_base
-is_playing:             db      0
-pcm_mapper_page:        dw      mapper_selectors
-queue_pop:              dw      vdp_command_queue
-queue_push:             dw      vdp_command_queue
-current_city_beat:      dw      infinite_city_beat
-state_end:
-state_backup:           ds      state_end - state_start, 0
-
-; ----------------------------------------------------------------
 ; MSX bios
 
 restart         equ     00000h  ; Return to DOS
@@ -421,6 +395,33 @@ city_scroll1_last_frame         equ     843
         or      a
         sbc     hl, de
         endm
+
+; ----------------------------------------------------------------
+; Animation states.
+
+state_start:
+current_frame:          dw      520
+vertical_scroll:        db      0
+horizontal_scroll:      db      0
+palette_fade:           dw      cloud_fade_palette
+palette_fade_counter:   db      16
+cloud1_scroll:          db      158
+cloud2_scroll:          db      146
+cloud_tick:             db      1
+city_split_line:        db      189 + 10 + 6
+city_scroll:            dw      city_scroll_down5
+top_building_current:   dw      top_building_dyn_attr
+back_building_current:  dw      back_building_attr
+back_building_size:     dw      back_building_dyn_size
+back_building_cur_base: dw      back_building_base
+is_playing:             db      0
+pcm_mapper_page:        dw      mapper_selectors
+queue_pop:              dw      vdp_command_queue
+queue_push:             dw      vdp_command_queue
+current_city_beat:      dw      infinite_city_beat
+cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
+state_end:
+state_backup:           ds      state_end - state_start, 0
 
 ; ----------------------------------------------------------------
 ; Start of main program.
@@ -2318,9 +2319,6 @@ cmd_overlay_city_3:
         VDP_YMMM 256 + 100, 0, 973, 3
 
 ; Copy city2 to page 3 to allow infinite scrolling.
-cmd_infinite_city_1:
-        VDP_YMMM 51, 0, 768, 0
-
 infinite_city_beat:
         ; 834 835 836 837 838 839 840 841 842 843
         db 10, 10, 10,  9,  8,  8,  8,  8,  8,  8
