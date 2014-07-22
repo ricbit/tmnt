@@ -34,6 +34,7 @@ is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 queue_pop:              dw      vdp_command_queue
 queue_push:             dw      vdp_command_queue
+current_city_beat:      dw      infinite_city_beat
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
@@ -136,7 +137,6 @@ expand_city_line_frame          equ     805
 disable_moon_sprites_frame      equ     805
 copy_city_mask_last_frame       equ     814
 top_building_attr_size          equ     101
-city_beat                       equ     7
 city_scroll1_first_frame        equ     833
 city_scroll1_last_frame         equ     843
 
@@ -1538,12 +1538,19 @@ update_city_line:
         ret
 
 queue_infinite_city:
+        ld      a, (cmd_infinite_city_1 + 9)
+        ld      b, a
         ld      a, (cmd_infinite_city_1 + 1)
-        add     a, city_beat
+        add     a, b
         ld      (cmd_infinite_city_1 + 1), a
         ld      a, (cmd_infinite_city_1 + 5)
-        add     a, city_beat
+        add     a, b
         ld      (cmd_infinite_city_1 + 5), a
+        ld      hl, (current_city_beat)
+        ld      a, (hl)
+        ld      (cmd_infinite_city_1 + 9), a
+        inc     hl
+        ld      (current_city_beat), hl
         ld      hl, cmd_infinite_city_1
         call    queue_vdp_command
         ret
@@ -2312,7 +2319,11 @@ cmd_overlay_city_3:
 
 ; Copy city2 to page 3 to allow infinite scrolling.
 cmd_infinite_city_1:
-        VDP_YMMM 51 - city_beat, 0, 768 + (256 - city_beat), city_beat
+        VDP_YMMM 51, 0, 768, 0
+
+infinite_city_beat:
+        ; 834 835 836 837 838 839 840 841 842 843
+        db 10, 10, 10,  9,  8,  8,  8,  8,  8,  8
 
 end_of_code:
         assert  end_of_code <= 04000h
