@@ -1449,11 +1449,7 @@ city_scroll1:
         SPRITE_PATTERN top_building_patt_addr
         SPRITES_ON
         ; Set v scroll.
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
-        add     a, 256 - 80
-        ld      (city_line), a
+        call    update_city_line
         DEBUG
         VDPREG vdp_vscroll
         exx
@@ -1514,6 +1510,7 @@ city_scroll1_foreground:
         VDP_STATUS 0
         jp      frame_end
 1:
+        call    update_city_line
         call    prepare_city_overlay
         call    update_top_building_sprite
         ld      a, 245
@@ -1531,6 +1528,14 @@ city_scroll1_late_exit:
 
 ; ----------------------------------------------------------------
 ; Helpers for the city_scroll states.
+
+update_city_line:
+        ld      a, (vertical_scroll)
+        add     a, 2
+        ld      (vertical_scroll), a
+        add     a, 256 - 80
+        ld      (city_line), a
+        ret
 
 queue_infinite_city:
         ld      a, (cmd_infinite_city_1 + 1)
@@ -1624,11 +1629,7 @@ city_scroll2:
         SPRITE_PATTERN top_building_patt_addr
         SPRITES_ON
         ; Set v scroll.
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
-        add     a, 256 - 80
-        ld      (city_line), a
+        ld      a, (city_line)
         DEBUG
         VDPREG vdp_vscroll
         exx
@@ -1671,6 +1672,7 @@ city_scroll2_foreground:
         inc     hl
         ld      (back_building_cur_base), hl
         SPRITES_ON
+        call    update_city_line
         call    prepare_city_overlay
         call    update_top_building_sprite
         ld      a, 245
@@ -1681,6 +1683,7 @@ city_scroll2_foreground:
 city_scroll2_after_parallax:
         PREAMBLE_HORIZONTAL
         exx
+        SPRITES_OFF
         call    queue_back_building_attr
         DISABLE_HIRQ
         VDP_STATUS 0
