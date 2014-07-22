@@ -593,6 +593,7 @@ global_init:
         ld      (fast_put_p2 + 1), hl
 
         ; Put the two default pages into the mapper pool.
+        ld      hl, (mapper)
         ld      de, get_p1
         add     hl, de
         call    call_hl
