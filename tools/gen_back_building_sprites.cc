@@ -23,7 +23,7 @@ struct SpriteCover {
   SpriteCover(const vector<uint8_t>& city1, const vector<uint8_t>& city2,
               const vector<uint8_t>& cityline_,
               int scroll1_, int scroll2_, int split_, int start_, int size_,
-              int frame_number_)
+              int frame_number_, int palette)
       : city1_(city1), city2_(city2), cityline(cityline_),
         scroll1(scroll1_), scroll2(scroll2_), split(split_ + 1), 
         start(start_), size(size_), frame_number(frame_number_),
@@ -31,11 +31,11 @@ struct SpriteCover {
         colormap(212, vector<int>(16)) {
     for (int i = 0; i < 212; i++) {
       iota(colormap[i].begin(), colormap[i].end(), 0);
-      if (i >= 122) {
+      if (palette == 0) {
         colormap[i][13] = 8;
         colormap[i][14] = 1;
         colormap[i][15] = 0;
-      } else if (i >= 84) {
+      } else if (palette == 1) {
         colormap[i][13] = 8;
         colormap[i][14] = 11;
         colormap[i][15] = 8;
@@ -184,22 +184,25 @@ vector<uint8_t> read_raw(string file, int lines) {
   return raw;
 }
 
-SpriteCover find_cover(
+pair<int, SpriteCover> find_cover(
     const vector<uint8_t>& city1, const vector<uint8_t>& city2,
     const vector<uint8_t>& cityline,
     int scroll1, int scroll2, int split, int frame_number) {
   for (int i = 0; i < 192; i++) {
     int limit = min(86, 192 - (split - scroll1 + i));
-    SpriteCover cover(
-        city1, city2, cityline, scroll1, scroll2, 
-        split, i, limit, frame_number);
-    if (cover.solve()) {
-      cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
-           << " start y : " << i << "\n";
-      return cover;
+    for (int p = 0; p < 3; p++) {
+      SpriteCover cover(
+          city1, city2, cityline, scroll1, scroll2, 
+          split, i, limit, frame_number, p);
+      if (cover.solve()) {
+        cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
+             << " start y : " << i << " palette : " << p << "\n";
+        return make_pair(p, cover);
+      }
     }
   }
-  return SpriteCover(city1, city2, cityline, 0, 197, 139, 192, 0, 0);
+  return make_pair(
+      -1, SpriteCover(city1, city2, cityline, 0, 197, 139, 192, 0, 0, 0));
 }
 
 struct SpriteBlock {
@@ -326,20 +329,21 @@ int main() {
   auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
   auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
   vector<SpriteBlock*> block;
-  vector<tuple<int, vector<int>, SpriteCover>> attr;
+  vector<tuple<int, vector<int>, SpriteCover, int>> attr;
   block.push_back(new SpriteBlock());
   for (int i = 1; i < 22; i++) {
     cout << "Frame " << i << " (" << (833 + i) << ") ";
-    auto cover = find_cover(
+    auto cover_pair = find_cover(
         city1, city2, cityline, i * 2, 9 + i * 10, 195 - i * 8, i);
     SpriteBlock* last = *block.rbegin();
-    if (!last->check(cover)) {
+    if (!last->check(cover_pair.second)) {
       block.push_back(new SpriteBlock());
       last = *block.rbegin();
     }
     int block_number = block.size() - 1;
-    auto patt = last->insert(cover);
-    attr.push_back(make_tuple(block_number, patt, cover));
+    auto patt = last->insert(cover_pair.second);
+    attr.push_back(
+        make_tuple(block_number, patt, cover_pair.second, cover_pair.first));
   }
   save_patterns(block);
   save_attr(attr);
