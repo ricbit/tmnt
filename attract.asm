@@ -414,6 +414,7 @@ top_building_current:   dw      top_building_dyn_attr
 back_building_current:  dw      back_building_attr
 back_building_size:     dw      back_building_dyn_size
 back_building_cur_base: dw      back_building_base
+back_building_cur_pal:  dw      back_building_palette
 is_playing:             db      0
 pcm_mapper_page:        dw      mapper_selectors
 queue_pop:              dw      vdp_command_queue
@@ -1596,11 +1597,17 @@ queue_city_overlay:
 
 set_back_building_palette:        
         ; Set palette of back building.
+        ld      ix, (back_building_cur_pal)
+        ld      e, (ix + 0)
+        ld      d, 0
+        inc     ix
+        ld      (back_building_cur_pal), ix
         ld      a, 13
         VDPREG vdp_palette
-        ld      hl, cityline_palette_1
+        ld      hl, cityline_palette_0
+        add     hl, de
         ld      b, 3
-1:
+set_back_building_palette_patch:
         ld      ix, city_palette_final
         ld      a, (hl)
         add     a, a
@@ -1612,7 +1619,7 @@ set_back_building_palette:
         ld      a, (ix + 1)
         out     (09Ah), a
         inc     hl        
-        djnz    1b
+        djnz    set_back_building_palette_patch
         ret
 
 update_back_building_pointers:
@@ -1653,6 +1660,7 @@ city_scroll2:
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
+        call    set_back_building_palette
         ld      hl, cmd_overlay_city_2
         call    queue_vdp_command
         ld      hl, cmd_overlay_city_3
@@ -2256,7 +2264,9 @@ handles:                include "handles.inc"
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
 city_palette_final      equ     city_fade_palette + 512
-cityline_palette_1:     db      8, 1, 0
+cityline_palette_0:     db      8, 1, 0
+cityline_palette_1:     db      8, 11, 8
+cityline_palette_2:     db      11, 11, 6
 
                         align   256
 advance_pcm:            incbin  "advance_pcm.bin"
@@ -2367,6 +2377,7 @@ back_building_patt:     incbin "back_building_patt.z5"
 back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
+back_building_palette:  incbin "back_building_palette.bin"
                         PAGE_END
 
 ; Mapper page 12

@@ -190,15 +190,24 @@ pair<int, SpriteCover> find_cover(
     int scroll1, int scroll2, int split, int frame_number) {
   for (int i = 0; i < 192; i++) {
     int limit = min(86, 192 - (split - scroll1 + i));
+    int bestp = -1, bestsize = 100;
     for (int p = 0; p < 3; p++) {
       SpriteCover cover(
           city1, city2, cityline, scroll1, scroll2, 
           split, i, limit, frame_number, p);
-      if (cover.solve()) {
-        cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
-             << " start y : " << i << " palette : " << p << "\n";
-        return make_pair(p, cover);
+      if (cover.solve() && int(cover.sprite.size()) < bestsize) {
+        bestp = p;
+        bestsize = cover.sprite.size();
       }
+    }
+    if (bestp >= 0) {
+      SpriteCover cover(
+          city1, city2, cityline, scroll1, scroll2, 
+          split, i, limit, frame_number, bestp);
+      cover.solve();
+      cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
+           << " start y : " << i << " palette : " << bestp << "\n";
+      return make_pair(bestp, cover);
     }
   }
   return make_pair(
@@ -322,6 +331,11 @@ void save_attr(T attr) {
     fputc((0x5800 + 0x800 * get<0>(a)) >> 11, f);
   }
   fclose(f);
+  f = fopen("back_building_palette.bin", "wb");
+  for (const auto& a : attr) {
+    fputc(3 * get<3>(a), f);
+  }
+  fclose(f);
 }
 
 int main() {
@@ -331,7 +345,7 @@ int main() {
   vector<SpriteBlock*> block;
   vector<tuple<int, vector<int>, SpriteCover, int>> attr;
   block.push_back(new SpriteBlock());
-  for (int i = 1; i < 22; i++) {
+  for (int i = 1; i <= 20; i++) {
     cout << "Frame " << i << " (" << (833 + i) << ") ";
     auto cover_pair = find_cover(
         city1, city2, cityline, i * 2, 9 + i * 10, 195 - i * 8, i);

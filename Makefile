@@ -1,5 +1,6 @@
 BACK_BUILDING = back_building_attr.z5 back_building_patt.sc5 \
-                back_building_size.bin back_building_patt_base.bin
+                back_building_size.bin back_building_patt_base.bin \
+                back_building_palette.bin
           
 TOP_BUILDING = top_building_patt.sc5 top_building_attr.sc5 \
                top_building_dyn_attr.bin
