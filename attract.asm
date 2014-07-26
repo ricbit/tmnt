@@ -1453,13 +1453,21 @@ city_scroll1:
         SPRITES_ON
         ; Set v scroll.
         call    update_city_line
-        DEBUG
+        ;DEBUG
         VDPREG vdp_vscroll
         exx
-        call    queue_city_overlay
+        call    prepare_city_overlay
+        call    update_top_building_sprite
+
+        ld      hl, cmd_overlay_city_2
+        call    queue_vdp_command
+        ld      hl, cmd_overlay_city_3
+        call    queue_vdp_command
+
         COMPARE_FRAME city_scroll1_first_frame
         jp      z, city_scroll1_exit_early
 
+        call    set_back_building_palette
         call    queue_back_building_attr
 
         ; Copy city2 from page 0 to page 3.
@@ -1473,7 +1481,7 @@ city_scroll1:
         sub     10
         ld      (city_split_line), a
         add     a, b
-        DEBUG
+        ;DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1559,6 +1567,8 @@ queue_infinite_city:
         ret
 
 queue_back_building_attr:
+        ld      a, 255
+        DEBUG
         ; Set back building attr.
         QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
@@ -1584,18 +1594,9 @@ prepare_city_overlay:
         call    queue_vdp_command
         ret
 
-queue_city_overlay:
-        call    prepare_city_overlay
-        call    set_back_building_palette
-        call    update_top_building_sprite
-
-        ld      hl, cmd_overlay_city_2
-        call    queue_vdp_command
-        ld      hl, cmd_overlay_city_3
-        call    queue_vdp_command
-        ret
-
 set_back_building_palette:        
+        ld      a, 254
+        DEBUG
         ; Set palette of back building.
         ld      ix, (back_building_cur_pal)
         ld      e, (ix + 0)
@@ -1646,7 +1647,7 @@ city_scroll2:
         SPRITES_ON
         ; Set v scroll.
         ld      a, (city_line)
-        DEBUG
+        ;DEBUG
         VDPREG vdp_vscroll
         exx
         ; H split to city2.
@@ -1656,7 +1657,7 @@ city_scroll2:
         sub     10
         ld      (city_split_line), a
         add     a, b
-        DEBUG
+        ;DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
