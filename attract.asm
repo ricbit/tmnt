@@ -113,6 +113,7 @@ copy_city_mask_last_frame       equ     814
 top_building_attr_size          equ     101
 city_scroll1_first_frame        equ     833
 city_scroll1_last_frame         equ     843
+city_scroll2_infinite           equ     847
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1492,6 +1493,7 @@ city_scroll1_exit_early:
         ld      a, (city_split_line)
         sub     10
         ld      (city_split_line), a
+        call    queue_infinite_city
         jp      frame_end
 
 city_scroll1_foreground:
@@ -1693,7 +1695,7 @@ city_scroll2_foreground:
         call    update_city_line
         call    prepare_city_overlay
         call    update_top_building_sprite
-        ld      a, 245
+        ld      a, 255
         VDPREG vdp_hsplit_line
         NEXT_HANDLE city_scroll2_after_parallax
         jp      return_irq_exx
@@ -1702,7 +1704,21 @@ city_scroll2_after_parallax:
         PREAMBLE_HORIZONTAL
         exx
         SPRITES_OFF
-        call    queue_back_building_attr
+        ; Set back building sprite colors
+        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
+        ld      hl, (back_building_current)
+        call    queue_zblit
+        call    update_back_building_pointers
+
+        ; Copy city2 from page 0 to page 3.
+        COMPARE_FRAME city_scroll2_infinite
+        call    nc, queue_infinite_city
+
+        ; Set back building sprite attr
+        QUEUE_VRAM_WRITE back_building_attr_addr
+        ld      hl, (back_building_current)
+        call    queue_zblit
+        call    update_back_building_pointers
         DISABLE_HIRQ
         VDP_STATUS 0
         jp      frame_end
@@ -2332,8 +2348,10 @@ cmd_overlay_city_3:
 
 ; Copy city2 to page 3 to allow infinite scrolling.
 infinite_city_beat:
-        ; 834 835 836 837 838 839 840 841 842 843
-        db 10, 10, 10,  9,  8,  8,  8,  8,  8,  8
+        ; 833 834 835 836 837 838 839 840 841 842
+        db 11, 10, 11, 10, 10, 10, 10, 10, 10, 10
+        ; 847 848 849 850 851 852 
+        db  3,  7,  8,  9,  10, 11
 
 end_of_code:
         assert  end_of_code <= 04000h
