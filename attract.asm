@@ -7,7 +7,7 @@
         jp      start_main
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     14
+selectors       equ     15
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -1724,6 +1724,23 @@ city_scroll2_after_parallax:
         jp      frame_end
 
 ; ----------------------------------------------------------------
+; State: city_scroll3
+; Scroll down the city with parallax, part 3.
+
+city_scroll3:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3 
+        ; Set v scroll.
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        neg
+        add     a, 204
+        VDPREG  vdp_vscroll
+        exx
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: disable_screen_title
 ; Disable the screen just before the title
 
@@ -2407,6 +2424,11 @@ city2b:                 incbin "city2b.z5"
 ; Mapper page 13
                         PAGE_BEGIN
 city2a:                 incbin "city2a.z5"
+                        PAGE_END
+
+; Mapper page 14
+                        PAGE_BEGIN
+city2c:                 incbin "city2c.z5"
                         PAGE_END
 
         end

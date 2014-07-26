@@ -851,17 +851,17 @@
 		dw	city_scroll2	; 850
 		dw	city_scroll2	; 851
 		dw	city_scroll2	; 852
-		dw	disable_screen_black	; 853
-		dw	disable_screen	; 854
-		dw	disable_screen	; 855
-		dw	disable_screen	; 856
-		dw	disable_screen	; 857
-		dw	disable_screen	; 858
-		dw	disable_screen	; 859
-		dw	disable_screen	; 860
-		dw	disable_screen	; 861
-		dw	disable_screen	; 862
-		dw	disable_screen	; 863
+		dw	city_scroll3	; 853
+		dw	city_scroll3	; 854
+		dw	city_scroll3	; 855
+		dw	city_scroll3	; 856
+		dw	city_scroll3	; 857
+		dw	city_scroll3	; 858
+		dw	city_scroll3	; 859
+		dw	city_scroll3	; 860
+		dw	city_scroll3	; 861
+		dw	city_scroll3	; 862
+		dw	disable_screen_black	; 863
 		dw	disable_screen	; 864
 		dw	disable_screen	; 865
 		dw	disable_screen	; 866
