@@ -74,8 +74,9 @@ openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 
 ; VRAM Layout during cloud states:
 ; 00000-057FF city2 pixels
-; 05800-07FFF back building patterns
+; 06000-07FFF back building patterns
 ; 08000-0D9FF city1 pixels
+; 0FA00-0FB7F back building attributes
 ; 10000-1017F top building patterns
 ; 10700-114FF cloud2 pixels
 ; 11900-1287F must be all zeros, don't use
@@ -83,7 +84,6 @@ openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 ; 13800-16AFF moon patterns
 ; 17000-1727F top building attributes
 ; 18000-1A87F cloud3 pixels
-; 1B800-1BA7F back building attributes
 ; 1E680-1FFFF city line mask
 
 cloud2_addr             equ     10000h
@@ -95,8 +95,8 @@ moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
 top_building_patt_addr  equ     10000h
 city_line_mask_addr     equ     1E680h
-back_building_patt_addr equ     05800h
-back_building_attr_addr equ     1BA00h
+back_building_patt_addr equ     06000h
+back_building_attr_addr equ     0FA00h
 title_addr              equ     08000h
 
 ; ----------------------------------------------------------------

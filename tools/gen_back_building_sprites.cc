@@ -328,7 +328,7 @@ void save_attr(T attr) {
   fclose(f2);
   f = fopen("back_building_patt_base.bin", "wb");
   for (const auto& a : attr) {
-    fputc((0x5800 + 0x800 * get<0>(a)) >> 11, f);
+    fputc((0x6000 + 0x800 * get<0>(a)) >> 11, f);
   }
   fclose(f);
   f = fopen("back_building_palette.bin", "wb");
