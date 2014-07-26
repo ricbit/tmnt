@@ -1,0 +1,17 @@
+sjasmplus
+gen_back_building_sprites
+*.sc5
+*.com
+*.dat
+*.lst
+*.sym
+*.avi
+*.pyc
+*.swp
+*.txt
+old/
+disk/
+frames/
+mono/
+roms/
+tmnt_data/
