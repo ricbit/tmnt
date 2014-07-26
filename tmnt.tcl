@@ -12,11 +12,22 @@ proc readmemw {addr} {
   }
 }
 
+debug probe set_bp VDP.IRQhorizontal {
+  $running == 1 && [debug read {VDP regs} 15] != 1
+} {
+  puts stderr "HIRQ but VDP status is [debug read {VDP regs} 15]"
+  exit
+}
+
 debug probe set_bp VDP.IRQvertical {
   $running == 1 && $current_frame != [readmemw 0x103]
 } {
   set current_frame [readmemw 0x103]
   puts stderr "Frame $current_frame"
+  if {[debug read {VDP regs} 15] != 0} {
+    puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
+    exit
+  }
 }
 
 debug set_bp 0xC000 {$current_frame >= 750} {
