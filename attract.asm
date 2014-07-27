@@ -114,6 +114,8 @@ top_building_attr_size          equ     101
 city_scroll1_first_frame        equ     833
 city_scroll1_last_frame         equ     843
 city_scroll2_infinite           equ     847
+city_scroll2_last_frame         equ     852
+city_scroll3_sprites            equ     859
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1597,8 +1599,6 @@ prepare_city_overlay:
         ret
 
 set_back_building_palette:        
-        ld      a, 254
-        DEBUG
         ; Set palette of back building.
         ld      ix, (back_building_cur_pal)
         ld      e, (ix + 0)
@@ -1649,7 +1649,6 @@ city_scroll2:
         SPRITES_ON
         ; Set v scroll.
         ld      a, (city_line)
-        ;DEBUG
         VDPREG vdp_vscroll
         exx
         ; H split to city2.
@@ -1659,7 +1658,6 @@ city_scroll2:
         sub     10
         ld      (city_split_line), a
         add     a, b
-        ;DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1704,6 +1702,8 @@ city_scroll2_after_parallax:
         PREAMBLE_HORIZONTAL
         exx
         SPRITES_OFF
+        COMPARE_FRAME city_scroll2_last_frame
+        jr      z, 1f
         ; Set back building sprite colors
         QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
@@ -1719,9 +1719,14 @@ city_scroll2_after_parallax:
         ld      hl, (back_building_current)
         call    queue_zblit
         call    update_back_building_pointers
+2:
         DISABLE_HIRQ
         VDP_STATUS 0
         jp      frame_end
+1:
+        call    queue_infinite_city
+        jr      2b
+
 
 ; ----------------------------------------------------------------
 ; State: city_scroll3
@@ -1738,6 +1743,11 @@ city_scroll3:
         add     a, 204
         VDPREG  vdp_vscroll
         exx
+        COMPARE_FRAME city_scroll3_sprites
+        jp      nc, frame_end
+
+        SPRITES_ON
+        call    queue_back_building_attr
         jp      frame_end
 
 ; ----------------------------------------------------------------

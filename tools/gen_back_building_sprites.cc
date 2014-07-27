@@ -28,26 +28,24 @@ struct SpriteCover {
         scroll1(scroll1_), scroll2(scroll2_), split(split_ + 1), 
         start(start_), size(size_), frame_number(frame_number_),
         mask(size, vector<bool>(256, false)),
-        colormap(212, vector<int>(16)) {
-    for (int i = 0; i < 212; i++) {
-      iota(colormap[i].begin(), colormap[i].end(), 0);
-      if (palette == 0) {
-        colormap[i][13] = 8;
-        colormap[i][14] = 1;
-        colormap[i][15] = 0;
-      } else if (palette == 1) {
-        colormap[i][13] = 8;
-        colormap[i][14] = 11;
-        colormap[i][15] = 8;
-      } else {
-        colormap[i][13] = 11;
-        colormap[i][14] = 11;
-        colormap[i][15] = 6;
-      }
+        colormap(16) {
+    iota(colormap.begin(), colormap.end(), 0);
+    if (palette == 0) {
+      colormap[13] = 8;
+      colormap[14] = 1;
+      colormap[15] = 0;
+    } else if (palette == 1) {
+      colormap[13] = 8;
+      colormap[14] = 11;
+      colormap[15] = 8;
+    } else {
+      colormap[13] = 11;
+      colormap[14] = 11;
+      colormap[15] = 6;
     }
   }
   int city1(int y, int x) {
-    return y < 212 ? city1_[y * 256 + x] : 0;
+    return y < 212 && y >= 0 ? city1_[y * 256 + x] : 0;
   }
   int city2(int y, int x) {
     return city2_[(y + 70) * 256 + x];
@@ -56,7 +54,7 @@ struct SpriteCover {
     for (int j = start; j < start + size; j++) {
       for (int i = 0; i < 256; i++) {
         if (city2(j, i) == 0 &&
-            city1(split + j, i) != colormap[split + j][cityline[i]] &&
+            city1(split + j, i) != colormap[cityline[i]] &&
             !mask[j - start][i]) {
           return make_pair(true, make_pair(j, i));
         }
@@ -105,7 +103,7 @@ struct SpriteCover {
       int color = 0;
       for (int i = 0; i < min(16, 255 - x); i++) {
         if (city2(j, x + i) == 0 &&
-            city1(split + j, x + i) != colormap[split + j][cityline[x + i]] &&
+            city1(split + j, x + i) != colormap[cityline[x + i]] &&
             !mask[j - start][x + i]) {
           color = city1(split + j, x + i);
           break;
@@ -173,7 +171,7 @@ struct SpriteCover {
   int scroll1, scroll2, split, start, size, frame_number;
   vector<vector<bool>> mask;
   vector<Sprite> sprite;
-  vector<vector<int>> colormap;
+  vector<int> colormap;
 };
 
 vector<uint8_t> read_raw(string file, int lines) {
@@ -345,7 +343,7 @@ int main() {
   vector<SpriteBlock*> block;
   vector<tuple<int, vector<int>, SpriteCover, int>> attr;
   block.push_back(new SpriteBlock());
-  for (int i = 1; i <= 20; i++) {
+  for (int i = 1; i <= 26; i++) {
     cout << "Frame " << i << " (" << (833 + i) << ") ";
     auto cover_pair = find_cover(
         city1, city2, cityline, i * 2, 9 + i * 10, 195 - i * 8, i);
