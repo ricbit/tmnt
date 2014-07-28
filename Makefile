@@ -5,7 +5,8 @@ BACK_BUILDING = back_building_attr.z5 back_building_patt.sc5 \
 TOP_BUILDING = top_building_patt.sc5 top_building_attr.sc5 \
                top_building_dyn_attr.bin
 
-OBJECTS = attract.asm handles.inc city1.z5 city2a.z5 city2b.z5 city2c.z5 \
+OBJECTS = attract.asm handles.inc city1.z5 \
+          city2a.z5 city2b.z5 city2c.z5 city2d.z5 \
           cityline.z5 \
           $(BACK_BUILDING) back_building_patt.z5 \
           top_building_patt.z5 top_building_attr.z5 top_building_dyn_attr.bin
@@ -26,7 +27,7 @@ handles.inc : tools/gen_handles.py
 %.sc5 : raw/%.raw
 	python tools/convert_raw.py $^ $@
 
-city2a.sc5 city2b.sc5 city2c.sc5: raw/city2.raw tools/gen_city_raw.py
+city2a.sc5 city2b.sc5 city2c.sc5 city2d.sc5: raw/city2.raw tools/gen_city_raw.py
 	python tools/gen_city_raw.py
 
 gen_back_building_sprites : tools/gen_back_building_sprites.cc

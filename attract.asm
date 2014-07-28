@@ -72,31 +72,35 @@ openmsx_data    equ     0002Fh  ; OpenMSX debug data port
 ; ----------------------------------------------------------------
 ; VRAM layout
 
-; VRAM Layout during cloud states:
+; VRAM Layout at the beginning:
 ; 00000-057FF city2 pixels
 ; 06000-07FFF back building patterns
-; 08000-0D9FF city1 pixels
-; 0FA00-0FB7F back building attributes
+; 08000-0E9FF city1 pixels
+; 0EA00-0FFFF city preload 2
 ; 10000-1017F top building patterns
 ; 10700-114FF cloud2 pixels
 ; 11900-1287F must be all zeros, don't use
 ; 13000-1321F moon attributes
 ; 13800-16AFF moon patterns
 ; 17000-1727F top building attributes
+; 17400-1767F back building attributes
 ; 18000-1A87F cloud3 pixels
+; 1C680-1E67F city2 preload
 ; 1E680-1FFFF city line mask
 
 cloud2_addr             equ     10000h
 cloud3_addr             equ     18000h
 city1_addr              equ     08000h
 city2_addr              equ     00000h
+city2_preload           equ     1C680h
+city2_preload_2         equ     0EA00h
 moon_pattern_addr       equ     13800h
 moon_attr_addr          equ     13200h
 top_building_attr_addr  equ     17200h
 top_building_patt_addr  equ     10000h
 city_line_mask_addr     equ     1E680h
 back_building_patt_addr equ     06000h
-back_building_attr_addr equ     0FA00h
+back_building_attr_addr equ     17600h
 title_addr              equ     08000h
 
 ; ----------------------------------------------------------------
@@ -748,9 +752,15 @@ local_init:
         ld      hl, city2b
         call    zblit
         di
-        SET_VRAM_WRITE 1C680h
+        SET_VRAM_WRITE city2_preload
         ei
         ld      hl, city2c
+        call    zblit
+        MAPPER_P2 14
+        di
+        SET_VRAM_WRITE city2_preload_2
+        ei
+        ld      hl, city2d
         call    zblit
 
         ; Copy top building sprite patterns to vram.
@@ -1765,6 +1775,12 @@ city_scroll4:
         VDPREG  vdp_vscroll
         exx
         SPRITES_OFF
+
+        COMPARE_FRAME 858
+        jr      nz, 1f
+        ld      hl, cmd_city_preload_2
+        call    queue_vdp_command
+1:
         jp      frame_end
 
         COMPARE_FRAME 853
@@ -2450,6 +2466,10 @@ infinite_city_beat:
         ; 847 848 849 850 851 852 
         db  3,  7,  8,  9,  10, 2
 
+; Copy city preload2 to page 3.
+cmd_city_preload_2:
+        VDP_YMMM 256 + 212, 0, 973, 44
+
 end_of_code:
         assert  end_of_code <= 04000h
 
@@ -2509,7 +2529,7 @@ city2a:                 incbin "city2a.z5"
 
 ; Mapper page 14
                         PAGE_BEGIN
-                        db 0
+city2d:                 incbin "city2d.z5"
                         PAGE_END
 
         end
