@@ -11,6 +11,6 @@ def save_city(filename, start, size):
   f.close()
 
 save_city("/home/ricbit/work/tmnt/city2a.sc5", 70, 128)
-save_city("/home/ricbit/work/tmnt/city2b.sc5", 70 + 128, 73)
-save_city("/home/ricbit/work/tmnt/city2c.sc5", 70 + 201, 128)
+save_city("/home/ricbit/work/tmnt/city2b.sc5", 70 + 128, 192 - 128)
+save_city("/home/ricbit/work/tmnt/city2c.sc5", 70 + 192, 64)
 

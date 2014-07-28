@@ -856,14 +856,14 @@
 		dw	city_scroll3	; 855
 		dw	city_scroll3	; 856
 		dw	city_scroll3	; 857
-		dw	city_scroll3	; 858
-		dw	city_scroll3	; 859
-		dw	city_scroll3	; 860
-		dw	city_scroll3	; 861
-		dw	city_scroll3	; 862
-		dw	disable_screen_black	; 863
-		dw	disable_screen	; 864
-		dw	disable_screen	; 865
+		dw	city_scroll4	; 858
+		dw	city_scroll4	; 859
+		dw	city_scroll4	; 860
+		dw	city_scroll4	; 861
+		dw	city_scroll4	; 862
+		dw	city_scroll4	; 863
+		dw	city_scroll4	; 864
+		dw	disable_screen_black	; 865
 		dw	disable_screen	; 866
 		dw	disable_screen	; 867
 		dw	disable_screen	; 868

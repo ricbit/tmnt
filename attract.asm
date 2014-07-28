@@ -115,7 +115,6 @@ city_scroll1_first_frame        equ     833
 city_scroll1_last_frame         equ     843
 city_scroll2_infinite           equ     847
 city_scroll2_last_frame         equ     852
-city_scroll3_sprites            equ     859
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -747,6 +746,11 @@ local_init:
         call    zblit
         MAPPER_P2 12
         ld      hl, city2b
+        call    zblit
+        di
+        SET_VRAM_WRITE 1C680h
+        ei
+        ld      hl, city2c
         call    zblit
 
         ; Copy top building sprite patterns to vram.
@@ -1734,7 +1738,6 @@ city_scroll2_after_parallax:
 
 city_scroll3:
         PREAMBLE_VERTICAL
-        SET_PAGE 3 
         ; Set v scroll.
         ld      a, (city_split_line)
         sub     10
@@ -1743,11 +1746,34 @@ city_scroll3:
         add     a, 204
         VDPREG  vdp_vscroll
         exx
-        COMPARE_FRAME city_scroll3_sprites
-        jp      nc, frame_end
-
         SPRITES_ON
         call    queue_back_building_attr
+        jp      frame_end
+
+; ----------------------------------------------------------------
+; State: city_scroll4
+; Scroll down the city with parallax, part 4.
+
+city_scroll4:
+        PREAMBLE_VERTICAL
+        ; Set v scroll.
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        neg
+        add     a, 204
+        VDPREG  vdp_vscroll
+        exx
+        SPRITES_OFF
+        jp      frame_end
+
+        COMPARE_FRAME 853
+        jp      nz, frame_end
+        ld      a, 14
+        call    queue_mapper
+        ld      hl, city2c
+        QUEUE_VRAM_WRITE 1C680h
+        ;call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1836,6 +1862,50 @@ vdp_command:
         jr      c, 2b
         VDP_STATUS 0
         ret
+
+; ----------------------------------------------------------------
+; Queue a mapper change to execute as soon as possible.
+; Input: A = mapper selector
+
+queue_mapper:
+        ld      ix, (queue_push)
+        ld      hl, process_mapper
+        ld      (ix + 0), l
+        ld      (ix + 1), h
+        ld      (ix + 2), a
+        ld      de, 8
+        add     ix, de
+        ld      a, ixh
+        and     0FEh
+        ld      ixh, a
+        ld      (queue_push), ix
+        ret
+
+process_mapper:
+        ; Don't start if there's another foreground task running.
+        ld      a, (foreground + 1)
+        cp      low foreground_next
+        jp      nz, foreground_continue
+        ld      a, (foreground + 2)
+        cp      high foreground_next
+        jp      nz, foreground_continue
+
+        ld      hl, mapper_selectors
+        ld      c, (iy + 2)
+        ld      b, 0
+        add     hl, bc
+        ld      a, (hl)
+        call    fast_put_p2
+        ld      (iy + 0), 0
+        ld      (iy + 1), 0
+        ld      (iy + 2), 0
+        ld      bc, 8
+        add     iy, bc
+        ld      a, iyh
+        and     0FEh
+        ld      iyh, a
+        ld      (queue_pop), iy
+        jp      foreground_continue
 
 ; ----------------------------------------------------------------
 ; Queue a zblit to execute as soon as possible.
@@ -2378,7 +2448,7 @@ infinite_city_beat:
         ; 833 834 835 836 837 838 839 840 841 842
         db 11, 10, 11, 10, 10, 10, 10, 10, 10, 10
         ; 847 848 849 850 851 852 
-        db  3,  7,  8,  9,  10, 11
+        db  3,  7,  8,  9,  10, 2
 
 end_of_code:
         assert  end_of_code <= 04000h
@@ -2429,6 +2499,7 @@ back_building_palette:  incbin "back_building_palette.bin"
 ; Mapper page 12
                         PAGE_BEGIN
 city2b:                 incbin "city2b.z5"
+city2c:                 incbin "city2c.z5"
                         PAGE_END
 
 ; Mapper page 13
@@ -2438,7 +2509,7 @@ city2a:                 incbin "city2a.z5"
 
 ; Mapper page 14
                         PAGE_BEGIN
-city2c:                 incbin "city2c.z5"
+                        db 0
                         PAGE_END
 
         end
