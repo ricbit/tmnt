@@ -7,7 +7,7 @@
         jp      start_main
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     15
+selectors       equ     16
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -102,6 +102,9 @@ city_line_mask_addr     equ     1E680h
 back_building_patt_addr equ     06000h
 back_building_attr_addr equ     17600h
 title_addr              equ     08000h
+city2_continue1_addr    equ     1FC80h
+city2_continue2_addr    equ     18000h
+city2_continue3_addr    equ     1A800h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -119,6 +122,7 @@ city_scroll1_first_frame        equ     833
 city_scroll1_last_frame         equ     843
 city_scroll2_infinite           equ     847
 city_scroll2_last_frame         equ     852
+city_scroll4_first_frame        equ     858
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1461,6 +1465,7 @@ cloud_down4_sprites:
 ; ----------------------------------------------------------------
 ; State: city_scroll1
 ; Scroll down the city with parallax, part 1.
+; Back building set up before the split.
 
 city_scroll1:
         PREAMBLE_VERTICAL
@@ -1470,7 +1475,6 @@ city_scroll1:
         SPRITES_ON
         ; Set v scroll.
         call    update_city_line
-        ;DEBUG
         VDPREG vdp_vscroll
         exx
         call    prepare_city_overlay
@@ -1498,7 +1502,6 @@ city_scroll1:
         sub     10
         ld      (city_split_line), a
         add     a, b
-        ;DEBUG
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1585,8 +1588,6 @@ queue_infinite_city:
         ret
 
 queue_back_building_attr:
-        ld      a, 255
-        DEBUG
         ; Set back building attr.
         QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
         ld      hl, (back_building_current)
@@ -1654,6 +1655,7 @@ update_back_building_pointers:
 ; ----------------------------------------------------------------
 ; State: city_scroll2
 ; Scroll down the city with parallax, part 2.
+; Back building set up after the split.
 
 city_scroll2:
         PREAMBLE_VERTICAL
@@ -1745,6 +1747,7 @@ city_scroll2_after_parallax:
 ; ----------------------------------------------------------------
 ; State: city_scroll3
 ; Scroll down the city with parallax, part 3.
+; Back building with no split.
 
 city_scroll3:
         PREAMBLE_VERTICAL
@@ -1763,6 +1766,7 @@ city_scroll3:
 ; ----------------------------------------------------------------
 ; State: city_scroll4
 ; Scroll down the city with parallax, part 4.
+; No back building, no split.
 
 city_scroll4:
         PREAMBLE_VERTICAL
@@ -1776,20 +1780,23 @@ city_scroll4:
         exx
         SPRITES_OFF
 
-        COMPARE_FRAME 858
-        jr      nz, 1f
+        COMPARE_FRAME city_scroll4_first_frame
+        jr      nz, frame_end
+
         ld      hl, cmd_city_preload_2
         call    queue_vdp_command
-1:
-        jp      frame_end
-
-        COMPARE_FRAME 853
-        jp      nz, frame_end
-        ld      a, 14
+        MAPPER_P2 14
+        ld      hl, city2e
+        QUEUE_VRAM_WRITE city2_continue1_addr
+        call    queue_zblit
+        ld      hl, city2f
+        QUEUE_VRAM_WRITE city2_continue2_addr
+        call    queue_zblit
+        ld      a, 15
         call    queue_mapper
-        ld      hl, city2c
-        QUEUE_VRAM_WRITE 1C680h
-        ;call    queue_zblit
+        ld      hl, city2g
+        QUEUE_VRAM_WRITE city2_continue3_addr
+        call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2530,6 +2537,13 @@ city2a:                 incbin "city2a.z5"
 ; Mapper page 14
                         PAGE_BEGIN
 city2d:                 incbin "city2d.z5"
+city2e:                 incbin "city2e.z5"
+city2f:                 incbin "city2f.z5"
+                        PAGE_END
+
+; Mapper page 15
+                        PAGE_BEGIN
+city2g:                 incbin "city2g.z5"
                         PAGE_END
 
         end

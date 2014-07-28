@@ -868,22 +868,22 @@
 		dw	city_scroll4	; 867
 		dw	city_scroll4	; 868
 		dw	city_scroll4	; 869
-		dw	disable_screen_black	; 870
-		dw	disable_screen	; 871
-		dw	disable_screen	; 872
-		dw	disable_screen	; 873
-		dw	disable_screen	; 874
-		dw	disable_screen	; 875
-		dw	disable_screen	; 876
-		dw	disable_screen	; 877
-		dw	disable_screen	; 878
-		dw	disable_screen	; 879
-		dw	disable_screen	; 880
-		dw	disable_screen	; 881
-		dw	disable_screen	; 882
-		dw	disable_screen	; 883
-		dw	disable_screen	; 884
-		dw	disable_screen	; 885
+		dw	city_scroll4	; 870
+		dw	city_scroll4	; 871
+		dw	city_scroll4	; 872
+		dw	city_scroll4	; 873
+		dw	city_scroll4	; 874
+		dw	city_scroll4	; 875
+		dw	city_scroll4	; 876
+		dw	city_scroll4	; 877
+		dw	city_scroll4	; 878
+		dw	city_scroll4	; 879
+		dw	city_scroll4	; 880
+		dw	city_scroll4	; 881
+		dw	city_scroll4	; 882
+		dw	city_scroll4	; 883
+		dw	city_scroll4	; 884
+		dw	disable_screen_black	; 885
 		dw	disable_screen	; 886
 		dw	disable_screen	; 887
 		dw	disable_screen	; 888
