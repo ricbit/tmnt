@@ -431,6 +431,7 @@ queue_pop:              dw      vdp_command_queue
 queue_push:             dw      vdp_command_queue
 current_city_beat:      dw      infinite_city_beat
 cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
+current_motion_blur:    dw      motion_blur_repeat
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
@@ -1806,28 +1807,40 @@ city_scroll4:
 
 city_scroll5:
         PREAMBLE_VERTICAL
-        ENABLE_SCREEN
         ; Set v scroll.
         ld      a, (city_split_line)
         sub     10
         ld      (city_split_line), a
         neg
         add     a, 204
+        ld      (motion_blur_scroll), a
         VDPREG  vdp_vscroll
         exx
         ld      a, 192
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
+        ld      hl, (current_motion_blur)
+        ld      a, (hl)
+        inc     hl
+        ld      (current_motion_blur), hl
+        ld      (motion_blur_counter), a
         NEXT_HANDLE city_scroll5_split
         jp      return_irq_exx
 
 city_scroll5_split:
         PREAMBLE_HORIZONTAL
-        DISABLE_SCREEN
+        ld      a, (motion_blur_scroll)
+        sub     64
+        ld      (motion_blur_scroll), a
+        VDPREG vdp_vscroll
+        exx
+        ld      hl, motion_blur_counter
+        dec     (hl)
+        jp      nz, return_irq_exx
         DISABLE_HIRQ
         VDP_STATUS 0
-        jp      frame_end_exx
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2399,6 +2412,8 @@ mapper:                 dw      0
 save_palette:           dw      0
 city_line:              db      0
 current_vdp_status:     db      0
+motion_blur_counter:    db      0
+motion_blur_scroll:     db      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
@@ -2447,9 +2462,35 @@ dynamic_moon_attr:
         endr
         db      0xD8, 0
 
+; Table of commands to be issued during cloud_down2.
+cloud_down2_commands:
+        dw cmd_expand_city_line_mask    ; 805    
+        dw cmd_copy_city_line_mask      ; 806
+        dw cmd_copy_city_line_mask_2    ; 807
+        dw 0                            ; 808 
+        dw cmd_copy_city_line_mask_3    ; 809
+        dw 0                            ; 810
+        dw 0                            ; 811
+        dw 0                            ; 812    
+        dw 0                            ; 813
+
 ; City scroll positions for state cloud_down5.
 city_scroll_down5:        
         db      188, 188 + 2, 188 + 14, 188 + 36
+
+; Copy city2 to page 3 to allow infinite scrolling.
+infinite_city_beat:
+        ; 833 834 835 836 837 838 839 840 841 842
+        db 11, 10, 11, 10, 10, 10, 10, 10, 10, 10
+        ; 847 848 849 850 851 852 
+        db  3,  7,  8,  9,  10, 2
+
+; How many times should we repeat the motion blur on each frame?
+motion_blur_repeat:
+        ; 884 885 886 887 888 889 890 891 892 893 894 895 
+        db  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2
+        ; 896 897 898 899 900 901 902
+        db  2,  3,  3,  3,  3,  3,  3
 
 ; ----------------------------------------------------------------
 ; VDP commands
@@ -2476,18 +2517,6 @@ cmd_copy_city_line_mask_3:
 cmd_copy_city_line_mask_4:
         VDP_YMMM 51, 0, 768, 20
 
-; Table of commands to be issued during cloud_down2.
-cloud_down2_commands:
-        dw cmd_expand_city_line_mask    ; 805    
-        dw cmd_copy_city_line_mask      ; 806
-        dw cmd_copy_city_line_mask_2    ; 807
-        dw 0                            ; 808 
-        dw cmd_copy_city_line_mask_3    ; 809
-        dw 0                            ; 810
-        dw 0                            ; 811
-        dw 0                            ; 812    
-        dw 0                            ; 813
-
 ; Copy city2 over city1 to allow smooth screen split on city_scroll1.
 cmd_overlay_city:
         VDP_LMMM 0, 0, 0, 256 + 100, 256, 3, vdp_timp
@@ -2495,13 +2524,6 @@ cmd_overlay_city_2:
         VDP_YMMM 256 + 100, 0, 256 + 973 - 768, 1
 cmd_overlay_city_3:
         VDP_YMMM 256 + 100, 0, 973, 3
-
-; Copy city2 to page 3 to allow infinite scrolling.
-infinite_city_beat:
-        ; 833 834 835 836 837 838 839 840 841 842
-        db 11, 10, 11, 10, 10, 10, 10, 10, 10, 10
-        ; 847 848 849 850 851 852 
-        db  3,  7,  8,  9,  10, 2
 
 ; Copy city preload2 to page 3.
 cmd_city_preload_2:
