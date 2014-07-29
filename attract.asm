@@ -1864,22 +1864,8 @@ motion_blur:
         ENABLE_HIRQ
         ld      a, 3
         ld      (motion_blur_counter), a
-        NEXT_HANDLE motion_blur_split
+        NEXT_HANDLE city_scroll5_split
         jp      return_irq_exx
-
-motion_blur_split:
-        PREAMBLE_HORIZONTAL
-        ld      a, (motion_blur_scroll)
-        sub     64
-        ld      (motion_blur_scroll), a
-        VDPREG vdp_vscroll
-        exx
-        ld      hl, motion_blur_counter
-        dec     (hl)
-        jp      nz, return_irq_exx
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
