@@ -83,7 +83,7 @@ debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {
   set running 1
 }
 
-debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 950} {
+debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 1000} {
   record stop
   quit
 }
