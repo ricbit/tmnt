@@ -804,6 +804,7 @@ local_init:
         ei
         ld      hl, back_building_attr
         call    zblit
+
         ; Reset the animation.
         ld      de, state_start
         ld      hl, state_backup
@@ -2467,7 +2468,8 @@ cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
 city_line_mask:         incbin  "cityline.z5"
-handles:                include "handles.inc"
+handles_begin:          include "handles.inc"
+handles                 equ     handles_begin - 500 * 2
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
 city_palette_final      equ     city_fade_palette + 512

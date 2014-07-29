@@ -26,7 +26,7 @@ handle = [
 
 pos = 0
 cur = "disable_screen_black"
-for i in xrange(1 + max(i for i,j in handle)):
+for i in xrange(500, 1 + max(i for i,j in handle)):
   if i >= handle[pos][0]:
     cur = handle[pos][1]
     pos += 1
