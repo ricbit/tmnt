@@ -1781,7 +1781,7 @@ city_scroll4:
         SPRITES_OFF
 
         COMPARE_FRAME city_scroll4_first_frame
-        jr      nz, frame_end
+        jp      nz, frame_end
 
         ld      hl, cmd_city_preload_2
         call    queue_vdp_command
@@ -1798,6 +1798,36 @@ city_scroll4:
         QUEUE_VRAM_WRITE city2_continue3_addr
         call    queue_zblit
         jp      frame_end
+
+; ----------------------------------------------------------------
+; State: city_scroll5
+; Scroll down the city with parallax, part 5.
+; Split to motion blur.
+
+city_scroll5:
+        PREAMBLE_VERTICAL
+        ENABLE_SCREEN
+        ; Set v scroll.
+        ld      a, (city_split_line)
+        sub     10
+        ld      (city_split_line), a
+        neg
+        add     a, 204
+        VDPREG  vdp_vscroll
+        exx
+        ld      a, 192
+        VDPREG vdp_hsplit_line
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE city_scroll5_split
+        jp      return_irq_exx
+
+city_scroll5_split:
+        PREAMBLE_HORIZONTAL
+        DISABLE_SCREEN
+        DISABLE_HIRQ
+        VDP_STATUS 0
+        jp      frame_end_exx
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2374,12 +2404,12 @@ mapper_selectors:       ds      selectors, 0
 ; ----------------------------------------------------------------
 ; Misc strings.
 
-str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.$"
-str_not_turbor:         db      "This MSX is not a turboR, sorry.$"
-str_read_error:         db      "Error reading from disk, sorry.$"
-str_not_enough_memory:  db      "Not enough memory, sorry.$"
-str_foreground_error:   db      "Foreground thread overrun.$"
-str_vdp_error:          db      "VDP command overrun.$"
+str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.", 13, 10, "$"
+str_not_turbor:         db      "This MSX is not a turboR, sorry.", 13, 10, "$"
+str_read_error:         db      "Error reading from disk, sorry.", 13, 10, "$"
+str_not_enough_memory:  db      "Not enough memory, sorry.", 13, 10, "$"
+str_foreground_error:   db      "Foreground thread overrun.", 13, 10, "$"
+str_vdp_error:          db      "VDP command overrun.", 13, 10, "$"
 str_loading:            db      "Loading$"
 str_dot:                db      ".$"
 str_press_any_key:      db      13, 10, "Press any key to start.$"
