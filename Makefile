@@ -69,8 +69,8 @@ absolute_scroll.bin :
 advance_pcm.bin :
 	python tools/gen_advance_pcm.py
 
-title_bounce_scroll.bin : title_bounce_scroll.txt
+title_bounce_scroll.bin : raw/title_bounce_scroll.txt
 	python tools/gen_title_bounce.py < $<
 
-title_slide_scroll.bin : title_slide_scroll.txt
+title_slide_scroll.bin : raw/title_slide_scroll.txt
 	python tools/gen_title_slide.py < $<
