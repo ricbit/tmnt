@@ -10,7 +10,7 @@ CITY_PIXELS = city2a.sc5 city2b.sc5 city2c.sc5 city2d.sc5 city2e.sc5 \
 
 OBJECTS = attract.asm handles.inc city1.z5 \
           city2a.z5 city2b.z5 city2c.z5 city2d.z5 city2e.z5 city2f.z5 \
-          city2g.z5 cityline.z5 \
+          city2g.z5 cityline.z5 alley1a.z5 alley1b.z5 \
           $(BACK_BUILDING) back_building_patt.z5 \
           top_building_patt.z5 top_building_attr.z5 top_building_dyn_attr.bin
 
@@ -42,3 +42,6 @@ $(BACK_BUILDING) : raw/city1.raw raw/city2.raw raw/cityline.raw \
 
 $(TOP_BUILDING) : raw/city2.raw tools/gen_top_building_sprites.py
 	python tools/gen_top_building_sprites.py
+
+alley1a.sc5 alley1b.sc5 : raw/alley1.raw
+	python tools/gen_alley1_raw.py

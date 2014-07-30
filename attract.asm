@@ -7,7 +7,7 @@
         jp      start_main
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     16
+selectors       equ     17
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -105,6 +105,8 @@ title_addr              equ     08000h
 city2_continue1_addr    equ     1FC80h
 city2_continue2_addr    equ     18000h
 city2_continue3_addr    equ     1A800h
+pixels_alley1a_addr     equ     1E000h 
+pixels_alley1b_addr     equ     18000h 
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1800,6 +1802,14 @@ city_scroll4:
         ld      hl, city2g
         QUEUE_VRAM_WRITE city2_continue3_addr
         call    queue_zblit
+        ld      a, 16
+        call    queue_mapper
+        ld      hl, alley1a
+        QUEUE_VRAM_WRITE pixels_alley1a_addr
+        call    queue_zblit
+        ld      hl, alley1b
+        QUEUE_VRAM_WRITE pixels_alley1b_addr
+        call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1843,6 +1853,30 @@ city_scroll5_split:
         DISABLE_HIRQ
         VDP_STATUS 0
         jp      frame_end
+
+; ----------------------------------------------------------------
+; State: alley_scroll1
+; Motion blur on top, split to alley.
+
+alley_scroll1:
+        PREAMBLE_VERTICAL
+        ; Set v scroll.
+        ld      a, (motion_blur_line)
+        add     a, 10
+        and     63
+        add     a, 128
+        ld      (motion_blur_line), a
+        ld      (motion_blur_scroll), a
+        VDPREG  vdp_vscroll
+        exx
+        ld      a, 192
+        VDPREG vdp_hsplit_line
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        ld      a, 3
+        ld      (motion_blur_counter), a
+        NEXT_HANDLE city_scroll5_split
+        jp      return_irq_exx
 
 ; ----------------------------------------------------------------
 ; State: motion_blur
@@ -2623,6 +2657,12 @@ city2f:                 incbin "city2f.z5"
 ; Mapper page 15
                         PAGE_BEGIN
 city2g:                 incbin "city2g.z5"
+                        PAGE_END
+
+; Mapper page 16
+                        PAGE_BEGIN
+alley1a:                incbin "alley1a.z5"
+alley1b:                incbin "alley1b.z5"
                         PAGE_END
 
         end

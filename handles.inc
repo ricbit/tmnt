@@ -420,15 +420,15 @@
 		dw	motion_blur	; 919
 		dw	motion_blur	; 920
 		dw	motion_blur	; 921
-		dw	disable_screen_black	; 922
-		dw	disable_screen	; 923
-		dw	disable_screen	; 924
-		dw	disable_screen	; 925
-		dw	disable_screen	; 926
-		dw	disable_screen	; 927
-		dw	disable_screen	; 928
-		dw	disable_screen	; 929
-		dw	disable_screen	; 930
+		dw	alley_scroll1	; 922
+		dw	alley_scroll1	; 923
+		dw	alley_scroll1	; 924
+		dw	alley_scroll1	; 925
+		dw	alley_scroll1	; 926
+		dw	alley_scroll1	; 927
+		dw	alley_scroll1	; 928
+		dw	alley_scroll1	; 929
+		dw	disable_screen_black	; 930
 		dw	disable_screen	; 931
 		dw	disable_screen	; 932
 		dw	disable_screen	; 933
