@@ -21,7 +21,7 @@ OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
 all : attract.com
 
 clean :
-	rm -f *sc5 *z5 *bin gen_back_building_sprites \
+	rm -f *sc5 *z5 *bin *inc gen_back_building_sprites \
            attract.com attract.dat attract.lst attract.sym handles.inc
 
 attract.com : $(OBJECTS)
