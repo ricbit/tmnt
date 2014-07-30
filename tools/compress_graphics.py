@@ -2,11 +2,11 @@ import sys
 
 original = [ord(i) for i in open(sys.argv[1], "rb").read()]
 out = []
-last128 = []
 raw = []
 state = 0
 repeat_value = 0
 repeat_count = 0
+repeat_max = 127
 for value in original:
   if state == 0:
     if len(raw) >= 2 and raw[-1] == raw[-2] == value:
@@ -30,14 +30,11 @@ for value in original:
       state = 0
       raw = [value]
     else:
-      if repeat_count > 127:
-        out.append(128 + 127)
+      if repeat_count > repeat_max:
+        out.append(128 + repeat_max)
         out.append(repeat_value)
-        repeat_count -= 127
+        repeat_count -= repeat_max
       repeat_count += 1
-  last128.append(value)
-  if len(last128) > 128:
-    last128 = last128[-128:]
 if state == 0 and raw:
   out.append(len(raw))
   out.extend(raw)
