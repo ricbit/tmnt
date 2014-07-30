@@ -1,5 +1,5 @@
-cloud = [ord(i) for i in open("cloud2.raw", "rb").read()]
-raw = [ord(i) for i in open("moon.raw", "rb").read()]
+cloud = [ord(i) for i in open("raw/cloud2.raw", "rb").read()]
+raw = [ord(i) for i in open("raw/moon.raw", "rb").read()]
 colors = [1,3,6,7]
 sprites = []
 startx, starty = 72, 15
