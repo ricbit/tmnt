@@ -2608,7 +2608,7 @@ end_of_code:
         endm
 
 ; Mapper pages 0-8
-theme_music:            incbin "theme.pcm"
+theme_music:            incbin "raw/theme.pcm"
 
 ; Mapper page 9
                         PAGE_BEGIN

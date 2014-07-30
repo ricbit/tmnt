@@ -22,7 +22,7 @@ all : attract.com
 
 clean :
 	rm -f *sc5 *z5 *bin *inc gen_back_building_sprites \
-           attract.com attract.dat attract.lst attract.sym handles.inc
+           attract.com attract.dat attract.lst attract.sym
 
 attract.com : $(OBJECTS)
 	./sjasmplus attract.asm --lst=attract.lst --sym=attract.sym
