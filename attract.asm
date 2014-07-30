@@ -55,7 +55,7 @@ get_p2          equ     00027h  ; Entry point for mapper get_p2
 put_p1          equ     0001eh  ; Entry point for mapper put_p1
 put_p2          equ     00024h  ; Entry point for mapper put_p2
 all_seg         equ     00000h  ; Allocate a mapper segment
-temp            equ     04000h  ; Temp buffer for disk loading
+disk_buffer     equ     04000h  ; Temp buffer for disk loading
 vdp_vscroll     equ     00017h  ; VDP register for vertical scroll
 vdp_hscroll_h   equ     0001Ah  ; VDP register for horizontal scroll, high
 vdp_hscroll_l   equ     0001Bh  ; VDP register for horizontal scroll, low
@@ -844,7 +844,7 @@ load_mapper_data_block:
         call    fast_put_p1
 
         ; Read 16kb from disk.
-        ld      de, temp
+        ld      de, disk_buffer 
         ld      hl, 04000h
         ld      a, (file_handle)
         ld      b, a

@@ -13,12 +13,16 @@ MOON_SPRITES = moon_pattern.sc5 moon_attr.sc5
 OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
           cityline.z5 alley1a.z5 alley1b.z5 cloud2.z5 cloud3.z5 \
           $(BACK_BUILDING) back_building_patt.z5 tmnt.z5 \
-          $(TOP_BUILDING:%.sc5=%.z5) $(MOON_SPRITES:%.sc5=%.z5)
+          $(TOP_BUILDING:%.sc5=%.z5) $(MOON_SPRITES:%.sc5=%.z5) \
+          absolute_scroll.bin advance_pcm.bin cloud_fade_palette.bin \
+          city_fade_palette.bin title_bounce_palette.bin \
+          title_bounce_scroll.bin title_slide_scroll.bin
 
 all : attract.com
 
 clean :
-	rm *sc5 *z5 attract.com attract.dat attract.lst attract.sym handles.inc
+	rm -f *sc5 *z5 *bin gen_back_building_sprites \
+           attract.com attract.dat attract.lst attract.sym handles.inc
 
 attract.com : $(OBJECTS)
 	./sjasmplus attract.asm --lst=attract.lst --sym=attract.sym
@@ -33,6 +37,12 @@ handles.inc : tools/gen_handles.py
 
 %.sc5 : raw/%.raw
 	python tools/convert_raw.py $^ $@
+
+%_fade_palette.bin : raw/%.act
+	python tools/gen_cloud_fade.py $< $@
+
+%_palette.bin : raw/%.act
+	python tools/convert_act.py $< $@
 
 $(CITY_PIXELS): raw/city2.raw tools/gen_city_raw.py
 	python tools/gen_city_raw.py
@@ -52,3 +62,15 @@ alley1a.sc5 alley1b.sc5 : raw/alley1.raw
 
 $(MOON_SPRITES) : raw/moon.raw raw/cloud2.raw
 	python tools/gen_moon_sprites.py
+
+absolute_scroll.bin :
+	python tools/gen_absolute_scroll.py
+
+advance_pcm.bin :
+	python tools/gen_advance_pcm.py
+
+title_bounce_scroll.bin : title_bounce_scroll.txt
+	python tools/gen_title_bounce.py < $<
+
+title_slide_scroll.bin : title_slide_scroll.txt
+	python tools/gen_title_slide.py < $<

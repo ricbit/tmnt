@@ -1,5 +1,7 @@
 sjasmplus
 gen_back_building_sprites
+log.txt
+*.bin
 *.z5
 *.sc5
 *.com
@@ -9,7 +11,6 @@ gen_back_building_sprites
 *.avi
 *.pyc
 *.swp
-*.txt
 old/
 disk/
 frames/
