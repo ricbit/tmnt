@@ -525,6 +525,7 @@ foreground_continue:
         in      a, (systml)
         cp      pcm_timer_period
         jr      c, 1b
+        push    iy
         ld      iyl, a
         xor     a
         out     (systml), a
@@ -537,6 +538,7 @@ foreground_continue:
         ld      a, 0
         adc     a, d
         ld      d, a
+        pop     iy
 
         ; Check the pcm for mapper page change.
         bit     7, d
@@ -1944,24 +1946,54 @@ return_irq:
 ; Input: HL = address
 
 zblit:
+        ld      ix, decompress_buffer
+zblit_main:
         ld      a, (hl)
         inc     hl
         or      a
         ret     z
         jp      m, zblit_rle
         ld      b, a
-        ld      c, 098h
-        otir
-        jr      zblit
+1:
+        ld      a, (hl)
+        out     (098h), a
+        inc     hl
+        ld      (ix), a
+        ld      a, ixl
+        inc     a
+        and     07Fh
+        ld      ixl, a
+        djnz    1b
+        jr      zblit_main
 zblit_rle:
+        bit     6, a
+        jr      nz, zblit_copy
         sub     080h
         ld      b, a
-        ld      a, (hl)
+        ld      c, (hl)
         inc     hl
 1:
+        ld      a, c
         out     (098h), a
+        ld      (ix), a
+        ld      a, ixl
+        inc     a
+        and     07Fh
+        ld      ixl, a
         djnz    1b
-        jr      zblit
+        jr      zblit_main
+zblit_copy:
+        sub     0C0h
+        ld      b, a
+1:
+        ld      a, (ix)
+        out     (098h), a
+        ld      a, ixl
+        inc     a
+        and     07Fh
+        ld      ixl, a
+        djnz    1b
+        jr      zblit_main
 
 ; ----------------------------------------------------------------
 ; Start a VDP command.
@@ -2038,6 +2070,7 @@ process_mapper:
 ; Input: HL=table with vdp commands, BDE = decoded VRAM address
 
 queue_zblit:
+        ret
         ld      ix, (queue_push)
         ld      a, low process_zblit
         ld      (ix + 0), a
@@ -2241,20 +2274,20 @@ smart_zblit:
 smart_zblit_start:
 smart_zblit equ 0C000h
         endif
-
         ld      a, (is_playing)
         or      a
         jp      z, zblit
-
         push    hl
         exx
         pop     hl
         exx
         call    check_foreground
-        ld      hl, foreground_zblit
+        ld      hl, foreground_zblit_start
         ld      (foreground + 1), hl
         ret
 
+foreground_zblit_start:
+        ld      iy, decompress_buffer
 foreground_zblit:
         ld      a, (hl)
         inc     hl
@@ -2266,36 +2299,69 @@ foreground_zblit:
         endif
         jp      m, foreground_rle_setup
 
-        ; Setup zblit copy.
-        ld      bc, foreground_copy_step
+        ; Setup zblit direct.
+        ld      bc, foreground_direct_step
         ld      (foreground + 1), bc
         ld      b, a
-        jp      foreground_continue
+        ; fall through
 
-        ; Setup zblit rle.
-foreground_rle_setup:
-        ld      bc, foreground_rle_step
-        ld      (foreground + 1), bc
-        sub     080h
-        ld      b, a
-        jp      foreground_continue
-
-foreground_copy_step:
+foreground_direct_step:
         ld      a, (hl)
         inc     hl
         out     (098h), a
+        ld      (iy), a
+        ld      a, iyl
+        inc     a
+        and     07Fh
+        ld      iyl, a
         dec     b
         jp      nz, foreground_continue
         ld      bc, foreground_zblit
         ld      (foreground + 1), bc
         jp      foreground_continue
 
+        ; Setup zblit rle.
+foreground_rle_setup:
+        bit     6, a
+        jr      nz, foreground_copy_setup
+        ld      bc, foreground_rle_step
+        ld      (foreground + 1), bc
+        sub     080h
+        ld      b, a
+        ; fall through
+
 foreground_rle_step:
         ld      a, (hl)
         out     (098h), a
+        ld      (iy), a
+        ld      a, iyl
+        inc     a
+        and     07Fh
+        ld      iyl, a
         dec     b
         jp      nz, foreground_continue
         inc     hl
+        ld      bc, foreground_zblit
+        ld      (foreground + 1), bc
+        jp      foreground_continue
+
+        ; Setup zblit copy.
+foreground_copy_setup:
+        ld      bc, foreground_copy_step
+        ld      (foreground + 1), bc
+        sub     0C0h
+        ld      b, a
+        ; fall through
+
+foreground_copy_step:
+        ld      a, (iy)
+        out     (098h), a
+        ld      a, iyl
+        inc     a
+        and     07Fh
+        ld      iyl, a
+        dec     b
+        jp      nz, foreground_continue
         ld      bc, foreground_zblit
         ld      (foreground + 1), bc
         jp      foreground_continue
@@ -2466,6 +2532,8 @@ fast_put_p2:
 
                         align   512
 vdp_command_queue:      ds      256, 0
+                        align   256
+decompress_buffer:      ds      256, 0
 save_irq:               ds      3, 0
 file_handle:            db      0
 mapper:                 dw      0
