@@ -35,8 +35,8 @@ handles.inc : tools/gen_handles.py
 %.z5 : %.sc5 tools/compress_graphics.py
 	python tools/compress_graphics.py $< $@
 
-%.sc5 : raw/%.raw
-	python tools/convert_raw.py $^ $@
+%.sc5 : raw/%.raw tools/convert_raw.py
+	python tools/convert_raw.py $< $@
 
 %_fade_palette.bin : raw/%.act
 	python tools/gen_cloud_fade.py $< $@
@@ -57,8 +57,8 @@ $(BACK_BUILDING) : raw/city1.raw raw/city2.raw raw/cityline.raw \
 $(TOP_BUILDING) : raw/city2.raw tools/gen_top_building_sprites.py
 	python tools/gen_top_building_sprites.py
 
-alley1a.sc5 alley1b.sc5 : raw/alley1.raw
-	python tools/gen_alley1_raw.py
+alley1a.sc5 alley1b.sc5 : raw/alley1.raw tools/gen_alley_raw.py
+	python tools/gen_alley_raw.py
 
 $(MOON_SPRITES) : raw/moon.raw raw/cloud2.raw
 	python tools/gen_moon_sprites.py
