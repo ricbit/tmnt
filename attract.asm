@@ -2029,8 +2029,8 @@ queue_mapper:
         ld      ix, (queue_push)
         ld      hl, process_mapper
         ld      (ix + 0), l
-        ld      (ix + 1), h
         ld      (ix + 2), a
+        ld      (ix + 1), h
         ld      de, 8
         add     ix, de
         ld      a, ixh
@@ -2070,17 +2070,16 @@ process_mapper:
 ; Input: HL=table with vdp commands, BDE = decoded VRAM address
 
 queue_zblit:
-        ret
         ld      ix, (queue_push)
-        ld      a, low process_zblit
-        ld      (ix + 0), a
-        ld      a, high process_zblit
-        ld      (ix + 1), a
         ld      (ix + 2), l
         ld      (ix + 3), h
         ld      (ix + 4), b
         ld      (ix + 5), d
         ld      (ix + 6), e
+        ld      a, low process_zblit
+        ld      (ix + 0), a
+        ld      a, high process_zblit
+        ld      (ix + 1), a
         ld      de, 8
         add     ix, de
         ld      a, ixh
@@ -2135,7 +2134,7 @@ smart_zblit_begin:
         exx
         pop     hl
         exx
-        ld      hl, foreground_zblit
+        ld      hl, foreground_zblit_start
         ld      (foreground + 1), hl
         ret
 
@@ -2145,11 +2144,11 @@ smart_zblit_begin:
 
 queue_vdp_command:
         ld      ix, (queue_push)
+        ld      (ix + 2), l
+        ld      (ix + 3), h
         ld      de, process_vdp_command_queue
         ld      (ix + 0), e
         ld      (ix + 1), d
-        ld      (ix + 2), l
-        ld      (ix + 3), h
         ld      de, 8
         add     ix, de
         ld      a, ixh

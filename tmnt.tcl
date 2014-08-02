@@ -74,16 +74,13 @@ debug set_bp 0xC00F {} {
   }
 }
 
-debug set_bp 0x195 {$print_samples && $current_frame >= 750} {
-  puts stderr "DE = [reg de]"
-}
-
 debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {
   record start "/home/ricbit/work/tmnt/tmntmsx.avi"
   set running 1
 }
 
-debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 1000} {
+debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 1499} {
   record stop
   quit
 }
+
