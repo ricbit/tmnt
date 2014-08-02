@@ -2,7 +2,7 @@
 ; by Ricardo Bittencourt 2014
 
         output  attract.com
-            
+
         org     0100h
         jp      start_main
 
@@ -105,8 +105,8 @@ title_addr              equ     08000h
 city2_continue1_addr    equ     1FC80h
 city2_continue2_addr    equ     18000h
 city2_continue3_addr    equ     1A800h
-pixels_alley1a_addr     equ     1E000h 
-pixels_alley1b_addr     equ     18000h 
+pixels_alley1a_addr     equ     1E000h
+pixels_alley1b_addr     equ     18000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -217,11 +217,11 @@ city_scroll4_first_frame        equ     858
         ld      hl, handle
         ld      (irq + 1), hl
         endm
-       
+
 ; Disable h interrupt.
         macro   DISABLE_HIRQ
         ld      a, (vdpr0)
-        and     255 - 16      
+        and     255 - 16
         ld      (vdpr0), a
         VDPREG  0
         endm
@@ -282,7 +282,7 @@ city_scroll4_first_frame        equ     858
         ld      a, addr >> 11
         VDPREG vdp_sprite_patt
         endm
-        
+
 ; Set a VDP register to auto-increment.
         macro   VDP_AUTOINC reg
         ld      a, reg
@@ -408,6 +408,28 @@ city_scroll4_first_frame        equ     858
         sbc     hl, de
         endm
 
+; Modular addition
+        macro   ADDMOD reg, value, mask
+        ld      a, reg
+        if      value == 1
+        inc     a
+        else
+        add     a, value
+        endif
+        and     mask
+        ld      reg, a
+        endm
+
+; Check if a foreground task is running
+        macro   CHECK_FOREGROUND
+        ld      a, (foreground + 1)
+        cp      low foreground_next
+        jp      nz, foreground_continue
+        ld      a, (foreground + 2)
+        cp      high foreground_next
+        jp      nz, foreground_continue
+        endm
+
 ; ----------------------------------------------------------------
 ; Animation states.
 
@@ -515,7 +537,7 @@ foreground_patch:
         jp      0
 
 foreground_continue:
-        ; Avoid jitter by stopping foreground thread 
+        ; Avoid jitter by stopping foreground thread
         ; a few ticks before the limit.
         in      a, (systml)
         cp      pcm_timer_period - 4
@@ -565,7 +587,7 @@ finish_animation:
 
         ; Restore environment.
         call    restore_environment
-                
+
         ; Exit to DOS.
         ld      de, str_credits
         jp      abort
@@ -761,17 +783,16 @@ local_init:
         MAPPER_P2 9
         ld      hl, city2b
         call    zblit
-        MAPPER_P2 12
         di
         SET_VRAM_WRITE city2_preload
         ei
         MAPPER_P2 10
         ld      hl, city2c
         call    zblit
-        MAPPER_P2 12
         di
         SET_VRAM_WRITE city2_preload_2
         ei
+        MAPPER_P2 12
         ld      hl, city2d
         call    zblit
 
@@ -848,7 +869,7 @@ load_mapper_data_block:
         call    fast_put_p1
 
         ; Read 16kb from disk.
-        ld      de, disk_buffer 
+        ld      de, disk_buffer
         ld      hl, 04000h
         ld      a, (file_handle)
         ld      b, a
@@ -867,7 +888,7 @@ load_mapper_data_block:
         call    bdos
         pop     hl
         pop     bc
-        djnz    load_mapper_data_block        
+        djnz    load_mapper_data_block
 
         ; Close file.
         ld      a, (file_handle)
@@ -1119,7 +1140,7 @@ cloud_fade_common:
         NEXT_HANDLE cloud_fade_first_top
         jp      return_irq_exx
 
-cloud_fade_first_top:  
+cloud_fade_first_top:
         PREAMBLE_HORIZONTAL
 cloud_fade_patch:
         FAST_SET_HSCROLL 0
@@ -1133,7 +1154,7 @@ cloud_fade_patch:
         NEXT_HANDLE cloud_fade_first_bottom
         jp      return_irq_exx
 
-cloud_fade_first_bottom:  
+cloud_fade_first_bottom:
         PREAMBLE_HORIZONTAL
         FAST_SET_HSCROLL 256
         HSPLIT_LINE 49
@@ -1235,7 +1256,7 @@ cloud_fade_moon_set_sprite:
 ; ----------------------------------------------------------------
 ; Helpers for the cloud states.
 
-update_cloud_scroll:        
+update_cloud_scroll:
         ; Scroll clouds every 4 frames.
         ld      hl, cloud1_scroll
         ld      a, (cloud_tick)
@@ -1622,7 +1643,7 @@ prepare_city_overlay:
         call    queue_vdp_command
         ret
 
-set_back_building_palette:        
+set_back_building_palette:
         ; Set palette of back building.
         ld      ix, (back_building_cur_pal)
         ld      e, (ix + 0)
@@ -1645,7 +1666,7 @@ set_back_building_palette_patch:
         out     (09Ah), a
         ld      a, (ix + 1)
         out     (09Ah), a
-        inc     hl        
+        inc     hl
         djnz    set_back_building_palette_patch
         ret
 
@@ -1959,10 +1980,7 @@ zblit_main:
         out     (098h), a
         inc     hl
         ld      (ix), a
-        ld      a, ixl
-        inc     a
-        and     07Fh
-        ld      ixl, a
+        ADDMOD  ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
 zblit_rle:
@@ -1976,10 +1994,7 @@ zblit_rle:
         ld      a, c
         out     (098h), a
         ld      (ix), a
-        ld      a, ixl
-        inc     a
-        and     07Fh
-        ld      ixl, a
+        ADDMOD  ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
 zblit_copy:
@@ -1988,10 +2003,7 @@ zblit_copy:
 1:
         ld      a, (ix)
         out     (098h), a
-        ld      a, ixl
-        inc     a
-        and     07Fh
-        ld      ixl, a
+        ADDMOD  ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
 
@@ -2027,26 +2039,16 @@ vdp_command:
 
 queue_mapper:
         ld      ix, (queue_push)
-        ld      hl, process_mapper
-        ld      (ix + 0), l
+        ld      (ix + 0), low process_mapper
         ld      (ix + 2), a
-        ld      (ix + 1), h
-        ld      de, 8
-        add     ix, de
-        ld      a, ixh
-        and     0FEh
-        ld      ixh, a
+        ld      (ix + 1), high process_mapper
+        ADDMOD  ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
 
 process_mapper:
         ; Don't start if there's another foreground task running.
-        ld      a, (foreground + 1)
-        cp      low foreground_next
-        jp      nz, foreground_continue
-        ld      a, (foreground + 2)
-        cp      high foreground_next
-        jp      nz, foreground_continue
+        CHECK_FOREGROUND
 
         ld      hl, mapper_selectors
         ld      c, (iy + 2)
@@ -2055,11 +2057,7 @@ process_mapper:
         ld      a, (hl)
         call    fast_put_p2
         ld      (iy + 1), 0
-        ld      bc, 8
-        add     iy, bc
-        ld      a, iyh
-        and     0FEh
-        ld      iyh, a
+        ADDMOD  iyl, 8, 0FFh
         ld      (queue_pop), iy
         jp      foreground_continue
 
@@ -2078,23 +2076,14 @@ queue_zblit:
         ld      (ix + 0), a
         ld      a, high process_zblit
         ld      (ix + 1), a
-        ld      de, 8
-        add     ix, de
-        ld      a, ixh
-        and     0FEh
-        ld      ixh, a
+        ADDMOD  ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
 
         ; Process zblit.
 process_zblit:
         ; Don't start if there's another foreground task running.
-        ld      a, (foreground + 1)
-        cp      low foreground_next
-        jp      nz, foreground_continue
-        ld      a, (foreground + 2)
-        cp      high foreground_next
-        jp      nz, foreground_continue
+        CHECK_FOREGROUND
         di
         exx
         ld      a, (iy + 4)
@@ -2106,11 +2095,7 @@ process_zblit:
         ld      l, (iy + 2)
         ld      h, (iy + 3)
         ld      (iy + 1), 0
-        ld      bc, 8
-        add     iy, bc
-        ld      a, iyh
-        and     0FEh
-        ld      iyh, a
+        ADDMOD  iyl, 8, 0FFh
         ld      (queue_pop), iy
         if      debug == 0
         call    smart_zblit_begin
@@ -2121,7 +2106,7 @@ process_zblit:
         ei
         jp      foreground_continue
 
-smart_zblit_begin:        
+smart_zblit_begin:
         push    hl
         exx
         pop     hl
@@ -2138,26 +2123,16 @@ queue_vdp_command:
         ld      ix, (queue_push)
         ld      (ix + 2), l
         ld      (ix + 3), h
-        ld      de, process_vdp_command_queue
-        ld      (ix + 0), e
-        ld      (ix + 1), d
-        ld      de, 8
-        add     ix, de
-        ld      a, ixh
-        and     0FEh
-        ld      ixh, a
+        ld      (ix + 0), low process_vdp_command_queue
+        ld      (ix + 1), high process_vdp_command_queue
+        ADDMOD  ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
 
         ; Process vdp command queue.
 process_vdp_command_queue:
         ; Don't start if there's another foreground task running.
-        ld      a, (foreground + 1)
-        cp      low foreground_next
-        jp      nz, foreground_continue
-        ld      a, (foreground + 2)
-        cp      high foreground_next
-        jp      nz, foreground_continue
+        CHECK_FOREGROUND
         ; Don't start if there's another vdp command running.
         di
         ld      a, 2
@@ -2178,7 +2153,7 @@ process_vdp_command_delay:
         jr      nc, 1f
         ei
         jp      foreground_continue
-        
+
 1:
         ld      a, (current_vdp_status)
         VDPREG vdp_status
@@ -2186,11 +2161,7 @@ process_vdp_command_delay:
         ld      l, (iy + 2)
         ld      h, (iy + 3)
         ld      (iy + 1), 0
-        ld      bc, 8
-        add     iy, bc
-        ld      a, iyh
-        and     0FEh
-        ld      iyh, a
+        ADDMOD  iyl, 8, 0FFh
         ld      (queue_pop), iy
         if      debug == 0
         call    smart_vdp_command_begin
@@ -2224,7 +2195,7 @@ smart_vdp_command equ 0C00Ch
         ld      de, str_vdp_error
         jp      c, graphic_abort
 smart_vdp_command_begin:
-        ; Set VDP to autoincrement. 
+        ; Set VDP to autoincrement.
         ld      a, (hl)
         VDPREG 17
         ; Setup foreground thread.
@@ -2298,10 +2269,7 @@ foreground_direct_step:
         inc     hl
         out     (098h), a
         ld      (iy), a
-        ld      a, iyl
-        inc     a
-        and     07Fh
-        ld      iyl, a
+        ADDMOD  iyl, 1, 07Fh
         dec     b
         jp      nz, foreground_continue
         ld      bc, foreground_zblit
@@ -2322,10 +2290,7 @@ foreground_rle_step:
         ld      a, (hl)
         out     (098h), a
         ld      (iy), a
-        ld      a, iyl
-        inc     a
-        and     07Fh
-        ld      iyl, a
+        ADDMOD  iyl, 1, 07Fh
         dec     b
         jp      nz, foreground_continue
         inc     hl
@@ -2344,10 +2309,7 @@ foreground_copy_setup:
 foreground_copy_step:
         ld      a, (iy)
         out     (098h), a
-        ld      a, iyl
-        inc     a
-        and     07Fh
-        ld      iyl, a
+        ADDMOD  iyl, 1, 07Fh
         dec     b
         jp      nz, foreground_continue
         ld      bc, foreground_zblit
@@ -2518,7 +2480,7 @@ fast_put_p2:
 ; ----------------------------------------------------------------
 ; Variables.
 
-                        align   512
+                        align   256
 vdp_command_queue:      ds      256, 0
                         align   256
 decompress_buffer:      ds      256, 0
@@ -2581,30 +2543,30 @@ dynamic_moon_attr:
 
 ; Table of commands to be issued during cloud_down2.
 cloud_down2_commands:
-        dw cmd_expand_city_line_mask    ; 805    
+        dw cmd_expand_city_line_mask    ; 805
         dw cmd_copy_city_line_mask      ; 806
         dw cmd_copy_city_line_mask_2    ; 807
-        dw 0                            ; 808 
+        dw 0                            ; 808
         dw cmd_copy_city_line_mask_3    ; 809
         dw 0                            ; 810
         dw 0                            ; 811
-        dw 0                            ; 812    
+        dw 0                            ; 812
         dw 0                            ; 813
 
 ; City scroll positions for state cloud_down5.
-city_scroll_down5:        
+city_scroll_down5:
         db      188, 188 + 2, 188 + 14, 188 + 36
 
 ; Copy city2 to page 3 to allow infinite scrolling.
 infinite_city_beat:
         ; 833 834 835 836 837 838 839 840 841 842
         db 11, 10, 11, 10, 10, 10, 10, 10, 10, 10
-        ; 847 848 849 850 851 852 
-        db  3,  7,  8,  9,  10, 2
+        ; 847 848 849 850 851 852
+        db  3,  7,  8,  9, 10,  2
 
 ; How many times should we repeat the motion blur on each frame?
 motion_blur_repeat:
-        ; 884 885 886 887 888 889 890 891 892 893 894 895 
+        ; 884 885 886 887 888 889 890 891 892 893 894 895
         db  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2
         ; 896 897 898 899 900 901 902
         db  2,  3,  3,  3,  3,  3,  3
@@ -2613,11 +2575,11 @@ motion_blur_repeat:
 ; VDP commands
 
 ; Erase page 0 of vram.
-cmd_erase_vram_page0:           
+cmd_erase_vram_page0:
         VDP_HMMV 0, 0, 256, 192, 0
 
-; Erase all vram.        
-cmd_erase_all_vram:             
+; Erase all vram.
+cmd_erase_all_vram:
         VDP_HMMV 0, 0, 256, 1023, 0
 
 ; Expand the city line mask to cover 130 lines.
