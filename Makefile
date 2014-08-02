@@ -8,11 +8,13 @@ TOP_BUILDING = top_building_patt.sc5 top_building_attr.sc5 \
 CITY_PIXELS = city2a.sc5 city2b.sc5 city2c.sc5 city2d.sc5 city2e.sc5 \
               city2f.sc5 city2g.sc5
 
+ALLEY_PIXELS = alley1a.sc5 alley1b.sc5 alley2a.sc5 alley2b.sc5
+
 MOON_SPRITES = moon_pattern.sc5 moon_attr.sc5
 
 OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
-          cityline.z5 alley1a.z5 alley1b.z5 cloud2.z5 cloud3.z5 \
-          $(BACK_BUILDING:%.sc5=%.z5) tmnt.z5 \
+          cityline.z5 tmnt.z5 cloud2.z5 cloud3.z5 \
+          $(BACK_BUILDING:%.sc5=%.z5) $(ALLEY_PIXELS:%.sc5=%.z5) \
           $(TOP_BUILDING:%.sc5=%.z5) $(MOON_SPRITES:%.sc5=%.z5) \
           absolute_scroll.bin advance_pcm.bin cloud_fade_palette.bin \
           city_fade_palette.bin title_bounce_palette.bin \
@@ -57,7 +59,7 @@ $(BACK_BUILDING) : raw/city1.raw raw/city2.raw raw/cityline.raw \
 $(TOP_BUILDING) : raw/city2.raw tools/gen_top_building_sprites.py
 	python tools/gen_top_building_sprites.py
 
-alley1a.sc5 alley1b.sc5 : raw/alley1.raw tools/gen_alley_raw.py
+$(ALLEY_PIXELS) : raw/alley1.raw raw/alley2.raw tools/gen_alley_raw.py
 	python tools/gen_alley_raw.py
 
 $(MOON_SPRITES) : raw/moon.raw raw/cloud2.raw

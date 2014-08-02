@@ -107,6 +107,7 @@ city2_continue2_addr    equ     18000h
 city2_continue3_addr    equ     1A800h
 pixels_alley1a_addr     equ     1E000h
 pixels_alley1b_addr     equ     18000h
+pixels_alley2a_addr     equ     02C00h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -125,6 +126,7 @@ city_scroll1_last_frame         equ     843
 city_scroll2_infinite           equ     847
 city_scroll2_last_frame         equ     852
 city_scroll4_first_frame        equ     858
+alley_switch_frame              equ     930
 
 ; ----------------------------------------------------------------
 ; Helpers for the states.
@@ -1837,6 +1839,9 @@ city_scroll4:
         ld      hl, alley1b
         QUEUE_VRAM_WRITE pixels_alley1b_addr
         call    queue_zblit
+        ld      hl, alley2a
+        QUEUE_VRAM_WRITE pixels_alley2a_addr
+        call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1911,6 +1916,7 @@ motion_blur:
 
 alley_scroll1:
         PREAMBLE_VERTICAL
+        SET_PAGE 3
         ; Set v scroll.
         ld      a, (motion_blur_line)
         add     a, 10
@@ -1953,6 +1959,21 @@ alley_scroll1_split:
 alley_scroll1_city:
         PREAMBLE_HORIZONTAL
         exx
+        COMPARE_FRAME alley_switch_frame
+        jr      nc, 1f
+        DISABLE_HIRQ
+        VDP_STATUS 0
+        jp      frame_end
+1:
+        ld      a, 15
+        VDPREG vdp_hsplit_line
+        NEXT_HANDLE alley_scroll1_switch
+        jp      return_irq_exx
+
+alley_scroll1_switch:
+        PREAMBLE_HORIZONTAL
+        exx
+        SET_PAGE 0
         DISABLE_HIRQ
         VDP_STATUS 0
         jp      frame_end
@@ -2707,6 +2728,8 @@ city2f:                 incbin "city2f.z5"
 city2g:                 incbin "city2g.z5"
 alley1a:                incbin "alley1a.z5"
 alley1b:                incbin "alley1b.z5"
+alley2a:                incbin "alley2a.z5"
+alley2b:                incbin "alley2b.z5"
                         PAGE_END
 
         end
