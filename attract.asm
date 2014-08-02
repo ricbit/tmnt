@@ -7,7 +7,7 @@
         jp      start_main
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     17
+selectors       equ     14
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -755,18 +755,20 @@ local_init:
         di
         SET_VRAM_WRITE city2_addr
         ei
-        MAPPER_P2 13
+        MAPPER_P2 12
         ld      hl, city2a
         call    zblit
-        MAPPER_P2 12
+        MAPPER_P2 9
         ld      hl, city2b
         call    zblit
+        MAPPER_P2 12
         di
         SET_VRAM_WRITE city2_preload
         ei
+        MAPPER_P2 10
         ld      hl, city2c
         call    zblit
-        MAPPER_P2 14
+        MAPPER_P2 12
         di
         SET_VRAM_WRITE city2_preload_2
         ei
@@ -1792,20 +1794,18 @@ city_scroll4:
 
         ld      hl, cmd_city_preload_2
         call    queue_vdp_command
-        MAPPER_P2 14
+        MAPPER_P2 12
         ld      hl, city2e
         QUEUE_VRAM_WRITE city2_continue1_addr
         call    queue_zblit
         ld      hl, city2f
         QUEUE_VRAM_WRITE city2_continue2_addr
         call    queue_zblit
-        ld      a, 15
+        ld      a, 13
         call    queue_mapper
         ld      hl, city2g
         QUEUE_VRAM_WRITE city2_continue3_addr
         call    queue_zblit
-        ld      a, 16
-        call    queue_mapper
         ld      hl, alley1a
         QUEUE_VRAM_WRITE pixels_alley1a_addr
         call    queue_zblit
@@ -2682,6 +2682,7 @@ theme_music:            incbin "raw/theme.pcm"
 opening_title:          incbin "tmnt.z5"
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
+city2b:                 incbin "city2b.z5"
                         PAGE_END
 
 ; Mapper page 10
@@ -2689,6 +2690,7 @@ cloud_page3:            incbin "cloud3.z5"
 city_page1:             incbin "city1.z5"
 moon_pattern:           incbin "moon_pattern.z5"
 moon_attr:              incbin "moon_attr.z5"
+city2c:                 incbin "city2c.z5"
                         PAGE_END
 
 ; Mapper page 11
@@ -2705,29 +2707,15 @@ back_building_palette:  incbin "back_building_palette.bin"
 
 ; Mapper page 12
                         PAGE_BEGIN
-city2b:                 incbin "city2b.z5"
-city2c:                 incbin "city2c.z5"
-                        PAGE_END
-
-; Mapper page 13
-                        PAGE_BEGIN
 city2a:                 incbin "city2a.z5"
-                        PAGE_END
-
-; Mapper page 14
-                        PAGE_BEGIN
 city2d:                 incbin "city2d.z5"
 city2e:                 incbin "city2e.z5"
 city2f:                 incbin "city2f.z5"
                         PAGE_END
 
-; Mapper page 15
+; Mapper page 13
                         PAGE_BEGIN
 city2g:                 incbin "city2g.z5"
-                        PAGE_END
-
-; Mapper page 16
-                        PAGE_BEGIN
 alley1a:                incbin "alley1a.z5"
 alley1b:                incbin "alley1b.z5"
                         PAGE_END
