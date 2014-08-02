@@ -906,8 +906,7 @@ load_mapper_data_block:
 
         ld      de, str_press_any_key
         ld      c, strout
-        call    bdos
-        ret
+        jp      bdos
 
 ; ----------------------------------------------------------------
 ; State: end_animation
@@ -1621,8 +1620,7 @@ queue_infinite_city:
         inc     hl
         ld      (current_city_beat), hl
         ld      hl, cmd_infinite_city_1
-        call    queue_vdp_command
-        ret
+        jp      queue_vdp_command
 
 queue_back_building_attr:
         ; Set back building attr.
@@ -1633,8 +1631,7 @@ queue_back_building_attr:
         QUEUE_VRAM_WRITE back_building_attr_addr
         ld      hl, (back_building_current)
         call    queue_zblit
-        call    update_back_building_pointers
-        ret
+        jp      update_back_building_pointers
 
 prepare_city_overlay:
         ; Queue the overlay commands.
@@ -1647,8 +1644,7 @@ prepare_city_overlay:
         ld      (cmd_overlay_city_2 + 1), a
         ld      (cmd_overlay_city_3 + 1), a
         ld      hl, cmd_overlay_city
-        call    queue_vdp_command
-        ret
+        jp      queue_vdp_command
 
 set_back_building_palette:
         ; Set palette of back building.
@@ -2365,6 +2361,7 @@ foreground_palette:
 foreground_ret:
         ld      hl, foreground_next
         ld      (foreground + 1), hl
+call_hl:
         jp      (hl)
 
 check_foreground:
@@ -2471,10 +2468,6 @@ restore_environment:
         call    fast_put_p1
         ld      a, (mapper_selectors + 1)
         jp      fast_put_p2
-
-; Call HL.
-call_hl:
-        jp      (hl)
 
 ; Fast put page 1.
 fast_put_p1:
