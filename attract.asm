@@ -457,6 +457,7 @@ current_city_beat:      dw      infinite_city_beat
 cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
 current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
+alley_scroll_current:   dw      alley_scroll_repeat
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
@@ -1881,30 +1882,6 @@ city_scroll5_split:
         jp      frame_end
 
 ; ----------------------------------------------------------------
-; State: alley_scroll1
-; Motion blur on top, split to alley.
-
-alley_scroll1:
-        PREAMBLE_VERTICAL
-        ; Set v scroll.
-        ld      a, (motion_blur_line)
-        add     a, 10
-        and     63
-        add     a, 128
-        ld      (motion_blur_line), a
-        ld      (motion_blur_scroll), a
-        VDPREG  vdp_vscroll
-        exx
-        ld      a, 192
-        VDPREG vdp_hsplit_line
-        VDP_STATUS 1
-        ENABLE_HIRQ
-        ld      a, 3
-        ld      (motion_blur_counter), a
-        NEXT_HANDLE city_scroll5_split
-        jp      return_irq_exx
-
-; ----------------------------------------------------------------
 ; State: motion_blur
 ; Scroll the motion blur using minimum vram.
 
@@ -1927,6 +1904,58 @@ motion_blur:
         ld      (motion_blur_counter), a
         NEXT_HANDLE city_scroll5_split
         jp      return_irq_exx
+
+; ----------------------------------------------------------------
+; State: alley_scroll1
+; Motion blur on top, split to alley.
+
+alley_scroll1:
+        PREAMBLE_VERTICAL
+        ; Set v scroll.
+        ld      a, (motion_blur_line)
+        add     a, 10
+        and     63
+        add     a, 128
+        ld      (motion_blur_line), a
+        ld      (motion_blur_scroll), a
+        VDPREG  vdp_vscroll
+        exx
+        ld      a, 192
+        VDPREG vdp_hsplit_line
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        ld      hl, (alley_scroll_current)
+        ld      a, (hl)
+        inc     hl
+        ld      (alley_scroll_current), hl
+        or      a
+        jr      z, 1f
+        ld      (motion_blur_counter), a
+        NEXT_HANDLE alley_scroll1_split
+        jp      return_irq_exx
+1:
+        NEXT_HANDLE alley_scroll1_city
+        jp      return_irq_exx
+
+alley_scroll1_split:
+        PREAMBLE_HORIZONTAL
+        ld      a, (motion_blur_scroll)
+        sub     64
+        ld      (motion_blur_scroll), a
+        VDPREG vdp_vscroll
+        exx
+        ld      hl, motion_blur_counter
+        dec     (hl)
+        jp      nz, return_irq_exx
+        NEXT_HANDLE alley_scroll1_city
+        jp      return_irq_exx
+
+alley_scroll1_city:
+        PREAMBLE_HORIZONTAL
+        exx
+        DISABLE_HIRQ
+        VDP_STATUS 0
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2570,6 +2599,13 @@ motion_blur_repeat:
         db  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2
         ; 896 897 898 899 900 901 902
         db  2,  3,  3,  3,  3,  3,  3
+
+; How many times should we repeat the motion blur on each frame?
+alley_scroll_repeat:
+        ; 922 923 924 925 926 927 928 929 930 931 932 933 
+        db  2,  2,  2,  2,  2,  2,  2,  1,  1,  1,  1,  1
+        ; 934 935 936 937 938 939 940 941
+        db  1,  0,  0,  0,  0,  0,  0,  0
 
 ; ----------------------------------------------------------------
 ; VDP commands
