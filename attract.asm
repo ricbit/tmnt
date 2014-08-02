@@ -2054,9 +2054,7 @@ process_mapper:
         add     hl, bc
         ld      a, (hl)
         call    fast_put_p2
-        ld      (iy + 0), 0
         ld      (iy + 1), 0
-        ld      (iy + 2), 0
         ld      bc, 8
         add     iy, bc
         ld      a, iyh
@@ -2107,13 +2105,7 @@ process_zblit:
         out     (099h), a
         ld      l, (iy + 2)
         ld      h, (iy + 3)
-        ld      (iy + 0), 0
         ld      (iy + 1), 0
-        ld      (iy + 2), 0
-        ld      (iy + 3), 0
-        ld      (iy + 4), 0
-        ld      (iy + 5), 0
-        ld      (iy + 6), 0
         ld      bc, 8
         add     iy, bc
         ld      a, iyh
@@ -2193,10 +2185,7 @@ process_vdp_command_delay:
         exx
         ld      l, (iy + 2)
         ld      h, (iy + 3)
-        ld      (iy + 0), 0
         ld      (iy + 1), 0
-        ld      (iy + 2), 0
-        ld      (iy + 3), 0
         ld      bc, 8
         add     iy, bc
         ld      a, iyh
