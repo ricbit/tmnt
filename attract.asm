@@ -832,6 +832,13 @@ local_init:
         ld      hl, back_building_attr
         call    zblit
 
+        ; Set up handles table
+        MAPPER_P2 11
+        ld      hl, handles_source
+        ld      de, handles_begin
+        ld      bc, handles_end - handles_source
+        ldir
+
         ; Reset the animation.
         ld      de, state_start
         ld      hl, state_backup
@@ -2520,7 +2527,7 @@ cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
 city_line_mask:         incbin  "cityline.z5"
-handles_begin:          include "handles.inc"
+handles_begin           equ     0C100h
 handles                 equ     handles_begin - 500 * 2
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
@@ -2654,6 +2661,8 @@ back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
 back_building_palette:  incbin "back_building_palette.bin"
+handles_source:         include "handles.inc"
+handles_end:
                         PAGE_END
 
 ; Mapper page 12
