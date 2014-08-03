@@ -1945,7 +1945,7 @@ alley_scroll1_switch:
 
 ; ----------------------------------------------------------------
 ; State: alley_scroll2
-; Motion blur on top, split to alley.
+; Alley on pages 3 and 0.
 
 alley_scroll2:
         PREAMBLE_VERTICAL
@@ -1955,6 +1955,12 @@ alley_scroll2:
         VDP_STATUS 1
         ENABLE_HIRQ
         exx
+        COMPARE_FRAME 944
+        jr      nz, 1f
+        ld      hl, alley2b
+        QUEUE_VRAM_WRITE 0
+        call    queue_zblit
+1:
         ld      a, (motion_blur_scroll)
         add     a, 10
         ld      (motion_blur_scroll), a
@@ -1971,6 +1977,33 @@ alley_scroll2_city:
         exx
         SET_PAGE 0
         jp      frame_end_disable
+
+; ----------------------------------------------------------------
+; State: alley_scroll3
+; Alley on page 0 only.
+
+alley_scroll3:
+        PREAMBLE_VERTICAL
+        ld      a, (motion_blur_scroll)
+        add     a, 10
+        ld      (motion_blur_scroll), a
+        add     a, 72
+        VDPREG vdp_vscroll
+        exx
+        SET_PAGE 0
+        jp      frame_end
+
+; ----------------------------------------------------------------
+; State: alley_stand
+; Alley reached the ground.
+
+alley_stand:
+        PREAMBLE_VERTICAL
+        xor     a
+        VDPREG vdp_vscroll
+        exx
+        SET_PAGE 0
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
