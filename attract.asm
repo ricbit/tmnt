@@ -523,8 +523,8 @@ change_sample_mapper:
 
         in      a, (systml)
 sample_loop:
-        ; Play a sample.
         ld      a, (de)
+play_sample:
         out     (pcm), a
 
 foreground:

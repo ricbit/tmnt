@@ -3,13 +3,33 @@ set running 0
 set current_frame 0
 set vdp_command_running 0
 set fast_emulation 0
-set print_samples 0
+set last_sample -1
+set freq_hist [dict create]
+
+# Parse sym file.
+set symfile [open "attract.sym" r]
+set symlines [split [read $symfile] "\n"]
+close $symfile
+set symlabel [dict create]
+foreach line $symlines {
+  if {[regexp {([^:]+): equ (0x[0-9A-F]+)} $line _ name value]} {
+    dict append symlabel $name [expr $value]
+  }
+}
 
 proc readmemw {addr} {
   expr {
     [debug read "memory" $addr] + 
     256 * [debug read "memory" [expr {$addr + 1}]]
   }
+}
+
+debug set_bp [dict get $symlabel play_sample] {$running} {
+  if {$last_sample > 0} {
+    set freq [expr int(0.01 / ([machine_info time] - $last_sample))]
+    dict incr freq_hist $freq
+  }
+  set last_sample [machine_info time]
 }
 
 debug probe set_bp VDP.IRQhorizontal {
@@ -81,6 +101,10 @@ debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {
 
 debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 1100} {
   record stop
+  puts stderr "Histogram of frequencies:"
+  foreach freq [lsort -integer [dict keys $freq_hist]] {
+    puts stderr "freq [expr 100 * $freq] -> [dict get $freq_hist $freq]"
+  }
   quit
 }
 
