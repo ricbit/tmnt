@@ -969,9 +969,8 @@ title_bounce_v_disable:
 title_bounce_h_disable:
         PREAMBLE_HORIZONTAL
         DISABLE_SCREEN
-        VDP_STATUS 0
-        DISABLE_HIRQ
-        jp      frame_end_exx
+        exx
+        jp      frame_end_disable
 
 ; H handler to enable screen
 title_bounce_h_enable:
@@ -1022,9 +1021,8 @@ title_slide_scroll:
 title_slide_disable:
         PREAMBLE_HORIZONTAL
         DISABLE_SCREEN
-        VDP_STATUS 0
-        DISABLE_HIRQ
-        jp      frame_end_exx
+        exx
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: title_stand
@@ -1213,25 +1211,19 @@ cloud_fade_second_bottom:
         ld      d, (hl)
         ld      a, d
         or      e
-        jr      z, 1f
+        jp      z, frame_end_disable
         ex      de, hl
         call    queue_vdp_command
-1:
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
+        jp      frame_end_disable
 
 cloud_fade_moon_sprites:
         PREAMBLE_HORIZONTAL
-        DISABLE_HIRQ
         exx
         COMPARE_FRAME expand_city_line_frame
-        jr      c, cloud_fade_moon_set_sprite
-        VDP_STATUS 0
-        jp      frame_end
+        jp      nc, frame_end_disable
+        ; fall through
 
 cloud_fade_moon_set_sprite:
-        VDP_STATUS 0
         call    update_cloud_scroll
         ; Set sprite pattern base.
         ld      a, (cloud1_scroll)
@@ -1260,7 +1252,7 @@ cloud_fade_moon_set_sprite:
         SET_VRAM_WRITE moon_attr_addr
         ld      hl, dynamic_moon_attr
         call    smart_zblit
-        jp      frame_end
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; Helpers for the cloud states.
@@ -1412,23 +1404,7 @@ cloud_down3_second_bottom:
         ld      hl, city_palette_final
         call    smart_palette
         call    update_cloud_scroll
-        ld      a, (vertical_scroll)
-        add     a, 100 - 80
-        VDPREG  vdp_hsplit_line
-        NEXT_HANDLE cloud_down3_vdp_command
-        jp      return_irq_exx
-
-cloud_down3_vdp_command:
-        PREAMBLE_HORIZONTAL
-        exx
-        COMPARE_FRAME copy_city_mask_last_frame
-        jr      nz, 1f
-        ;ld      hl, cmd_copy_city_line_mask_5
-        ;call    smart_vdp_command
-1:
-        VDP_STATUS 0
-        DISABLE_HIRQ
-        jp      frame_end
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: cloud_down4_first
@@ -1483,10 +1459,8 @@ cloud_down4_second_bottom:
         ; Update top building sprites only on the last frames.
         COMPARE_FRAME down4_sprite_start_frame
         jr      nc, 1f
-        VDP_STATUS 0
-        DISABLE_HIRQ
         call    update_cloud_scroll
-        jp      frame_end
+        jp      frame_end_disable
 1:
         HSPLIT_LINE 100
         NEXT_HANDLE cloud_down4_sprites
@@ -1496,10 +1470,8 @@ cloud_down4_sprites:
         PREAMBLE_HORIZONTAL
         exx
         call    update_top_building_sprite
-        VDP_STATUS 0
-        DISABLE_HIRQ
         call    update_cloud_scroll
-        jp      frame_end
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: city_scroll1
@@ -1576,11 +1548,8 @@ city_scroll1_foreground:
         ld      (back_building_cur_base), hl
         SPRITES_ON
         COMPARE_FRAME city_scroll1_last_frame
-        jr      z, 1f
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
-1:
+        jp      nz, frame_end_disable
+
         call    update_city_line
         call    prepare_city_overlay
         call    update_top_building_sprite
@@ -1593,9 +1562,7 @@ city_scroll1_late_exit:
         PREAMBLE_HORIZONTAL
         exx
         call    queue_back_building_attr
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; Helpers for the city_scroll states.
@@ -1771,13 +1738,10 @@ city_scroll2_after_parallax:
         ld      hl, (back_building_current)
         call    queue_zblit
         call    update_back_building_pointers
-2:
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
+        jp      frame_end_disable
 1:
         call    queue_infinite_city
-        jr      2b
+        jp      frame_end_disable
 
 
 ; ----------------------------------------------------------------
@@ -1882,9 +1846,7 @@ city_scroll5_split:
         ld      hl, motion_blur_counter
         dec     (hl)
         jp      nz, return_irq_exx
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: motion_blur
@@ -1960,11 +1922,8 @@ alley_scroll1_city:
         PREAMBLE_HORIZONTAL
         exx
         COMPARE_FRAME alley_switch_frame
-        jr      nc, 1f
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
-1:
+        jr      c, frame_end_disable
+
         ld      a, 15
         VDPREG vdp_hsplit_line
         NEXT_HANDLE alley_scroll1_switch
@@ -1972,11 +1931,12 @@ alley_scroll1_city:
 
 alley_scroll1_switch:
         PREAMBLE_HORIZONTAL
+        ld      a, (motion_blur_scroll)
+        add     a, 72
+        VDPREG vdp_vscroll
         exx
         SET_PAGE 0
-        DISABLE_HIRQ
-        VDP_STATUS 0
-        jp      frame_end
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -1995,6 +1955,10 @@ disable_screen_title:
 ; ----------------------------------------------------------------
 ; Exit common to all frames
 
+frame_end_disable:
+        DISABLE_HIRQ
+        VDP_STATUS 0
+        jr      frame_end
 frame_end_exx:
         exx
 frame_end:
