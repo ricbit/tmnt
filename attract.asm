@@ -105,8 +105,9 @@ title_addr              equ     08000h
 city2_continue1_addr    equ     1FC80h
 city2_continue2_addr    equ     18000h
 city2_continue3_addr    equ     1A800h
-pixels_alley1a_addr     equ     1E000h
+pixels_alley1a_addr     equ     1E080h
 pixels_alley1b_addr     equ     18000h
+pixels_alleyline_addr   equ     1AC00h
 pixels_alley2a_addr     equ     02C00h
 
 ; ----------------------------------------------------------------
@@ -1806,6 +1807,9 @@ city_scroll4:
         ld      hl, alley2a
         QUEUE_VRAM_WRITE pixels_alley2a_addr
         call    queue_zblit
+        ld      hl, alleyline
+        QUEUE_VRAM_WRITE pixels_alleyline_addr
+        call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1922,10 +1926,11 @@ alley_scroll1_city:
         PREAMBLE_HORIZONTAL
         exx
         COMPARE_FRAME alley_switch_frame
-        jr      c, frame_end_disable
+        jp      c, frame_end_disable
 
         ld      a, 15
         VDPREG vdp_hsplit_line
+        VDP_AUTOINC vdp_vscroll
         NEXT_HANDLE alley_scroll1_switch
         jp      return_irq_exx
 
@@ -1933,7 +1938,36 @@ alley_scroll1_switch:
         PREAMBLE_HORIZONTAL
         ld      a, (motion_blur_scroll)
         add     a, 72
+        out     (09Bh), a
+        exx
+        SET_PAGE 0
+        jp      frame_end_disable
+
+; ----------------------------------------------------------------
+; State: alley_scroll2
+; Motion blur on top, split to alley.
+
+alley_scroll2:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        ld      a, 15
+        VDPREG vdp_hsplit_line
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        exx
+        ld      a, (motion_blur_scroll)
+        add     a, 10
+        ld      (motion_blur_scroll), a
         VDPREG vdp_vscroll
+        VDP_AUTOINC vdp_vscroll
+        NEXT_HANDLE alley_scroll2_city
+        jp      return_irq_exx
+
+alley_scroll2_city:
+        PREAMBLE_HORIZONTAL
+        ld      a, (motion_blur_scroll)
+        add     a, 72
+        out     (09Bh), a
         exx
         SET_PAGE 0
         jp      frame_end_disable
@@ -2694,6 +2728,7 @@ alley1a:                incbin "alley1a.z5"
 alley1b:                incbin "alley1b.z5"
 alley2a:                incbin "alley2a.z5"
 alley2b:                incbin "alley2b.z5"
+alleyline:              incbin "alleyline.z5"
                         PAGE_END
 
         end
