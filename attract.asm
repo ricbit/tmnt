@@ -461,6 +461,8 @@ cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
 current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
 alley_scroll_current:   dw      alley_scroll_repeat
+last_timer:             db      0
+current_fraction:       db      0
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
@@ -508,6 +510,7 @@ delay_theme_music:
         ; Main theme music loop.
         xor     a
         out     (systml), a
+        ld      (last_timer), a
         ld      a, 1
         ld      (is_playing), a
         ld      de, 04000h
@@ -521,7 +524,6 @@ change_sample_mapper:
         call    fast_put_p1
         pop     hl
 
-        in      a, (systml)
 sample_loop:
         ld      a, (de)
 play_sample:
@@ -544,27 +546,35 @@ foreground_continue:
         ; Avoid jitter by stopping foreground thread
         ; a few ticks before the limit.
         in      a, (systml)
-        cp      pcm_timer_period - 4
+sample_patch:
+        sub     0
+        cp      25
         jr      c, foreground
-        ; Wait enough to hit 11025Hz.
-1:
+        push    bc
+        push    hl
+        ld      a, (last_timer)
+        ld      b, a
         in      a, (systml)
-        cp      pcm_timer_period
-        jr      c, 1b
-        push    iy
-        ld      iyl, a
-        xor     a
-        out     (systml), a
-
-        ; Increment the pcm counter.
-        ld      iyh, high advance_pcm
-        ld      a, (iy)
-        add     a, e
+        ld      (last_timer), a
+        ld      (sample_patch + 1), a
+        sub     b
+        ld      c, a
+        ld      b, 0
+        ld      hl, advance_pcm
+        add     hl, bc
+        add     hl, bc
+        ld      a, (current_fraction)
+        add     a, (hl)
+        ld      (current_fraction), a
+        inc     hl
+        ld      a, (hl)
+        adc     a, e
         ld      e, a
-        ld      a, 0
-        adc     a, d
+        ld      a, d
+        adc     a, 0
         ld      d, a
-        pop     iy
+        pop     hl
+        pop     bc
 
         ; Check the pcm for mapper page change.
         bit     7, d

@@ -25,6 +25,7 @@ proc readmemw {addr} {
 }
 
 debug set_bp [dict get $symlabel play_sample] {$running} {
+  #puts stderr [format %x [reg de]]
   if {$last_sample > 0} {
     set freq [expr int(0.01 / ([machine_info time] - $last_sample))]
     dict incr freq_hist $freq

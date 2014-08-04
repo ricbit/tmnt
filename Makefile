@@ -65,11 +65,11 @@ $(ALLEY_PIXELS) : raw/alley1.raw raw/alley2.raw tools/gen_alley_raw.py
 $(MOON_SPRITES) : raw/moon.raw raw/cloud2.raw
 	python tools/gen_moon_sprites.py
 
-absolute_scroll.bin :
-	python tools/gen_absolute_scroll.py
+absolute_scroll.bin : tools/gen_absolute_scroll.py
+	python $<
 
-advance_pcm.bin :
-	python tools/gen_advance_pcm.py
+advance_pcm.bin : tools/gen_advance_pcm.py
+	python $<
 
 title_bounce_scroll.bin : raw/title_bounce_scroll.txt
 	python tools/gen_title_bounce.py < $<
