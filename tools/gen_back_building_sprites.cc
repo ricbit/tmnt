@@ -337,9 +337,9 @@ void save_attr(T attr) {
 }
 
 int main() {
-  auto city1 = read_raw("/home/ricbit/work/tmnt/raw/city1.raw", 212);
-  auto city2 = read_raw("/home/ricbit/work/tmnt/raw/city2.raw", 606);
-  auto cityline = read_raw("/home/ricbit/work/tmnt/raw/cityline.raw", 1);
+  auto city1 = read_raw("raw/city1.raw", 212);
+  auto city2 = read_raw("raw/city2.raw", 606);
+  auto cityline = read_raw("raw/cityline.raw", 1);
   vector<SpriteBlock*> block;
   vector<tuple<int, vector<int>, SpriteCover, int>> attr;
   block.push_back(new SpriteBlock());
