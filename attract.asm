@@ -552,20 +552,18 @@ measure_sample_start:
         in      a, (systml)
         cp      pcm_timer_period
         jr      c, 1b
-        push    iy
-        ld      iyl, a
+        push    hl
+        ld      l, a
         xor     a
         out     (systml), a
 
         ; Increment the pcm counter.
-        ld      iyh, high advance_pcm
-        ld      a, (iy)
-        add     a, e
-        ld      e, a
-        ld      a, 0
-        adc     a, d
-        ld      d, a
-        pop     iy
+        ld      h, high advance_pcm
+        ld      l, (hl)
+        ld      h, 0
+        add     hl, de
+        ex      de, hl
+        pop     hl
 
         ; Check the pcm for mapper page change.
         bit     7, d
@@ -2170,7 +2168,6 @@ process_zblit:
         ; Don't start if there's another foreground task running.
         CHECK_FOREGROUND
         di
-        exx
         ld      a, (iy + 4)
         VDPREG  14
         ld      a, (iy + 5)
@@ -2187,15 +2184,11 @@ process_zblit:
         else
         call    0C015h
         endif
-        exx
         ei
         jp      foreground_continue
 
 smart_zblit_begin:
-        push    hl
-        exx
-        pop     hl
-        exx
+        ld      (load_foreground_hl), hl
         ld      hl, foreground_zblit_start
         ld      (foreground + 1), hl
         ret
@@ -2242,7 +2235,6 @@ process_vdp_command_delay:
 1:
         ld      a, (current_vdp_status)
         VDPREG vdp_status
-        exx
         ld      l, (iy + 2)
         ld      h, (iy + 3)
         ld      (iy + 1), 0
@@ -2253,7 +2245,6 @@ process_vdp_command_delay:
         else
         call    0C012h
         endif
-        exx
         ei
         jp      foreground_continue
 
@@ -2287,15 +2278,18 @@ smart_vdp_command_begin:
         ld      a, 47
         sub     (hl)
         inc     hl
-        push    hl
-        exx
-        pop     hl
-        ld      b, a
-        exx
-        ld      hl, foreground_vdp_command
+        ld      (load_foreground_hl), hl
+        ld      (load_foreground_b), a
+        ld      hl, foreground_vdp_command_begin
         ld      (foreground + 1), hl
         ret
 
+foreground_vdp_command_begin:
+        ld      hl, foreground_vdp_command
+        ld      (foreground + 1), hl
+        ld      hl, (load_foreground_hl)
+        ld      a, (load_foreground_b)
+        ld      b, a
 foreground_vdp_command:
         ld      a, (hl)
         out     (09Bh), a
@@ -2321,20 +2315,18 @@ smart_zblit equ 0C000h
         ld      a, (is_playing)
         or      a
         jp      z, zblit
-        push    hl
-        exx
-        pop     hl
-        exx
+        ld      (load_foreground_hl) ,hl
         call    check_foreground
         ld      hl, foreground_zblit_start
         ld      (foreground + 1), hl
         ret
 
 foreground_zblit_start:
-        ld      iy, decompress_buffer
+        ld      iy, (load_foreground_hl)
+        ld      hl, decompress_buffer
 foreground_zblit:
-        ld      a, (hl)
-        inc     hl
+        ld      a, (iy)
+        inc     iy
         or      a
         if      debug == 0
         jp      z, foreground_ret
@@ -2350,11 +2342,12 @@ foreground_zblit:
         ; fall through
 
 foreground_direct_step:
-        ld      a, (hl)
-        inc     hl
+        ld      a, (iy)
+        inc     iy
         out     (098h), a
-        ld      (iy), a
-        ADDMOD  iyl, 1, 07Fh
+        ld      (hl), a
+        inc     l
+        res     7, l
         dec     b
         jp      nz, foreground_continue
         ld      bc, foreground_zblit
@@ -2369,16 +2362,18 @@ foreground_rle_setup:
         ld      (foreground + 1), bc
         sub     080h
         ld      b, a
+        ld      c, (iy)
         ; fall through
 
 foreground_rle_step:
-        ld      a, (hl)
+        ld      a, c
         out     (098h), a
-        ld      (iy), a
-        ADDMOD  iyl, 1, 07Fh
+        ld      (hl), a
+        inc     l
+        res     7, l
         dec     b
         jp      nz, foreground_continue
-        inc     hl
+        inc     iy
         ld      bc, foreground_zblit
         ld      (foreground + 1), bc
         jp      foreground_continue
@@ -2389,13 +2384,12 @@ foreground_copy_setup:
         ld      (foreground + 1), bc
         sub     0C0h
         ld      b, a
+        ld      c, 098h
         ; fall through
 
 foreground_copy_step:
-        ld      a, (iy)
-        out     (098h), a
-        ADDMOD  iyl, 1, 07Fh
-        dec     b
+        outi
+        res     7, l
         jp      nz, foreground_continue
         ld      bc, foreground_zblit
         ld      (foreground + 1), bc
@@ -2418,16 +2412,17 @@ smart_palette equ 0C006h
 1:
         xor     a
         VDPREG  vdp_palette
-        push    hl
-        exx
-        pop     hl
-        ld      b, 32
-        exx
+        ld      (load_foreground_hl), hl
         call    check_foreground
-        ld      hl, foreground_palette
+        ld      hl, foreground_palette_begin
         ld      (foreground + 1), hl
         ret
 
+foreground_palette_begin:
+        ld      b, 32
+        ld      hl, foreground_palette
+        ld      (foreground + 1), hl
+        ld      hl, (load_foreground_hl)
 foreground_palette:
         ld      a, (hl)
         out     (09Ah), a
@@ -2574,6 +2569,8 @@ city_line:              db      0
 current_vdp_status:     db      0
 motion_blur_counter:    db      0
 motion_blur_scroll:     db      0
+load_foreground_hl:     dw      0
+load_foreground_b:      db      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
