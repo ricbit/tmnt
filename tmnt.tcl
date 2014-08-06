@@ -4,6 +4,9 @@ set current_frame 0
 set vdp_command_running 0
 set fast_emulation 0
 set last_sample -1
+set measure_sample -1
+set measure_acc 0
+set measure_total 0
 set freq_hist [dict create]
 
 # Parse sym file.
@@ -23,6 +26,17 @@ proc readmemw {addr} {
     256 * [debug read "memory" [expr {$addr + 1}]]
   }
 }
+
+debug set_bp [dict get $symlabel measure_sample_start] {$running} {
+  set measure_sample [machine_info time]
+}
+
+debug set_bp [dict get $symlabel foreground_continue] {$measure_sample >= 0} {
+  set measure_acc [expr $measure_acc + [machine_info time] - $measure_sample]
+  set measure_total [expr $measure_total + 1]
+  set measure_sample -1
+}
+
 
 debug set_bp [dict get $symlabel play_sample] {$running} {
   #puts stderr [format %x [reg de]]
@@ -106,6 +120,7 @@ debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 1100} {
   foreach freq [lsort -integer [dict keys $freq_hist]] {
     puts stderr "freq [expr 100 * $freq] -> [dict get $freq_hist $freq]"
   }
+  puts stderr "Mean measure = [expr $measure_acc / $measure_total]"
   quit
 }
 

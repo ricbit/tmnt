@@ -550,6 +550,7 @@ sample_patch:
         sub     0
         cp      25
         jr      c, foreground
+measure_sample_start:
         push    bc
         push    hl
         ld      a, (last_timer)
