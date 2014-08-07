@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <tuple>
+#include <cassert>
 
 using namespace std;
 
@@ -177,7 +178,8 @@ struct SpriteCover {
 vector<uint8_t> read_raw(string file, int lines) {
   auto f = fopen(file.c_str(), "rb");
   vector<uint8_t> raw(lines * 256);
-  fread(raw.data(), 1, lines * 256, f);
+  auto size = fread(raw.data(), 1, lines * 256, f);
+  assert(size > 0);
   fclose(f);
   return raw;
 }
