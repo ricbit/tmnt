@@ -28,6 +28,7 @@ clean :
 
 attract.com : $(OBJECTS)
 	./sjasmplus attract.asm --lst=attract.lst --sym=attract.sym
+	mkdir -p disk
 	cp attract.com disk
 	cp attract.dat disk
 

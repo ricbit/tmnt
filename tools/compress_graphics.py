@@ -6,7 +6,8 @@ def compress(original, filename):
   state = 0
   repeat_value = 0
   repeat_count = 0
-  repeat_max = 63
+  repeat_max = 63 + 3
+  slide_max = 63 + 3
   slide_start = 0
   slide_count = 0
   for pos, value in enumerate(original):
@@ -38,28 +39,31 @@ def compress(original, filename):
     elif state == 1:
       if value != repeat_value:
         if repeat_count:
-          out.append(128 + repeat_count)
+          out.append(128 + repeat_count - 3)
           out.append(repeat_value)
         state = 0
         raw = [value]
       else:
         if repeat_count >= repeat_max:
-          out.append(128 + repeat_max)
+          out.append(128 + repeat_max - 3)
           out.append(repeat_value)
-          repeat_count -= repeat_max
-        repeat_count += 1
+	  raw = [repeat_value]
+	  state = 0
+	else:
+          repeat_count += 1
     elif state == 2:
       if value != original[slide_start + slide_count]:
         if slide_count:
-          out.append(128 + 64 + slide_count)
+          out.append(128 + 64 + slide_count - 3)
         state = 0
         raw = [value]
       else:
-        if slide_count >= 63:
-          out.append(128 + 64 + 63)
-          slide_count -= 63
-          slide_start += 63
-        slide_count += 1
+        if slide_count >= slide_max:
+          out.append(128 + 64 + slide_max - 3)
+          raw = [value]
+          state = 0
+        else:
+          slide_count += 1
   if state == 0 and raw:
     out.append(len(raw))
     out.extend(raw)
