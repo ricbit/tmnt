@@ -561,13 +561,14 @@ measure_sample_start:
         ld      h, high advance_pcm
         ld      l, (hl)
         ld      h, 0
-        add     hl, de
+        ; Carry should be 0 here due to previous xor a.
+        adc     hl, de
         ex      de, hl
         pop     hl
 
         ; Check the pcm for mapper page change.
-        bit     7, d
-        jr      z, sample_loop
+        ; Flag was set by previous adc hl,de.
+        jp      p, sample_loop
         set     6, d
         res     7, d
         jr      change_sample_mapper
