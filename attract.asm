@@ -1782,7 +1782,7 @@ city_scroll4:
         SPRITES_OFF
 
         COMPARE_FRAME city_scroll4_first_frame
-        jp      nz, frame_end
+        jp      nz, 1f
 
         ld      hl, cmd_city_preload_2
         call    queue_vdp_command
@@ -1793,22 +1793,14 @@ city_scroll4:
         ld      hl, city2f
         QUEUE_VRAM_WRITE city2_continue2_addr
         call    queue_zblit
+        jp      frame_end
+1:
+        COMPARE_FRAME 872
+        jp      nz, frame_end
         ld      a, 13
         call    queue_mapper
         ld      hl, city2g
         QUEUE_VRAM_WRITE city2_continue3_addr
-        call    queue_zblit
-        ld      hl, alley1a
-        QUEUE_VRAM_WRITE pixels_alley1a_addr
-        call    queue_zblit
-        ld      hl, alley1b
-        QUEUE_VRAM_WRITE pixels_alley1b_addr
-        call    queue_zblit
-        ld      hl, alley2a
-        QUEUE_VRAM_WRITE pixels_alley2a_addr
-        call    queue_zblit
-        ld      hl, alleyline
-        QUEUE_VRAM_WRITE pixels_alleyline_addr
         call    queue_zblit
         jp      frame_end
 
@@ -1874,6 +1866,21 @@ motion_blur:
         ld      a, 3
         ld      (motion_blur_counter), a
         NEXT_HANDLE city_scroll5_split
+        COMPARE_FRAME 903
+        jp      nz, return_irq_exx
+
+        ld      hl, alley1a
+        QUEUE_VRAM_WRITE pixels_alley1a_addr
+        call    queue_zblit
+        ld      hl, alley1b
+        QUEUE_VRAM_WRITE pixels_alley1b_addr
+        call    queue_zblit
+        ld      hl, alley2a
+        QUEUE_VRAM_WRITE pixels_alley2a_addr
+        call    queue_zblit
+        ld      hl, alleyline
+        QUEUE_VRAM_WRITE pixels_alleyline_addr
+        call    queue_zblit
         jp      return_irq_exx
 
 ; ----------------------------------------------------------------
