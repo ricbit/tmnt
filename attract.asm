@@ -837,7 +837,7 @@ local_init:
         call    zblit
 
         ; Set up handles table
-        MAPPER_P2 11
+        MAPPER_P2 8
         ld      hl, handles_source
         ld      de, handles_begin
         ld      bc, handles_end - handles_source
@@ -849,6 +849,8 @@ local_init:
         ld      bc, state_end - state_start
         ldir
 
+        ; Must always start at mapper page 11.
+        MAPPER_P2 11
         ret
 
 ; ----------------------------------------------------------------
@@ -1797,7 +1799,7 @@ city_scroll4:
 1:
         COMPARE_FRAME 872
         jp      nz, frame_end
-        ld      a, 13
+        ld      a, 8
         call    queue_mapper
         ld      hl, city2g
         QUEUE_VRAM_WRITE city2_continue3_addr
@@ -2723,6 +2725,9 @@ end_of_code:
                         PAGE_BEGIN
 theme_music:            incbin "raw/theme.pcm"
                         .phase 08000h + ($ and 03FFFh)
+handles_source:         include "handles.inc"
+handles_end:
+city2g:                 incbin "city2g.z5"
                         PAGE_END
 
 ; Mapper page 9
@@ -2751,8 +2756,6 @@ back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
 back_building_palette:  incbin "back_building_palette.bin"
-handles_source:         include "handles.inc"
-handles_end:
                         PAGE_END
 
 ; Mapper page 12
@@ -2765,7 +2768,6 @@ city2f:                 incbin "city2f.z5"
 
 ; Mapper page 13
                         PAGE_BEGIN
-city2g:                 incbin "city2g.z5"
 alley1a:                incbin "alley1a.z5"
 alley1b:                incbin "alley1b.z5"
 alley2a:                incbin "alley2a.z5"
