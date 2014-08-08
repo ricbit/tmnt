@@ -395,14 +395,6 @@ alley_switch_frame              equ     930
         call    fast_put_p2
         endm
 
-; Create a hook for debugging purposes.
-        macro   CREATE_HOOK addr, label
-        ld      a, 0C3h
-        ld      (addr), a
-        ld      hl, label
-        ld      (addr + 1), hl
-        endm
-
 ; Compare the current frame with a given value
         macro   COMPARE_FRAME value
         ld      hl, (current_frame)
@@ -431,6 +423,13 @@ alley_switch_frame              equ     930
         ld      a, (foreground + 2)
         cp      high foreground_next
         jp      nz, foreground_continue
+        endm
+
+; Return from a foreground task
+        macro   FOREGROUND_RET
+        ld      hl, foreground_next
+        ld      (foreground + 1), hl
+        jp      (hl)
         endm
 
 ; ----------------------------------------------------------------
@@ -688,15 +687,6 @@ allocate_memory:
         ; Init openmsx debug device
         ld      a, 16 + 4
         out     (openmsx_control), a
-        ; Create hooks for breakpoints.
-        CREATE_HOOK 0C000h, smart_zblit_start
-        CREATE_HOOK 0C003h, foreground_ret
-        CREATE_HOOK 0C006h, smart_palette_start
-        CREATE_HOOK 0C009h, foreground_ret
-        CREATE_HOOK 0C00Ch, smart_vdp_command_start
-        CREATE_HOOK 0C00Fh, foreground_ret
-        CREATE_HOOK 0C012h, smart_vdp_command_begin
-        CREATE_HOOK 0C015h, smart_zblit_begin
         endif
 
         ; Backup animation state on startup.
@@ -1804,6 +1794,8 @@ city_scroll4:
         ld      hl, city2g
         QUEUE_VRAM_WRITE city2_continue3_addr
         call    queue_zblit
+        ld      a, 13
+        call    queue_mapper
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2065,7 +2057,7 @@ zblit_main:
         ld      a, (hl)
         inc     hl
         or      a
-        ret     z
+        jr      z, zblit_end
         jp      m, zblit_rle
         ld      b, a
 1:
@@ -2100,6 +2092,9 @@ zblit_copy:
         djnz    1b
         jr      zblit_main
 
+zblit_end:
+        ret
+        
 ; ----------------------------------------------------------------
 ; Start a VDP command.
 ; Input: HL=table with vdp commands
@@ -2177,6 +2172,7 @@ queue_zblit:
 process_zblit:
         ; Don't start if there's another foreground task running.
         CHECK_FOREGROUND
+smart_zblit_queued:
         di
         ld      a, (iy + 4)
         VDPREG  14
@@ -2189,19 +2185,11 @@ process_zblit:
         ld      (iy + 1), 0
         ADDMOD  iyl, 8, 0FFh
         ld      (queue_pop), iy
-        if      debug == 0
-        call    smart_zblit_begin
-        else
-        call    0C015h
-        endif
-        ei
-        jp      foreground_continue
-
-smart_zblit_begin:
         ld      (load_foreground_hl), hl
         ld      hl, foreground_zblit_start
         ld      (foreground + 1), hl
-        ret
+        ei
+        jp      foreground_continue
 
 ; ----------------------------------------------------------------
 ; Queue a VDP command to execute as soon as possible.
@@ -2227,7 +2215,7 @@ process_vdp_command_queue:
         VDPREG vdp_status
         in      a, (099h)
         rrca
-        jr      nc, 1f
+        jr      nc, smart_vdp_command_queued
         ; Not ready yet.
         ld      (iy + 0), low process_vdp_command_delay
         ld      (iy + 1), high process_vdp_command_delay
@@ -2238,11 +2226,11 @@ process_vdp_command_delay:
         di
         in      a, (099h)
         rrca
-        jr      nc, 1f
+        jr      nc, smart_vdp_command_queued
         ei
         jp      foreground_continue
 
-1:
+smart_vdp_command_queued:
         ld      a, (current_vdp_status)
         VDPREG vdp_status
         ld      l, (iy + 2)
@@ -2250,11 +2238,7 @@ process_vdp_command_delay:
         ld      (iy + 1), 0
         ADDMOD  iyl, 8, 0FFh
         ld      (queue_pop), iy
-        if      debug == 0
         call    smart_vdp_command_begin
-        else
-        call    0C012h
-        endif
         ei
         jp      foreground_continue
 
@@ -2263,13 +2247,7 @@ process_vdp_command_delay:
 ; Input: HL=table with vdp commands
 ; Destroy: VDP Status
 
-        if      debug == 0
 smart_vdp_command:
-        else
-smart_vdp_command_start:
-smart_vdp_command equ 0C00Ch
-        endif
-
         ; Check for foreground overrun.
         push    hl
         call    check_foreground
@@ -2306,22 +2284,14 @@ foreground_vdp_command:
         inc     hl
         dec     b
         jp      nz, foreground_continue
-        if      debug == 0
-        jp      foreground_ret
-        else
-        jp      0C00Fh
-        endif
+smart_vdp_command_end:
+        FOREGROUND_RET
 
 ; ----------------------------------------------------------------
 ; Decompress graphics without stopping the pcm sample.
 ; Input: HL=graphics
 
-        if      debug == 0
 smart_zblit:
-        else
-smart_zblit_start:
-smart_zblit equ 0C000h
-        endif
         ld      a, (is_playing)
         or      a
         jp      z, zblit
@@ -2338,11 +2308,7 @@ foreground_zblit:
         ld      a, (iy)
         inc     iy
         or      a
-        if      debug == 0
-        jp      z, foreground_ret
-        else
-        jp      z, 0C003h
-        endif
+        jp      z, smart_zblit_end
         jp      m, foreground_rle_setup
 
         ; Setup zblit direct.
@@ -2405,19 +2371,18 @@ foreground_copy_step:
         ld      (foreground + 1), bc
         jp      foreground_continue
 
+smart_zblit_end:
+        FOREGROUND_RET
+
 ; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
 
-        if      debug == 0
 smart_palette:
-        else
-smart_palette_start:
-smart_palette equ 0C006h
-        endif
         ld      a, (is_playing)
         or      a
         jr      nz, 1f
         SET_PALETTE
+palette_end:
         ret
 1:
         xor     a
@@ -2439,13 +2404,9 @@ foreground_palette:
         inc     hl
         dec     b
         jp      nz, foreground_continue
-        if      debug == 0
         ; fall through
-        else
-        jp      0C009h
-        endif
 
-foreground_ret:
+smart_palette_end:
         ld      hl, foreground_next
         ld      (foreground + 1), hl
 call_hl:

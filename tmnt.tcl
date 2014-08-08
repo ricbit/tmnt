@@ -20,25 +20,23 @@ foreach line $symlines {
   }
 }
 
-proc readmemw {addr} {
-  expr {
-    [debug read "memory" $addr] + 
-    256 * [debug read "memory" [expr {$addr + 1}]]
-  }
+proc getlabel {label_name} {
+  global symlabel
+  dict get $symlabel $label_name
 }
 
-debug set_bp [dict get $symlabel measure_sample_start] {$running} {
+debug set_bp [getlabel measure_sample_start] {$running} {
   set measure_sample [machine_info time]
 }
 
-debug set_bp [dict get $symlabel foreground_continue] {$measure_sample >= 0} {
+debug set_bp [getlabel foreground_continue] {$measure_sample >= 0} {
   set measure_acc [expr $measure_acc + [machine_info time] - $measure_sample]
   set measure_total [expr $measure_total + 1]
   set measure_sample -1
 }
 
 
-debug set_bp [dict get $symlabel play_sample] {$running} {
+debug set_bp [getlabel play_sample] {$running} {
   if {$last_sample > 0} {
     set freq [expr int(0.01 / ([machine_info time] - $last_sample))]
     dict incr freq_hist $freq
@@ -54,9 +52,9 @@ debug probe set_bp VDP.IRQhorizontal {
 }
 
 debug probe set_bp VDP.IRQvertical {
-  $running == 1 && $current_frame != [readmemw 0x103]
+  $running == 1 && $current_frame != [peek16 0x103]
 } {
-  set current_frame [readmemw 0x103]
+  set current_frame [peek16 0x103]
   puts stderr "Frame $current_frame"
   if {[debug read {VDP regs} 15] != 0} {
     puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
@@ -64,35 +62,43 @@ debug probe set_bp VDP.IRQvertical {
   }
 }
 
-debug set_bp 0xC000 {$current_frame >= 750} {
+debug set_bp [getlabel smart_zblit] {$running} {
   puts stderr "smart_zblit starting at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC003 {} {
+debug set_bp [getlabel smart_zblit_end] {$running} {
   puts stderr "smart_zblit ending at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC006 {$current_frame >= 750} {
+debug set_bp [getlabel zblit_end] {$running} {
+  puts stderr "smart_zblit ending at [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp [getlabel smart_palette] {$running} {
   puts stderr "smart_palette starting at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC009 {} {
+debug set_bp [getlabel smart_palette_end] {$running} {
   puts stderr "smart_palette ending at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC00C {$current_frame >= 750} {
+debug set_bp [getlabel palette_end] {$running} {
+  puts stderr "smart_palette ending at [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp [getlabel smart_vdp_command] {$running} {
   puts stderr "smart_vdp_command starting at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC012 {$current_frame >= 750} {
+debug set_bp [getlabel smart_vdp_command_queued] {$running} {
   puts stderr "smart_vdp_command queued at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC015 {$current_frame >= 750} {
+debug set_bp [getlabel smart_zblit_queued] {$running} {
   puts stderr "smart_zblit queued at [machine_info VDP_msx_y_pos]"
 }
 
-debug set_bp 0xC00F {} {
+debug set_bp [getlabel smart_vdp_command_end] {$running} {
   puts stderr "smart_vdp_command ending at [machine_info VDP_msx_y_pos]"
   if {$fast_emulation == 0} {
     set vdp_command_running [
@@ -108,12 +114,12 @@ debug set_bp 0xC00F {} {
   }
 }
 
-debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 521} {
+debug set_watchpoint write_mem 0x104 {[peek16 0x103] == 521} {
   record start "/home/ricbit/work/tmnt/tmntmsx.avi"
   set running 1
 }
 
-debug set_watchpoint write_mem 0x104 {[readmemw 0x103] == 1100} {
+debug set_watchpoint write_mem 0x104 {[peek16 0x103] == 1100} {
   record stop
   puts stderr "Histogram of frequencies:"
   foreach freq [lsort -integer [dict keys $freq_hist]] {
