@@ -52,9 +52,9 @@ debug probe set_bp VDP.IRQhorizontal {
 }
 
 debug probe set_bp VDP.IRQvertical {
-  $running == 1 && $current_frame != [peek16 0x103]
+  $running == 1 && $current_frame != [peek16 [getlabel current_frame]]
 } {
-  set current_frame [peek16 0x103]
+  set current_frame [peek16 [getlabel current_frame]]
   puts stderr "Frame $current_frame"
   if {[debug read {VDP regs} 15] != 0} {
     puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
@@ -114,12 +114,16 @@ debug set_bp [getlabel smart_vdp_command_end] {$running} {
   }
 }
 
-debug set_watchpoint write_mem 0x104 {[peek16 0x103] == 521} {
+debug set_watchpoint write_mem [expr 1 + [getlabel current_frame]] {
+  [peek16 [getlabel current_frame]] == 521
+} {
   record start "/home/ricbit/work/tmnt/tmntmsx.avi"
   set running 1
 }
 
-debug set_watchpoint write_mem 0x104 {[peek16 0x103] == 1100} {
+debug set_watchpoint write_mem [expr 1 + [getlabel current_frame]] {
+  [peek16 [getlabel current_frame]] == 1100
+} {
   record stop
   puts stderr "Histogram of frequencies:"
   foreach freq [lsort -integer [dict keys $freq_hist]] {
