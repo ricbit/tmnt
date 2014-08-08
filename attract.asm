@@ -2720,7 +2720,10 @@ end_of_code:
         endm
 
 ; Mapper pages 0-8
+                        PAGE_BEGIN
 theme_music:            incbin "raw/theme.pcm"
+                        .phase 08000h + ($ and 03FFFh)
+                        PAGE_END
 
 ; Mapper page 9
                         PAGE_BEGIN
