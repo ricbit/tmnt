@@ -2070,7 +2070,7 @@ zblit_main:
 zblit_rle:
         bit     6, a
         jr      nz, zblit_copy
-        sub     080h
+        sub     080h - 3
         ld      b, a
         ld      c, (hl)
         inc     hl
@@ -2082,7 +2082,7 @@ zblit_rle:
         djnz    1b
         jr      zblit_main
 zblit_copy:
-        sub     0C0h
+        sub     0C0h - 3
         ld      b, a
 1:
         ld      a, (ix)
@@ -2361,7 +2361,7 @@ foreground_rle_setup:
         jr      nz, foreground_copy_setup
         ld      bc, foreground_rle_step
         ld      (foreground + 1), bc
-        sub     080h
+        sub     080h - 3
         ld      b, a
         ld      c, (iy)
         ; fall through
@@ -2383,7 +2383,7 @@ foreground_rle_step:
 foreground_copy_setup:
         ld      bc, foreground_copy_step
         ld      (foreground + 1), bc
-        sub     0C0h
+        sub     0C0h - 3
         ld      b, a
         ld      c, 098h
         ; fall through
