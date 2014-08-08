@@ -4,7 +4,6 @@
         output  attract.com
 
         org     0100h
-        jp      start_main
 
 ; Required memory, in mapper 16kb selectors
 selectors       equ     14
@@ -417,9 +416,8 @@ alley_switch_frame              equ     930
 
 ; Check if a foreground task is running
         macro   CHECK_FOREGROUND
-        ld      a, (foreground + 1)
-        cp      low foreground_next
-        jp      nz, foreground_continue
+        ; Only high byte needs to be checked, 
+        ; since all other foreground routines start at higher addresses.
         ld      a, (foreground + 2)
         cp      high foreground_next
         jp      nz, foreground_continue
@@ -431,37 +429,6 @@ alley_switch_frame              equ     930
         ld      (foreground + 1), hl
         jp      (hl)
         endm
-
-; ----------------------------------------------------------------
-; Animation states.
-
-state_start:
-current_frame:          dw      520
-vertical_scroll:        db      0
-horizontal_scroll:      db      0
-palette_fade:           dw      cloud_fade_palette
-palette_fade_counter:   db      16
-cloud1_scroll:          db      158
-cloud2_scroll:          db      146
-cloud_tick:             db      1
-city_split_line:        db      189 + 10 + 6
-city_scroll:            dw      city_scroll_down5
-top_building_current:   dw      top_building_dyn_attr
-back_building_current:  dw      back_building_attr
-back_building_size:     dw      back_building_dyn_size
-back_building_cur_base: dw      back_building_base
-back_building_cur_pal:  dw      back_building_palette
-is_playing:             db      0
-pcm_mapper_page:        dw      mapper_selectors
-queue_pop:              dw      vdp_command_queue
-queue_push:             dw      vdp_command_queue
-current_city_beat:      dw      infinite_city_beat
-cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
-current_motion_blur:    dw      motion_blur_repeat
-motion_blur_line:       db      187
-alley_scroll_current:   dw      alley_scroll_repeat
-state_end:
-state_backup:           ds      state_end - state_start, 0
 
 ; ----------------------------------------------------------------
 ; Start of main program.
@@ -2545,6 +2512,37 @@ load_foreground_b:      db      0
 mapper_selectors:       ds      selectors, 0
 
 ; ----------------------------------------------------------------
+; Animation states.
+
+state_start:
+current_frame:          dw      520
+vertical_scroll:        db      0
+horizontal_scroll:      db      0
+palette_fade:           dw      cloud_fade_palette
+palette_fade_counter:   db      16
+cloud1_scroll:          db      158
+cloud2_scroll:          db      146
+cloud_tick:             db      1
+city_split_line:        db      189 + 10 + 6
+city_scroll:            dw      city_scroll_down5
+top_building_current:   dw      top_building_dyn_attr
+back_building_current:  dw      back_building_attr
+back_building_size:     dw      back_building_dyn_size
+back_building_cur_base: dw      back_building_base
+back_building_cur_pal:  dw      back_building_palette
+is_playing:             db      0
+pcm_mapper_page:        dw      mapper_selectors
+queue_pop:              dw      vdp_command_queue
+queue_push:             dw      vdp_command_queue
+current_city_beat:      dw      infinite_city_beat
+cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
+current_motion_blur:    dw      motion_blur_repeat
+motion_blur_line:       db      187
+alley_scroll_current:   dw      alley_scroll_repeat
+state_end:
+state_backup:           ds      state_end - state_start, 0
+
+; ----------------------------------------------------------------
 ; Misc strings.
 
 str_dos2_not_found:     db      "MSX-DOS 2 not found, sorry.", 13, 10, "$"
@@ -2570,7 +2568,7 @@ cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
 city_line_mask:         incbin  "cityline.z5"
-handles_begin           equ     0C100h
+handles_begin           equ     0C000h
 handles                 equ     handles_begin - 500 * 2
 black_palette:          ds      16 * 2, 0
 cloud_palette_final     equ     cloud_fade_palette + 512
