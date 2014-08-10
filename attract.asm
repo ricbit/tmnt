@@ -2569,9 +2569,6 @@ mapper_data_filename:   dz      "attract.dat"
 ; ----------------------------------------------------------------
 ; Data
 
-title_palette:          incbin  "title_bounce_palette.bin"
-title_bounce_data:      incbin  "title_bounce_scroll.bin"
-title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
@@ -2703,6 +2700,9 @@ opening_title:          incbin "tmnt.z5"
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
 city2b:                 incbin "city2b.z5"
+title_palette:          incbin  "title_bounce_palette.bin"
+title_bounce_data:      incbin  "title_bounce_scroll.bin"
+title_slide_data:       incbin  "title_slide_scroll.bin"
                         PAGE_END
 
 ; Mapper page 10
