@@ -108,6 +108,8 @@ pixels_alley1a_addr     equ     1E080h
 pixels_alley1b_addr     equ     18000h
 pixels_alleyline_addr   equ     1AC00h
 pixels_alley2a_addr     equ     02C00h
+pixels_alley2b_addr     equ     00000h
+pixels_alley2c_addr     equ     02C00h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1843,6 +1845,9 @@ motion_blur:
         ld      hl, alley1b
         QUEUE_VRAM_WRITE pixels_alley1b_addr
         call    queue_zblit
+        ld      hl, alley2b
+        QUEUE_VRAM_WRITE pixels_alley2b_addr
+        call    queue_zblit
         jp      return_irq_exx
 
 ; ----------------------------------------------------------------
@@ -1907,16 +1912,17 @@ alley_scroll1_city:
 
 alley_scroll1_switch:
         PREAMBLE_HORIZONTAL
+        ; Order is important!
         ld      a, (motion_blur_scroll)
         add     a, 72
         out     (09Bh), a
+        SET_PAGE 0
         exx
         COMPARE_FRAME 930
         jr      z, 1f
         ld      hl, alley_palette
         call    smart_palette
 1:
-        SET_PAGE 0
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -1931,12 +1937,8 @@ alley_scroll2:
         VDP_STATUS 1
         ENABLE_HIRQ
         exx
-        COMPARE_FRAME 944
-        jr      nz, 1f
-        ld      hl, alley2b
-        QUEUE_VRAM_WRITE 0
-        call    queue_zblit
-1:
+        ld      hl, city_palette_final
+        call    smart_palette
         ld      a, (motion_blur_scroll)
         add     a, 10
         ld      (motion_blur_scroll), a
@@ -1952,6 +1954,8 @@ alley_scroll2_city:
         out     (09Bh), a
         exx
         SET_PAGE 0
+        ld      hl, alley_palette
+        call    smart_palette
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -1967,6 +1971,11 @@ alley_scroll3:
         VDPREG vdp_vscroll
         exx
         SET_PAGE 0
+        COMPARE_FRAME 956
+        jr      nz, frame_end
+        ld      hl, alley2c
+        QUEUE_VRAM_WRITE pixels_alley2c_addr
+        call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2740,6 +2749,7 @@ alley1a:                incbin "alley1a.z5"
 alley1b:                incbin "alley1b.z5"
 alley2a:                incbin "alley2a.z5"
 alley2b:                incbin "alley2b.z5"
+alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
                         PAGE_END
 

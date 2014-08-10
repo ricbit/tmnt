@@ -8,7 +8,7 @@ TOP_BUILDING = top_building_patt.sc5 top_building_attr.sc5 \
 CITY_PIXELS = city2a.sc5 city2b.sc5 city2c.sc5 city2d.sc5 city2e.sc5 \
               city2f.sc5 city2g.sc5
 
-ALLEY_PIXELS = alley1a.sc5 alley1b.sc5 alley2a.sc5 alley2b.sc5
+ALLEY_PIXELS = alley1a.sc5 alley1b.sc5 alley2a.sc5 alley2b.sc5 alley2c.sc5
 
 MOON_SPRITES = moon_pattern.sc5 moon_attr.sc5
 
