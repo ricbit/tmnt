@@ -104,12 +104,12 @@ title_addr              equ     08000h
 city2_continue1_addr    equ     1FC80h
 city2_continue2_addr    equ     18000h
 city2_continue3_addr    equ     1A800h
-pixels_alley1a_addr     equ     1E080h
-pixels_alley1b_addr     equ     18000h
-pixels_alleyline_addr   equ     1AC00h
-pixels_alley2a_addr     equ     02C00h
-pixels_alley2b_addr     equ     00000h
-pixels_alley2c_addr     equ     02C00h
+alley1a_addr            equ     1E080h
+alley1b_addr            equ     18000h
+alleyline_addr          equ     1AC00h
+alley2a_addr            equ     02C00h
+alley2b_addr            equ     00000h
+alley2c_addr            equ     02C00h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -430,6 +430,26 @@ alley_switch_frame              equ     930
         ld      hl, foreground_next
         ld      (foreground + 1), hl
         jp      (hl)
+        endm
+
+; Queue zblit
+        macro   QUEUE_ZBLIT vramaddr, cpuaddr
+        QUEUE_VRAM_WRITE vramaddr
+        ld      hl, cpuaddr
+        call    queue_zblit
+        endm
+
+; Queue zblit indirect
+        macro   QUEUE_ZBLIT_IND vramaddr, pointer
+        QUEUE_VRAM_WRITE vramaddr
+        ld      hl, (pointer)
+        call    queue_zblit
+        endm
+
+; Queue mapper
+        macro   QUEUE_MAPPER page
+        ld      a, page
+        call    queue_mapper
         endm
 
 ; ----------------------------------------------------------------
@@ -1264,9 +1284,7 @@ set_absolute_scroll:
 
 update_top_building_sprite:
         ; Update the top building sprite attributes.
-        QUEUE_VRAM_WRITE top_building_attr_addr
-        ld      hl, (top_building_current)
-        call    queue_zblit
+        QUEUE_ZBLIT_IND top_building_attr_addr, top_building_current
         ld      hl, (top_building_current)
         ld      de, 2 + top_building_attr_size
         add     hl, de
@@ -1556,13 +1574,9 @@ queue_infinite_city:
 
 queue_back_building_attr:
         ; Set back building attr.
-        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
-        ld      hl, (back_building_current)
-        call    queue_zblit
+        QUEUE_ZBLIT_IND back_building_attr_addr - 512, back_building_current
         call    update_back_building_pointers
-        QUEUE_VRAM_WRITE back_building_attr_addr
-        ld      hl, (back_building_current)
-        call    queue_zblit
+        QUEUE_ZBLIT_IND back_building_attr_addr, back_building_current
         jp      update_back_building_pointers
 
 prepare_city_overlay:
@@ -1686,9 +1700,7 @@ city_scroll2_after_parallax:
         COMPARE_FRAME city_scroll2_last_frame
         jr      z, 1f
         ; Set back building sprite colors
-        QUEUE_VRAM_WRITE (back_building_attr_addr - 512)
-        ld      hl, (back_building_current)
-        call    queue_zblit
+        QUEUE_ZBLIT_IND back_building_attr_addr - 512, back_building_current
         call    update_back_building_pointers
 
         ; Copy city2 from page 0 to page 3.
@@ -1696,9 +1708,7 @@ city_scroll2_after_parallax:
         call    nc, queue_infinite_city
 
         ; Set back building sprite attr
-        QUEUE_VRAM_WRITE back_building_attr_addr
-        ld      hl, (back_building_current)
-        call    queue_zblit
+        QUEUE_ZBLIT_IND back_building_attr_addr, back_building_current
         call    update_back_building_pointers
         jp      frame_end_disable
 1:
@@ -1747,30 +1757,19 @@ city_scroll4:
 
         ld      hl, cmd_city_preload_2
         call    queue_vdp_command
+
         MAPPER_P2 12
-        ld      hl, city2e
-        QUEUE_VRAM_WRITE city2_continue1_addr
-        call    queue_zblit
-        ld      hl, city2f
-        QUEUE_VRAM_WRITE city2_continue2_addr
-        call    queue_zblit
+        QUEUE_ZBLIT city2_continue1_addr, city2e
+        QUEUE_ZBLIT city2_continue2_addr, city2f
         jp      frame_end
 1:
         COMPARE_FRAME 872
         jp      nz, frame_end
-        ld      a, 8
-        call    queue_mapper
-        ld      hl, city2g
-        QUEUE_VRAM_WRITE city2_continue3_addr
-        call    queue_zblit
-        ld      a, 13
-        call    queue_mapper
-        ld      hl, alley2a
-        QUEUE_VRAM_WRITE pixels_alley2a_addr
-        call    queue_zblit
-        ld      hl, alleyline
-        QUEUE_VRAM_WRITE pixels_alleyline_addr
-        call    queue_zblit
+        MAPPER_P2 8
+        QUEUE_ZBLIT city2_continue3_addr, city2g
+        QUEUE_MAPPER 13
+        QUEUE_ZBLIT alley2a_addr, alley2a
+        QUEUE_ZBLIT alleyline_addr, alleyline
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1839,15 +1838,9 @@ motion_blur:
         jp      nz, return_irq_exx
 
         MAPPER_P2 13
-        ld      hl, alley1a
-        QUEUE_VRAM_WRITE pixels_alley1a_addr
-        call    queue_zblit
-        ld      hl, alley1b
-        QUEUE_VRAM_WRITE pixels_alley1b_addr
-        call    queue_zblit
-        ld      hl, alley2b
-        QUEUE_VRAM_WRITE pixels_alley2b_addr
-        call    queue_zblit
+        QUEUE_ZBLIT alley1a_addr, alley1a
+        QUEUE_ZBLIT alley1b_addr, alley1b
+        QUEUE_ZBLIT alley2b_addr, alley2b
         jp      return_irq_exx
 
 ; ----------------------------------------------------------------
@@ -1973,9 +1966,7 @@ alley_scroll3:
         SET_PAGE 0
         COMPARE_FRAME 956
         jr      nz, frame_end
-        ld      hl, alley2c
-        QUEUE_VRAM_WRITE pixels_alley2c_addr
-        call    queue_zblit
+        QUEUE_ZBLIT alley2c_addr, alley2c
         jp      frame_end
 
 ; ----------------------------------------------------------------
