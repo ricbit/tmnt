@@ -1763,6 +1763,12 @@ city_scroll4:
         call    queue_zblit
         ld      a, 13
         call    queue_mapper
+        ld      hl, alley2a
+        QUEUE_VRAM_WRITE pixels_alley2a_addr
+        call    queue_zblit
+        ld      hl, alleyline
+        QUEUE_VRAM_WRITE pixels_alleyline_addr
+        call    queue_zblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1830,17 +1836,12 @@ motion_blur:
         COMPARE_FRAME 903
         jp      nz, return_irq_exx
 
+        MAPPER_P2 13
         ld      hl, alley1a
         QUEUE_VRAM_WRITE pixels_alley1a_addr
         call    queue_zblit
         ld      hl, alley1b
         QUEUE_VRAM_WRITE pixels_alley1b_addr
-        call    queue_zblit
-        ld      hl, alley2a
-        QUEUE_VRAM_WRITE pixels_alley2a_addr
-        call    queue_zblit
-        ld      hl, alleyline
-        QUEUE_VRAM_WRITE pixels_alleyline_addr
         call    queue_zblit
         jp      return_irq_exx
 
@@ -1864,6 +1865,8 @@ alley_scroll1:
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
+        ld      hl, city_palette_final
+        call    smart_palette
         ld      hl, (alley_scroll_current)
         ld      a, (hl)
         inc     hl
@@ -1908,6 +1911,11 @@ alley_scroll1_switch:
         add     a, 72
         out     (09Bh), a
         exx
+        COMPARE_FRAME 930
+        jr      z, 1f
+        ld      hl, alley_palette
+        call    smart_palette
+1:
         SET_PAGE 0
         jp      frame_end_disable
 
@@ -2567,7 +2575,7 @@ title_slide_data:       incbin  "title_slide_scroll.bin"
 cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
-city_line_mask:         incbin  "cityline.z5"
+alley_palette:          incbin  "alley_palette.bin"
 handles_begin           equ     0C000h
 handles                 equ     handles_begin - 500 * 2
 black_palette:          ds      16 * 2, 0
@@ -2715,6 +2723,7 @@ back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
 back_building_palette:  incbin "back_building_palette.bin"
+city_line_mask:         incbin  "cityline.z5"
                         PAGE_END
 
 ; Mapper page 12
