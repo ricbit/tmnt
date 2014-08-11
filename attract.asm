@@ -110,6 +110,7 @@ alleyline_addr          equ     1AC00h
 alley2a_addr            equ     02C00h
 alley2b_addr            equ     00000h
 alley2c_addr            equ     02C00h
+manhole_addr            equ     08000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1770,6 +1771,7 @@ city_scroll4:
         QUEUE_MAPPER 13
         QUEUE_ZBLIT alley2a_addr, alley2a
         QUEUE_ZBLIT alleyline_addr, alleyline
+        QUEUE_ZBLIT manhole_addr, manhole
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2742,6 +2744,7 @@ alley2a:                incbin "alley2a.z5"
 alley2b:                incbin "alley2b.z5"
 alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
+manhole:                incbin "manhole.z5"
                         PAGE_END
 
         end
