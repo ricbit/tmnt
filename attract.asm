@@ -1967,7 +1967,7 @@ alley_scroll3:
         exx
         SET_PAGE 0
         COMPARE_FRAME 956
-        jr      nz, frame_end
+        jp      nz, frame_end
         QUEUE_ZBLIT alley2c_addr, alley2c
         jp      frame_end
 
@@ -1982,6 +1982,33 @@ alley_stand:
         exx
         SET_PAGE 0
         jp      frame_end
+
+; ----------------------------------------------------------------
+; State: exploding_manhole
+; Manhole explodes.
+
+exploding_manhole:
+        PREAMBLE_VERTICAL
+        exx
+        ld      a, (manhole_split)
+        VDPREG vdp_hsplit_line
+        ld      a, (manhole_split)
+        sub     16
+        ld      (manhole_split), a
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE exploding_manhole_copy
+        jp      return_irq_exx
+
+exploding_manhole_copy:
+        PREAMBLE_HORIZONTAL
+        exx
+        ld      a, (manhole_cmd + 7)
+        sub     16
+        ld      (manhole_cmd + 7), a
+        ld      hl, manhole_cmd
+        call    smart_vdp_command
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2549,6 +2576,8 @@ cmd_infinite_city_1:    VDP_YMMM 51, 0, 768, 0
 current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
 alley_scroll_current:   dw      alley_scroll_repeat
+manhole_split:          db      184
+manhole_cmd:            VDP_LMMM 0, 256, 103, 152, 63, 31, vdp_timp
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
