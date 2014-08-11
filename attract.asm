@@ -2009,15 +2009,29 @@ exploding_manhole:
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE exploding_manhole_copy
+        COMPARE_FRAME 1034
+        jp      c, return_irq_exx
+
+        ld      a, (manhole_cmd2 + 7)
+        sub     16
+        ld      (manhole_cmd2 + 7), a
+        ld      hl, manhole_cmd2
+        call    queue_vdp_command
+
+        ld      a, (manhole_cmd3 + 3)
+        sub     16
+        ld      (manhole_cmd3 + 3), a
+        ld      hl, manhole_cmd3
+        call    queue_vdp_command
         jp      return_irq_exx
 
 exploding_manhole_copy:
         PREAMBLE_HORIZONTAL
         exx
-        ld      a, (manhole_cmd + 7)
+        ld      a, (manhole_cmd1 + 7)
         sub     16
-        ld      (manhole_cmd + 7), a
-        ld      hl, manhole_cmd
+        ld      (manhole_cmd1 + 7), a
+        ld      hl, manhole_cmd1
         call    smart_vdp_command
         jp      frame_end_disable
 
@@ -2588,7 +2602,9 @@ current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
 alley_scroll_current:   dw      alley_scroll_repeat
 manhole_split:          db      184
-manhole_cmd:            VDP_LMMM 0, 256, 103, 152, 63, 31, vdp_timp
+manhole_cmd1:           VDP_LMMM 0, 256, 103, 152, 63, 13, vdp_timp
+manhole_cmd2:           VDP_HMMM 0, 256 + 13, 103, 152 + 13, 64, 31 - 13
+manhole_cmd3:           VDP_HMMV 103, 152 + 31, 64, 16, 0AAh
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
