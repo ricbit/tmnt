@@ -1969,6 +1969,8 @@ alley_scroll3:
         COMPARE_FRAME 956
         jp      nz, frame_end
         QUEUE_ZBLIT alley2c_addr, alley2c
+        ld      hl, cmd_copy_alley
+        call    queue_vdp_command
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1982,6 +1984,15 @@ alley_stand:
         exx
         SET_PAGE 0
         jp      frame_end
+
+; ----------------------------------------------------------------
+; State: alley_stand2
+; Alley reached the ground, on page 2.
+
+alley_stand2:
+        PREAMBLE_VERTICAL
+        SET_PAGE 2
+        jp      frame_end_exx
 
 ; ----------------------------------------------------------------
 ; State: exploding_manhole
@@ -2698,6 +2709,10 @@ cmd_overlay_city_3:
 ; Copy city preload2 to page 3.
 cmd_city_preload_2:
         VDP_YMMM 256 + 212, 0, 973, 44
+
+; Copy alley to page 2.
+cmd_copy_alley:
+        VDP_YMMM 0, 0, 512, 192
 
 end_of_code:
         assert  end_of_code <= 04000h
