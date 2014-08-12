@@ -268,20 +268,23 @@ pair<vector<int>, vector<int>> get_attr(T a) {
 }
 
 vector<int> compress(const vector<int>& stream) {
-  int size = stream.size();
-  int pos = 0;
-  vector<int> ans;
-  while (size) {
-    int s = min(127, size);
-    ans.push_back(s);
-    for (int i = 0; i < s; i++) {
-      ans.push_back(stream[pos + i]);
-    }
-    pos += s;
-    size -= s;
+  auto f = fopen("/tmp/tmnt.sc5", "wb");
+  for (int value : stream) {
+    fputc(value, f);
   }
-  ans.push_back(0);
-  return ans;
+  fclose(f);
+  if (system(
+      "python tools/compress_graphics.py /tmp/tmnt.sc5 /tmp/tmnt.z5") == -1) {
+    abort();
+  }
+  vector<int> out;
+  f = fopen("/tmp/tmnt.z5", "rb");
+  int value;
+  while ((value = fgetc(f)) != EOF) {
+    out.push_back(value);
+  }
+  fclose(f);
+  return out;
 }
 
 template<typename T>
