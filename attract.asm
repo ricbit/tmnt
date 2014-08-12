@@ -1991,7 +1991,13 @@ alley_stand:
 
 alley_stand2:
         PREAMBLE_VERTICAL
-        SET_PAGE 2
+        ; Blink between pages 0 and 2.
+        ld      a, (current_frame)
+        rrca
+        rrca
+        and     01000000b
+        or      011111b
+        VDPREG  vdp_set_page
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
@@ -2033,6 +2039,11 @@ exploding_manhole_copy:
         ld      (manhole_cmd1 + 7), a
         ld      hl, manhole_cmd1
         call    smart_vdp_command
+        COMPARE_FRAME 1043
+        jr      nz, frame_end_disable
+
+        ld      hl, cmd_explosion_end
+        call    queue_vdp_command
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -2729,6 +2740,10 @@ cmd_city_preload_2:
 ; Copy alley to page 2.
 cmd_copy_alley:
         VDP_YMMM 0, 0, 512, 192
+
+; Top of manhole explosion.
+cmd_explosion_end:
+        VDP_HMMV 103, 0, 64, 31 + 16, 0AAh
 
 end_of_code:
         assert  end_of_code <= 04000h
