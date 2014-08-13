@@ -413,7 +413,9 @@ alley_switch_frame              equ     930
         else
         add     a, value
         endif
+        if      mask != 255
         and     mask
+        endif
         ld      reg, a
         endm
 
@@ -451,6 +453,13 @@ alley_switch_frame              equ     930
         macro   QUEUE_MAPPER page
         ld      a, page
         call    queue_mapper
+        endm
+
+; Subtract a value from a memory variable.
+        macro   SUB_VAR var, value
+        ld      a, (var)
+        sub     value
+        ld      (var), a
         endm
 
 ; ----------------------------------------------------------------
@@ -1490,9 +1499,7 @@ city_scroll1:
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         add     a, b
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
@@ -1501,9 +1508,7 @@ city_scroll1:
         jp      return_irq_exx
 
 city_scroll1_exit_early:
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         call    queue_infinite_city
         jp      frame_end
 
@@ -1650,9 +1655,7 @@ city_scroll2:
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         add     a, b
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
@@ -1725,9 +1728,7 @@ city_scroll2_after_parallax:
 city_scroll3:
         PREAMBLE_VERTICAL
         ; Set v scroll.
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         neg
         add     a, 204
         VDPREG  vdp_vscroll
@@ -1744,9 +1745,7 @@ city_scroll3:
 city_scroll4:
         PREAMBLE_VERTICAL
         ; Set v scroll.
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         neg
         add     a, 204
         VDPREG  vdp_vscroll
@@ -1782,9 +1781,7 @@ city_scroll4:
 city_scroll5:
         PREAMBLE_VERTICAL
         ; Set v scroll.
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         neg
         add     a, 204
         ld      (motion_blur_scroll), a
@@ -1804,9 +1801,7 @@ city_scroll5:
 
 city_scroll5_split:
         PREAMBLE_HORIZONTAL
-        ld      a, (motion_blur_scroll)
-        sub     64
-        ld      (motion_blur_scroll), a
+        SUB_VAR motion_blur_scroll, 64
         VDPREG vdp_vscroll
         exx
         ld      hl, motion_blur_counter
@@ -1883,9 +1878,7 @@ alley_scroll1:
 
 alley_scroll1_split:
         PREAMBLE_HORIZONTAL
-        ld      a, (motion_blur_scroll)
-        sub     64
-        ld      (motion_blur_scroll), a
+        SUB_VAR motion_blur_scroll, 64
         VDPREG vdp_vscroll
         exx
         ld      hl, motion_blur_counter
@@ -2011,23 +2004,17 @@ exploding_manhole:
         exx
         ld      a, (manhole_split)
         VDPREG vdp_hsplit_line
-        ld      a, (manhole_split)
-        sub     16
-        ld      (manhole_split), a
+        SUB_VAR manhole_split, 16
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE exploding_manhole_copy
         COMPARE_FRAME 1034
         jp      c, return_irq_exx
 
-        ld      a, (manhole_cmd2 + 7)
-        sub     16
-        ld      (manhole_cmd2 + 7), a
+        SUB_VAR manhole_cmd2 + 7, 16
         ld      hl, manhole_cmd2
         call    queue_vdp_command
-        ld      a, (manhole_cmd3 + 3)
-        sub     16
-        ld      (manhole_cmd3 + 3), a
+        SUB_VAR manhole_cmd3 + 3, 16
 
         COMPARE_FRAME 1034
         jp      z, 1f
@@ -2043,9 +2030,7 @@ exploding_manhole:
 exploding_manhole_copy:
         PREAMBLE_HORIZONTAL
         exx
-        ld      a, (manhole_cmd1 + 7)
-        sub     16
-        ld      (manhole_cmd1 + 7), a
+        SUB_VAR manhole_cmd1 + 7, 16
         ld      hl, manhole_cmd1
         call    smart_vdp_command
         COMPARE_FRAME 1043

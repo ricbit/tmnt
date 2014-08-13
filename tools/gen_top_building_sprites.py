@@ -55,7 +55,7 @@ for f in xrange(-6, 28):
   attr.append(len(frame))
   attr.extend(frame)
   attr.append(0)
-print "frame : ", len(frame)
+# print "frame : ", len(frame)
 f = open("top_building_dyn_attr.bin", "wb")
 f.write("".join(chr(i) for i in attr))
 f.close()
