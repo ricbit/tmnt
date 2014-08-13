@@ -1978,7 +1978,26 @@ alley_stand:
         VDPREG vdp_vscroll
         exx
         SET_PAGE 0
+        COMPARE_FRAME 971
+        jp      nz, frame_end
+        ld      hl, cmd_light_manhole
+        call    queue_vdp_command
         jp      frame_end
+
+; ----------------------------------------------------------------
+; State: blinking_manhole
+; Bottom of manhole is blinking.
+
+blinking_manhole:
+        PREAMBLE_VERTICAL
+        ; Blink between pages 0 and 2.
+        ld      a, (current_frame)
+        rrca
+        rrca
+        and     01000000b
+        xor     01011111b
+        VDPREG  vdp_set_page
+        jp      frame_end_exx
 
 ; ----------------------------------------------------------------
 ; State: alley_stand2
@@ -2001,6 +2020,7 @@ alley_stand2:
 
 exploding_manhole:
         PREAMBLE_VERTICAL
+        SET_PAGE 0
         exx
         ld      a, (manhole_split)
         VDPREG vdp_hsplit_line
@@ -2742,6 +2762,10 @@ cmd_explosion_end:
 ; Bottom of manhole explosion.
 cmd_bottom_manhole:
         VDP_HMMM 128, 256, 103, 167, 64, 21
+
+; Lights coming out of manhole.
+cmd_light_manhole:
+        VDP_HMMM 64, 256, 103, 167 + 512, 64, 21
 
 end_of_code:
         assert  end_of_code <= 04000h
