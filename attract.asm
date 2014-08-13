@@ -459,6 +459,19 @@ alley_switch_frame              equ     930
         macro   SMART_PALETTE palette
         ld      hl, palette
         call    smart_palette
+	endm
+
+; Smart VDP command
+        macro   SMART_VDP_COMMAND command
+        ld      hl, command
+        call    smart_vdp_command
+	endm
+
+; Queue VDP command
+        macro   QUEUE_VDP_COMMAND command
+        ld      hl, command
+        call    queue_vdp_command
+	endm
 
 ; Subtract a value from a memory variable.
         macro   SUB_VAR var, value
@@ -1038,8 +1051,7 @@ title_stand:
 erase_title_vram:
         PREAMBLE_VERTICAL
         exx
-        ld      hl, cmd_erase_vram_page0
-        call    smart_vdp_command
+        SMART_VDP_COMMAND cmd_erase_vram_page0
         VDP_STATUS 0
         jp      frame_end
 
@@ -1480,10 +1492,8 @@ city_scroll1:
         call    prepare_city_overlay
         call    update_top_building_sprite
 
-        ld      hl, cmd_overlay_city_2
-        call    queue_vdp_command
-        ld      hl, cmd_overlay_city_3
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_overlay_city_2
+        QUEUE_VDP_COMMAND cmd_overlay_city_3
 
         COMPARE_FRAME city_scroll1_first_frame
         jp      z, city_scroll1_exit_early
@@ -1660,10 +1670,8 @@ city_scroll2:
         VDP_STATUS 1
         ENABLE_HIRQ
         call    set_back_building_palette
-        ld      hl, cmd_overlay_city_2
-        call    queue_vdp_command
-        ld      hl, cmd_overlay_city_3
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_overlay_city_2
+        QUEUE_VDP_COMMAND cmd_overlay_city_3
         NEXT_HANDLE city_scroll2_foreground
         jp      return_irq_exx
 
@@ -1754,8 +1762,7 @@ city_scroll4:
         COMPARE_FRAME city_scroll4_first_frame
         jp      nz, 1f
 
-        ld      hl, cmd_city_preload_2
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_city_preload_2
 
         MAPPER_P2 12
         QUEUE_ZBLIT city2_continue1_addr, city2e
@@ -1959,8 +1966,7 @@ alley_scroll3:
         jp      nz, frame_end
         MAPPER_P2 13
         QUEUE_ZBLIT alley2c_addr, alley2c
-        ld      hl, cmd_copy_alley
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_copy_alley
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1975,8 +1981,7 @@ alley_stand:
         SET_PAGE 0
         COMPARE_FRAME 971
         jp      nz, frame_end
-        ld      hl, cmd_light_manhole
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_light_manhole
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2027,32 +2032,27 @@ exploding_manhole:
         jp      c, return_irq_exx
 
         SUB_VAR manhole_cmd2 + 7, 16
-        ld      hl, manhole_cmd2
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND manhole_cmd2
         SUB_VAR manhole_cmd3 + 3, 16
 
         COMPARE_FRAME 1034
         jp      z, 1f
 
-        ld      hl, manhole_cmd3
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND manhole_cmd3
         jp      return_irq_exx
 1:
-        ld      hl, cmd_bottom_manhole
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_bottom_manhole
         jp      return_irq_exx
 
 exploding_manhole_copy:
         PREAMBLE_HORIZONTAL
         exx
         SUB_VAR manhole_cmd1 + 7, 16
-        ld      hl, manhole_cmd1
-        call    smart_vdp_command
+        SMART_VDP_COMMAND manhole_cmd1
         COMPARE_FRAME 1043
         jr      nz, frame_end_disable
 
-        ld      hl, cmd_explosion_end
-        call    queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_explosion_end
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
