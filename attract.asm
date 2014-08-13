@@ -2023,11 +2023,18 @@ exploding_manhole:
         ld      (manhole_cmd2 + 7), a
         ld      hl, manhole_cmd2
         call    queue_vdp_command
-
         ld      a, (manhole_cmd3 + 3)
         sub     16
         ld      (manhole_cmd3 + 3), a
+
+        COMPARE_FRAME 1034
+        jp      z, 1f
+
         ld      hl, manhole_cmd3
+        call    queue_vdp_command
+        jp      return_irq_exx
+1:
+        ld      hl, cmd_bottom_manhole
         call    queue_vdp_command
         jp      return_irq_exx
 
@@ -2744,6 +2751,10 @@ cmd_copy_alley:
 ; Top of manhole explosion.
 cmd_explosion_end:
         VDP_HMMV 103, 0, 64, 31 + 16, 0AAh
+
+; Bottom of manhole explosion.
+cmd_bottom_manhole:
+        VDP_HMMM 128, 256, 103, 167, 64, 21
 
 end_of_code:
         assert  end_of_code <= 04000h
