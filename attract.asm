@@ -1839,9 +1839,10 @@ motion_blur:
         COMPARE_FRAME 903
         jp      nz, return_irq_exx
 
-        MAPPER_P2 13
+        MAPPER_P2 11
         QUEUE_ZBLIT alley1a_addr, alley1a
         QUEUE_ZBLIT alley1b_addr, alley1b
+        QUEUE_MAPPER 12
         QUEUE_ZBLIT alley2b_addr, alley2b
         jp      return_irq_exx
 
@@ -1968,6 +1969,7 @@ alley_scroll3:
         SET_PAGE 0
         COMPARE_FRAME 956
         jp      nz, frame_end
+        MAPPER_P2 13
         QUEUE_ZBLIT alley2c_addr, alley2c
         ld      hl, cmd_copy_alley
         call    queue_vdp_command
@@ -2788,9 +2790,9 @@ opening_title:          incbin "tmnt.z5"
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
 city2b:                 incbin "city2b.z5"
-title_palette:          incbin  "title_bounce_palette.bin"
-title_bounce_data:      incbin  "title_bounce_scroll.bin"
-title_slide_data:       incbin  "title_slide_scroll.bin"
+title_palette:          incbin "title_bounce_palette.bin"
+title_bounce_data:      incbin "title_bounce_scroll.bin"
+title_slide_data:       incbin "title_slide_scroll.bin"
                         PAGE_END
 
 ; Mapper page 10
@@ -2811,7 +2813,9 @@ back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
 back_building_palette:  incbin "back_building_palette.bin"
-city_line_mask:         incbin  "cityline.z5"
+city_line_mask:         incbin "cityline.z5"
+alley1a:                incbin "alley1a.z5"
+alley1b:                incbin "alley1b.z5"
                         PAGE_END
 
 ; Mapper page 12
@@ -2820,14 +2824,12 @@ city2a:                 incbin "city2a.z5"
 city2d:                 incbin "city2d.z5"
 city2e:                 incbin "city2e.z5"
 city2f:                 incbin "city2f.z5"
+alley2b:                incbin "alley2b.z5"
                         PAGE_END
 
 ; Mapper page 13
                         PAGE_BEGIN
-alley1a:                incbin "alley1a.z5"
-alley1b:                incbin "alley1b.z5"
 alley2a:                incbin "alley2a.z5"
-alley2b:                incbin "alley2b.z5"
 alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
