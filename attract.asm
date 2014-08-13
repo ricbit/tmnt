@@ -453,6 +453,12 @@ alley_switch_frame              equ     930
         call    queue_mapper
         endm
 
+; Smart palette
+        macro   SMART_PALETTE palette
+        ld      hl, palette
+        call    smart_palette
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -1061,8 +1067,7 @@ disable_screen_black:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
         exx
-        ld      hl, black_palette
-        call    smart_palette
+        SMART_PALETTE black_palette
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1311,8 +1316,7 @@ cloud_down2:
         add     a, 2
         ld      (vertical_scroll), a
         VDPREG vdp_vscroll
-        ld      hl, cloud_palette_final
-        call    smart_palette
+        SMART_PALETTE cloud_palette_final
 
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -1343,8 +1347,7 @@ cloud_down3:
         ld      (vertical_scroll), a
         VDPREG vdp_vscroll
         exx
-        ld      hl, cloud_palette_final
-        call    smart_palette
+        SMART_PALETTE cloud_palette_final
         VDP_STATUS 1
         ENABLE_HIRQ
         ; Patch the scroll values for cloud 2.
@@ -1382,8 +1385,7 @@ cloud_down3_second_bottom:
         VDPREG vdp_vscroll
         SET_PAGE 1
         exx
-        ld      hl, city_palette_final
-        call    smart_palette
+        SMART_PALETTE city_palette_final
         call    update_cloud_scroll
         jp      frame_end_disable
 
@@ -1414,8 +1416,7 @@ cloud_down4_start:
         ld      (vertical_scroll), a
         VDPREG vdp_vscroll
         exx
-        ld      hl, cloud_palette_final
-        call    smart_palette
+        SMART_PALETTE cloud_palette_final
         VDP_STATUS 1
         ENABLE_HIRQ
         ; Set directly the scroll values for cloud 2.
@@ -1435,8 +1436,7 @@ cloud_down4_second_bottom:
         VDPREG vdp_vscroll
         SET_PAGE 1
         exx
-        ld      hl, city_palette_final
-        call    smart_palette
+        SMART_PALETTE city_palette_final
         ; Update top building sprites only on the last frames.
         COMPARE_FRAME down4_sprite_start_frame
         jr      nc, 1f
@@ -1865,8 +1865,7 @@ alley_scroll1:
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
         ENABLE_HIRQ
-        ld      hl, city_palette_final
-        call    smart_palette
+        SMART_PALETTE city_palette_final
         ld      hl, (alley_scroll_current)
         ld      a, (hl)
         inc     hl
@@ -1915,8 +1914,7 @@ alley_scroll1_switch:
         exx
         COMPARE_FRAME 930
         jr      z, 1f
-        ld      hl, alley_palette
-        call    smart_palette
+        SMART_PALETTE alley_palette
 1:
         jp      frame_end_disable
 
@@ -1932,8 +1930,7 @@ alley_scroll2:
         VDP_STATUS 1
         ENABLE_HIRQ
         exx
-        ld      hl, city_palette_final
-        call    smart_palette
+        SMART_PALETTE city_palette_final
         ld      a, (motion_blur_scroll)
         add     a, 10
         ld      (motion_blur_scroll), a
@@ -1949,8 +1946,7 @@ alley_scroll2_city:
         out     (09Bh), a
         exx
         SET_PAGE 0
-        ld      hl, alley_palette
-        call    smart_palette
+        SMART_PALETTE alley_palette
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -2056,8 +2052,7 @@ disable_screen_title:
         SPRITES_OFF
         SET_PAGE 1
         exx
-        ld      hl, title_palette
-        call    smart_palette
+        SMART_PALETTE title_palette
         jp      frame_end
 
 ; ----------------------------------------------------------------
