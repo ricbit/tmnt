@@ -154,13 +154,6 @@ struct SpriteCover {
           if (lines[s.y + i] > 8 &&
               (s.bitpattern[i] || s.bitpattern[i + 16])) {
             //cout << "More than 8 sprites per line\n";
-            /*if (frame_number == 10) {
-              dump_sprites();
-              for (int i = 0; i < int(sprite.size()); i++) {
-                cout << i << " : " << sprite[i].y << "\n";
-              }
-              exit(0);
-            }*/
             return false;
           }
         }
@@ -205,8 +198,8 @@ pair<int, SpriteCover> find_cover(
           city1, city2, cityline, scroll1, scroll2, 
           split, i, limit, frame_number, bestp);
       cover.solve();
-      cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
-           << " start y : " << i << " palette : " << bestp << "\n";
+      //cout << "scroll1: " << scroll1 << " : size " << cover.sprite.size() 
+      //     << " start y : " << i << " palette : " << bestp << "\n";
       return make_pair(bestp, cover);
     }
   }
@@ -291,7 +284,7 @@ template<typename T>
 void save_patterns(T block) {
   auto f = fopen("back_building_patt.sc5", "wb");
   for (const auto& b : block) {
-    cout << "block size " << b->patterns.size() << "\n";
+    //cout << "block size " << b->patterns.size() << "\n";
     for (const auto& patt : b->patterns) {
       for (int p : patt) {
         fputc(p, f);
@@ -349,7 +342,7 @@ int main() {
   vector<tuple<int, vector<int>, SpriteCover, int>> attr;
   block.push_back(new SpriteBlock());
   for (int i = 1; i <= 26; i++) {
-    cout << "Frame " << i << " (" << (833 + i) << ") ";
+    //cout << "Frame " << i << " (" << (833 + i) << ") ";
     auto cover_pair = find_cover(
         city1, city2, cityline, i * 2, 9 + i * 10, 195 - i * 8, i);
     SpriteBlock* last = *block.rbegin();

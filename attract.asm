@@ -413,7 +413,9 @@ alley_switch_frame              equ     930
         else
         add     a, value
         endif
+        if      mask != 255
         and     mask
+        endif
         ld      reg, a
         endm
 
@@ -457,6 +459,12 @@ alley_switch_frame              equ     930
         macro   SMART_PALETTE palette
         ld      hl, palette
         call    smart_palette
+
+; Subtract a value from a memory variable.
+        macro   SUB_VAR var, value
+        ld      a, (var)
+        sub     value
+        ld      (var), a
         endm
 
 ; ----------------------------------------------------------------
@@ -1490,9 +1498,7 @@ city_scroll1:
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         add     a, b
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
@@ -1501,9 +1507,7 @@ city_scroll1:
         jp      return_irq_exx
 
 city_scroll1_exit_early:
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         call    queue_infinite_city
         jp      frame_end
 
@@ -1650,9 +1654,7 @@ city_scroll2:
         ; H split to city2.
         ld      a, (city_line)
         ld      b, a
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         add     a, b
         VDPREG vdp_hsplit_line
         VDP_STATUS 1
@@ -1725,9 +1727,7 @@ city_scroll2_after_parallax:
 city_scroll3:
         PREAMBLE_VERTICAL
         ; Set v scroll.
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         neg
         add     a, 204
         VDPREG  vdp_vscroll
@@ -1744,9 +1744,7 @@ city_scroll3:
 city_scroll4:
         PREAMBLE_VERTICAL
         ; Set v scroll.
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         neg
         add     a, 204
         VDPREG  vdp_vscroll
@@ -1782,9 +1780,7 @@ city_scroll4:
 city_scroll5:
         PREAMBLE_VERTICAL
         ; Set v scroll.
-        ld      a, (city_split_line)
-        sub     10
-        ld      (city_split_line), a
+        SUB_VAR city_split_line, 10
         neg
         add     a, 204
         ld      (motion_blur_scroll), a
@@ -1804,9 +1800,7 @@ city_scroll5:
 
 city_scroll5_split:
         PREAMBLE_HORIZONTAL
-        ld      a, (motion_blur_scroll)
-        sub     64
-        ld      (motion_blur_scroll), a
+        SUB_VAR motion_blur_scroll, 64
         VDPREG vdp_vscroll
         exx
         ld      hl, motion_blur_counter
@@ -1839,9 +1833,10 @@ motion_blur:
         COMPARE_FRAME 903
         jp      nz, return_irq_exx
 
-        MAPPER_P2 13
+        MAPPER_P2 11
         QUEUE_ZBLIT alley1a_addr, alley1a
         QUEUE_ZBLIT alley1b_addr, alley1b
+        QUEUE_MAPPER 12
         QUEUE_ZBLIT alley2b_addr, alley2b
         jp      return_irq_exx
 
@@ -1881,9 +1876,7 @@ alley_scroll1:
 
 alley_scroll1_split:
         PREAMBLE_HORIZONTAL
-        ld      a, (motion_blur_scroll)
-        sub     64
-        ld      (motion_blur_scroll), a
+        SUB_VAR motion_blur_scroll, 64
         VDPREG vdp_vscroll
         exx
         ld      hl, motion_blur_counter
@@ -1964,6 +1957,7 @@ alley_scroll3:
         SET_PAGE 0
         COMPARE_FRAME 956
         jp      nz, frame_end
+        MAPPER_P2 13
         QUEUE_ZBLIT alley2c_addr, alley2c
         ld      hl, cmd_copy_alley
         call    queue_vdp_command
@@ -1979,7 +1973,26 @@ alley_stand:
         VDPREG vdp_vscroll
         exx
         SET_PAGE 0
+        COMPARE_FRAME 971
+        jp      nz, frame_end
+        ld      hl, cmd_light_manhole
+        call    queue_vdp_command
         jp      frame_end
+
+; ----------------------------------------------------------------
+; State: blinking_manhole
+; Bottom of manhole is blinking.
+
+blinking_manhole:
+        PREAMBLE_VERTICAL
+        ; Blink between pages 0 and 2.
+        ld      a, (current_frame)
+        rrca
+        rrca
+        and     01000000b
+        xor     01011111b
+        VDPREG  vdp_set_page
+        jp      frame_end_exx
 
 ; ----------------------------------------------------------------
 ; State: alley_stand2
@@ -2002,37 +2015,37 @@ alley_stand2:
 
 exploding_manhole:
         PREAMBLE_VERTICAL
+        SET_PAGE 0
         exx
         ld      a, (manhole_split)
         VDPREG vdp_hsplit_line
-        ld      a, (manhole_split)
-        sub     16
-        ld      (manhole_split), a
+        SUB_VAR manhole_split, 16
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE exploding_manhole_copy
         COMPARE_FRAME 1034
         jp      c, return_irq_exx
 
-        ld      a, (manhole_cmd2 + 7)
-        sub     16
-        ld      (manhole_cmd2 + 7), a
+        SUB_VAR manhole_cmd2 + 7, 16
         ld      hl, manhole_cmd2
         call    queue_vdp_command
+        SUB_VAR manhole_cmd3 + 3, 16
 
-        ld      a, (manhole_cmd3 + 3)
-        sub     16
-        ld      (manhole_cmd3 + 3), a
+        COMPARE_FRAME 1034
+        jp      z, 1f
+
         ld      hl, manhole_cmd3
+        call    queue_vdp_command
+        jp      return_irq_exx
+1:
+        ld      hl, cmd_bottom_manhole
         call    queue_vdp_command
         jp      return_irq_exx
 
 exploding_manhole_copy:
         PREAMBLE_HORIZONTAL
         exx
-        ld      a, (manhole_cmd1 + 7)
-        sub     16
-        ld      (manhole_cmd1 + 7), a
+        SUB_VAR manhole_cmd1 + 7, 16
         ld      hl, manhole_cmd1
         call    smart_vdp_command
         COMPARE_FRAME 1043
@@ -2608,9 +2621,9 @@ current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
 alley_scroll_current:   dw      alley_scroll_repeat
 manhole_split:          db      184
-manhole_cmd1:           VDP_LMMM 0, 256, 103, 152, 63, 13, vdp_timp
-manhole_cmd2:           VDP_HMMM 0, 256 + 13, 103, 152 + 13, 64, 31 - 13
-manhole_cmd3:           VDP_HMMV 103, 152 + 31, 64, 16, 0AAh
+manhole_cmd1:           VDP_LMMM 0, 256, 104, 152, 63, 13, vdp_timp
+manhole_cmd2:           VDP_HMMM 0, 256 + 13, 104, 152 + 13, 64, 31 - 13
+manhole_cmd3:           VDP_HMMV 104, 152 + 31, 64, 16, 0AAh
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
@@ -2738,7 +2751,15 @@ cmd_copy_alley:
 
 ; Top of manhole explosion.
 cmd_explosion_end:
-        VDP_HMMV 103, 0, 64, 31 + 16, 0AAh
+        VDP_HMMV 104, 0, 64, 31 + 16, 0AAh
+
+; Bottom of manhole explosion.
+cmd_bottom_manhole:
+        VDP_HMMM 128, 256, 104, 167, 64, 22
+
+; Lights coming out of manhole.
+cmd_light_manhole:
+        VDP_HMMM 64, 256, 104, 168 + 512, 64, 21
 
 end_of_code:
         assert  end_of_code <= 04000h
@@ -2772,9 +2793,9 @@ opening_title:          incbin "tmnt.z5"
 cloud_page2:            incbin "cloud2.z5"
 cloud_page3:            incbin "cloud3.z5"
 city2b:                 incbin "city2b.z5"
-title_palette:          incbin  "title_bounce_palette.bin"
-title_bounce_data:      incbin  "title_bounce_scroll.bin"
-title_slide_data:       incbin  "title_slide_scroll.bin"
+title_palette:          incbin "title_bounce_palette.bin"
+title_bounce_data:      incbin "title_bounce_scroll.bin"
+title_slide_data:       incbin "title_slide_scroll.bin"
                         PAGE_END
 
 ; Mapper page 10
@@ -2795,7 +2816,9 @@ back_building_attr:     incbin "back_building_attr.z5"
 back_building_dyn_size: incbin "back_building_size.bin"
 back_building_base:     incbin "back_building_patt_base.bin"
 back_building_palette:  incbin "back_building_palette.bin"
-city_line_mask:         incbin  "cityline.z5"
+city_line_mask:         incbin "cityline.z5"
+alley1a:                incbin "alley1a.z5"
+alley1b:                incbin "alley1b.z5"
                         PAGE_END
 
 ; Mapper page 12
@@ -2804,14 +2827,12 @@ city2a:                 incbin "city2a.z5"
 city2d:                 incbin "city2d.z5"
 city2e:                 incbin "city2e.z5"
 city2f:                 incbin "city2f.z5"
+alley2b:                incbin "alley2b.z5"
                         PAGE_END
 
 ; Mapper page 13
                         PAGE_BEGIN
-alley1a:                incbin "alley1a.z5"
-alley1b:                incbin "alley1b.z5"
 alley2a:                incbin "alley2a.z5"
-alley2b:                incbin "alley2b.z5"
 alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
