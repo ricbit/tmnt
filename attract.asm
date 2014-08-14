@@ -2012,6 +2012,8 @@ exploding_manhole:
         SUB_VAR manhole_split, 16
         VDP_STATUS 1
         ENABLE_HIRQ
+        ld      de, 1038
+        call    white_frame
         NEXT_HANDLE exploding_manhole_copy
         COMPARE_FRAME 1034
         jp      c, 2f
@@ -2039,10 +2041,36 @@ exploding_manhole_copy:
         SUB_VAR manhole_cmd1 + 7, 16
         SMART_VDP_COMMAND manhole_cmd1
         COMPARE_FRAME 1043
-        jr      nz, frame_end_disable
+        jp      nz, frame_end_disable
 
         QUEUE_VDP_COMMAND cmd_explosion_end
         jp      frame_end_disable
+
+white_frame:
+        ld      hl, (current_frame)
+        xor     a
+        sbc     hl, de
+        jr      z, 1f
+        ld      hl, (current_frame)
+        inc     de
+        xor     a
+        sbc     hl, de
+        jr      z, 1f
+        ld      hl, border_blue
+        xor     a
+        VDPREG  vdp_palette
+        ld      bc, (2) * 256 + 09Ah
+        otir
+        ENABLE_SCREEN
+        ret
+1:
+        ld      hl, border_white
+        xor     a
+        VDPREG  vdp_palette
+        ld      bc, (2) * 256 + 09Ah
+        otir
+        DISABLE_SCREEN
+        ret
 
 ; ----------------------------------------------------------------
 ; State: blinking_alley
@@ -2057,7 +2085,10 @@ blinking_alley:
         and     01000000b
         or      011111b
         VDPREG  vdp_set_page
-        jp      frame_end_exx
+        exx
+        ld      de, 1050
+        call    white_frame
+        jp      frame_end
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2662,6 +2693,8 @@ city_palette_final      equ     city_fade_palette + 512
 cityline_palette_0:     db      8, 1, 0
 cityline_palette_1:     db      8, 11, 8
 cityline_palette_2:     db      11, 11, 6
+border_blue:            db      3, 0
+border_white:           db      077h, 7
 
                         align   256
 advance_pcm:            incbin  "advance_pcm.bin"
