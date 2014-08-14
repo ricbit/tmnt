@@ -537,7 +537,6 @@ change_sample_mapper:
         call    fast_put_p1
         pop     hl
 
-        in      a, (systml)
 sample_loop:
         ld      a, (de)
 play_sample:
