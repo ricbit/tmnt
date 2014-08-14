@@ -406,7 +406,7 @@ alley_switch_frame              equ     930
         endm
 
 ; Modular addition
-        macro   ADDMOD reg, value, mask
+        macro   ADD_MOD reg, value, mask
         ld      a, reg
         if      value == 1
         inc     a
@@ -477,6 +477,13 @@ alley_switch_frame              equ     930
         macro   SUB_VAR var, value
         ld      a, (var)
         sub     value
+        ld      (var), a
+        endm
+
+; Add a value to a memory variable.
+        macro        ADD_VAR var, value
+        ld      a, (var)
+        add     a, value
         ld      (var), a
         endm
 
@@ -1124,9 +1131,7 @@ cloud_fade_common:
         xor     a
         COMPARE_FRAME cloud_scroll_start_frame
         jr      c, 1f
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
+        ADD_VAR vertical_scroll, 2
 1:
         VDPREG vdp_vscroll
         ; Change palette every 6 frames.
@@ -1331,9 +1336,7 @@ cloud_down2:
         SPRITES_ON
 1:
         ; Set v scroll.
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
+        ADD_VAR vertical_scroll, 2
         VDPREG vdp_vscroll
         SMART_PALETTE cloud_palette_final
 
@@ -1361,9 +1364,7 @@ cloud_down3:
         SET_PAGE 3
         SPRITES_OFF
         ; Set v scroll.
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
+        ADD_VAR vertical_scroll, 2
         VDPREG vdp_vscroll
         exx
         SMART_PALETTE cloud_palette_final
@@ -1430,9 +1431,7 @@ cloud_down4:
 cloud_down4_start:
         SET_PAGE 3
         ; Set v scroll.
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
+        ADD_VAR vertical_scroll, 2
         VDPREG vdp_vscroll
         exx
         SMART_PALETTE cloud_palette_final
@@ -1562,9 +1561,7 @@ city_scroll1_late_exit:
 ; Helpers for the city_scroll states.
 
 update_city_line:
-        ld      a, (vertical_scroll)
-        add     a, 2
-        ld      (vertical_scroll), a
+        ADD_VAR vertical_scroll, 2
         add     a, 256 - 80
         ld      (city_line), a
         ret
@@ -1930,9 +1927,7 @@ alley_scroll2:
         ENABLE_HIRQ
         exx
         SMART_PALETTE city_palette_final
-        ld      a, (motion_blur_scroll)
-        add     a, 10
-        ld      (motion_blur_scroll), a
+        ADD_VAR motion_blur_scroll, 10
         VDPREG vdp_vscroll
         VDP_AUTOINC vdp_vscroll
         NEXT_HANDLE alley_scroll2_city
@@ -1954,9 +1949,7 @@ alley_scroll2_city:
 
 alley_scroll3:
         PREAMBLE_VERTICAL
-        ld      a, (motion_blur_scroll)
-        add     a, 10
-        ld      (motion_blur_scroll), a
+        ADD_VAR motion_blur_scroll, 10
         add     a, 72
         VDPREG vdp_vscroll
         exx
@@ -2031,7 +2024,7 @@ exploding_manhole:
         jp      return_irq_exx
 2:
         QUEUE_VDP_COMMAND cmd_empty_manhole
-        QUEUE_VDP_COMMAND cmd_empty_manhole2
+        QUEUE_VDP_COMMAND cmd_empty_manhole_2
         jp      return_irq_exx
 
 exploding_manhole_copy:
@@ -2147,7 +2140,7 @@ zblit_main:
         out     (098h), a
         inc     hl
         ld      (ix), a
-        ADDMOD  ixl, 1, 07Fh
+        ADD_MOD ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
 zblit_rle:
@@ -2161,7 +2154,7 @@ zblit_rle:
         ld      a, c
         out     (098h), a
         ld      (ix), a
-        ADDMOD  ixl, 1, 07Fh
+        ADD_MOD ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
 zblit_copy:
@@ -2170,7 +2163,7 @@ zblit_copy:
 1:
         ld      a, (ix)
         out     (098h), a
-        ADDMOD  ixl, 1, 07Fh
+        ADD_MOD ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
 
@@ -2212,7 +2205,7 @@ queue_mapper:
         ld      (ix + 0), low process_mapper
         ld      (ix + 2), a
         ld      (ix + 1), high process_mapper
-        ADDMOD  ixl, 8, 0FFh
+        ADD_MOD ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
 
@@ -2227,7 +2220,7 @@ process_mapper:
         ld      a, (hl)
         call    fast_put_p2
         ld      (iy + 1), 0
-        ADDMOD  iyl, 8, 0FFh
+        ADD_MOD iyl, 8, 0FFh
         ld      (queue_pop), iy
         jp      foreground_continue
 
@@ -2246,7 +2239,7 @@ queue_zblit:
         ld      (ix + 0), a
         ld      a, high process_zblit
         ld      (ix + 1), a
-        ADDMOD  ixl, 8, 0FFh
+        ADD_MOD ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
 
@@ -2265,7 +2258,7 @@ smart_zblit_queued:
         ld      l, (iy + 2)
         ld      h, (iy + 3)
         ld      (iy + 1), 0
-        ADDMOD  iyl, 8, 0FFh
+        ADD_MOD iyl, 8, 0FFh
         ld      (queue_pop), iy
         ld      (load_foreground_hl), hl
         ld      hl, foreground_zblit_start
@@ -2283,7 +2276,7 @@ queue_vdp_command:
         ld      (ix + 3), h
         ld      (ix + 0), low process_vdp_command_queue
         ld      (ix + 1), high process_vdp_command_queue
-        ADDMOD  ixl, 8, 0FFh
+        ADD_MOD ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
 
@@ -2318,7 +2311,7 @@ smart_vdp_command_queued:
         ld      l, (iy + 2)
         ld      h, (iy + 3)
         ld      (iy + 1), 0
-        ADDMOD  iyl, 8, 0FFh
+        ADD_MOD iyl, 8, 0FFh
         ld      (queue_pop), iy
         call    smart_vdp_command_begin
         ei
@@ -2705,7 +2698,7 @@ dynamic_moon_attr:
         db      14, 72, 0, 0
         db      14, 72 + 16, 0, 0
         endr
-        db      0xD8, 0
+        db      0D8h, 0
 
 ; Table of commands to be issued during cloud_down2.
 cloud_down2_commands:
@@ -2800,7 +2793,7 @@ cmd_light_manhole:
 ; Empty manhole
 cmd_empty_manhole:
         VDP_HMMM 192, 256, 104, 152 + 512, 64, 31
-cmd_empty_manhole2:
+cmd_empty_manhole_2:
         VDP_HMMV 104, 152 + 512 + 31, 64, 6, 099h
 
 end_of_code:
