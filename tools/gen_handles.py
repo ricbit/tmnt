@@ -18,7 +18,7 @@ handle = [
     (966,  "alley_stand"),
     (1002, "blinking_manhole"),
     (1033, "exploding_manhole"),
-    (1044, "alley_stand2"),
+    (1044, "blinking_alley"),
     (1130, "disable_screen_black"),
     (1131, "disable_screen"),
     (1270, "erase_title_vram"),

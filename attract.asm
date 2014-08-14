@@ -2000,21 +2000,6 @@ blinking_manhole:
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
-; State: alley_stand2
-; Alley reached the ground, on page 2.
-
-alley_stand2:
-        PREAMBLE_VERTICAL
-        ; Blink between pages 0 and 2.
-        ld      a, (current_frame)
-        rrca
-        rrca
-        and     01000000b
-        or      011111b
-        VDPREG  vdp_set_page
-        jp      frame_end_exx
-
-; ----------------------------------------------------------------
 ; State: exploding_manhole
 ; Manhole explodes.
 
@@ -2029,7 +2014,7 @@ exploding_manhole:
         ENABLE_HIRQ
         NEXT_HANDLE exploding_manhole_copy
         COMPARE_FRAME 1034
-        jp      c, return_irq_exx
+        jp      c, 2f
 
         SUB_VAR manhole_cmd2 + 7, 16
         QUEUE_VDP_COMMAND manhole_cmd2
@@ -2043,6 +2028,10 @@ exploding_manhole:
 1:
         QUEUE_VDP_COMMAND cmd_bottom_manhole
         jp      return_irq_exx
+2:
+        QUEUE_VDP_COMMAND cmd_empty_manhole
+        QUEUE_VDP_COMMAND cmd_empty_manhole2
+        jp      return_irq_exx
 
 exploding_manhole_copy:
         PREAMBLE_HORIZONTAL
@@ -2054,6 +2043,21 @@ exploding_manhole_copy:
 
         QUEUE_VDP_COMMAND cmd_explosion_end
         jp      frame_end_disable
+
+; ----------------------------------------------------------------
+; State: blinking_alley
+; Alley is blinking.
+
+blinking_alley:
+        PREAMBLE_VERTICAL
+        ; Blink between pages 0 and 2.
+        ld      a, (current_frame)
+        rrca
+        rrca
+        and     01000000b
+        or      011111b
+        VDPREG  vdp_set_page
+        jp      frame_end_exx
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2621,7 +2625,7 @@ current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
 alley_scroll_current:   dw      alley_scroll_repeat
 manhole_split:          db      184
-manhole_cmd1:           VDP_LMMM 0, 256, 104, 152, 63, 13, vdp_timp
+manhole_cmd1:           VDP_LMMM 0, 256, 104, 152, 64, 13, vdp_timp
 manhole_cmd2:           VDP_HMMM 0, 256 + 13, 104, 152 + 13, 64, 31 - 13
 manhole_cmd3:           VDP_HMMV 104, 152 + 31, 64, 16, 0AAh
 state_end:
@@ -2760,6 +2764,12 @@ cmd_bottom_manhole:
 ; Lights coming out of manhole.
 cmd_light_manhole:
         VDP_HMMM 64, 256, 104, 168 + 512, 64, 21
+
+; Empty manhole
+cmd_empty_manhole:
+        VDP_HMMM 192, 256, 104, 152 + 512, 64, 31
+cmd_empty_manhole2:
+        VDP_HMMV 104, 152 + 512 + 31, 64, 6, 099h
 
 end_of_code:
         assert  end_of_code <= 04000h
