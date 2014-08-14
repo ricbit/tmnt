@@ -1546,8 +1546,7 @@ city_scroll1_foreground:
         call    update_city_line
         call    prepare_city_overlay
         call    update_top_building_sprite
-        ld      a, 245
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 245
         NEXT_HANDLE city_scroll1_late_exit
         jp      return_irq_exx
 
@@ -1695,8 +1694,7 @@ city_scroll2_foreground:
         call    update_city_line
         call    prepare_city_overlay
         call    update_top_building_sprite
-        ld      a, 255
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 255
         NEXT_HANDLE city_scroll2_after_parallax
         jp      return_irq_exx
 
@@ -1789,8 +1787,7 @@ city_scroll5:
         ld      (motion_blur_scroll), a
         VDPREG  vdp_vscroll
         exx
-        ld      a, 192
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 192
         VDP_STATUS 1
         ENABLE_HIRQ
         ld      hl, (current_motion_blur)
@@ -1826,8 +1823,7 @@ motion_blur:
         ld      (motion_blur_scroll), a
         VDPREG  vdp_vscroll
         exx
-        ld      a, 192
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 192
         VDP_STATUS 1
         ENABLE_HIRQ
         ld      a, 3
@@ -1859,8 +1855,7 @@ alley_scroll1:
         ld      (motion_blur_scroll), a
         VDPREG  vdp_vscroll
         exx
-        ld      a, 192
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 192
         VDP_STATUS 1
         ENABLE_HIRQ
         SMART_PALETTE city_palette_final
@@ -1894,8 +1889,7 @@ alley_scroll1_city:
         COMPARE_FRAME alley_switch_frame
         jp      c, frame_end_disable
 
-        ld      a, 15
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 15
         VDP_AUTOINC vdp_vscroll
         NEXT_HANDLE alley_scroll1_switch
         jp      return_irq_exx
@@ -1921,8 +1915,7 @@ alley_scroll1_switch:
 alley_scroll2:
         PREAMBLE_VERTICAL
         SET_PAGE 3
-        ld      a, 15
-        VDPREG vdp_hsplit_line
+        HSPLIT_LINE 15
         VDP_STATUS 1
         ENABLE_HIRQ
         exx
