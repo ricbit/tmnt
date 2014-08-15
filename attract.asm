@@ -115,6 +115,7 @@ alley2a_addr            equ     02C00h
 alley2b_addr            equ     00000h
 alley2c_addr            equ     02C00h
 manhole_addr            equ     08000h
+turtles_addr            equ     18000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -2071,6 +2072,23 @@ blinking_alley:
         exx
         ld      de, 1050
         call    white_frame
+        COMPARE_FRAME 1130 - 20
+        jp      nz, frame_end
+        MAPPER_P2 13
+        QUEUE_ZBLIT turtles_addr, turtles
+        jp      frame_end
+
+; ----------------------------------------------------------------
+; State: turtles_slide
+; Turtle pictures slide.
+
+turtles_slide:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        ENABLE_SCREEN
+        exx
+        ld      hl, top_palette
+        call    smart_palette
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2669,6 +2687,7 @@ cloud_fade_palette:     incbin  "cloud_fade_palette.bin"
 city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
 alley_palette:          incbin  "alley_palette.bin"
+top_palette:            incbin  "top_palette.bin"
 handles_begin           equ     0C000h
 handles                 equ     handles_begin - 500 * 2
 black_palette:          ds      16 * 2, 0
@@ -2863,6 +2882,7 @@ alley2a:                incbin "alley2a.z5"
 alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
+turtles:                incbin "turtles.z5"
                         PAGE_END
 
         end

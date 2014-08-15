@@ -122,7 +122,7 @@ debug set_watchpoint write_mem [expr 1 + [getlabel current_frame]] {
 }
 
 debug set_watchpoint write_mem [expr 1 + [getlabel current_frame]] {
-  [peek16 [getlabel current_frame]] == 1200
+  [peek16 [getlabel current_frame]] == 1500
 } {
   record stop
   puts stderr "Histogram of frequencies:"
