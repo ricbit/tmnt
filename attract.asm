@@ -466,13 +466,13 @@ alley_switch_frame              equ     930
         macro   SMART_PALETTE palette
         ld      hl, palette
         call    smart_palette
-	endm
+        endm
 
 ; Smart VDP command
         macro   SMART_VDP_COMMAND command
         ld      hl, command
         call    smart_vdp_command
-	endm
+        endm
 
 ; Queue VDP command
         macro   QUEUE_VDP_COMMAND command
@@ -482,7 +482,7 @@ alley_switch_frame              equ     930
         ld      (ix + 0), low process_vdp_command_queue
         ld      (ix + 1), high process_vdp_command_queue
         call    queue_vdp_command_macro
-	endm
+        endm
 
 ; Subtract a value from a memory variable.
         macro   SUB_VAR var, value
@@ -492,10 +492,18 @@ alley_switch_frame              equ     930
         endm
 
 ; Add a value to a memory variable.
-        macro        ADD_VAR var, value
+        macro   ADD_VAR var, value
         ld      a, (var)
         add     a, value
         ld      (var), a
+        endm
+
+; Load from a pointer and increment it
+        macro   LD_INC_VAR pointer
+        ld      hl, (pointer)
+        ld      a, (hl)
+        inc     hl
+        ld      (pointer), hl
         endm
 
 ; ----------------------------------------------------------------
@@ -548,10 +556,7 @@ delay_theme_music:
 change_sample_mapper:
         ; Set mapper page.
         push    hl
-        ld      hl, (pcm_mapper_page)
-        ld      a, (hl)
-        inc     hl
-        ld      (pcm_mapper_page), hl
+        LD_INC_VAR pcm_mapper_page
         call    fast_put_p1
         pop     hl
 
@@ -1545,11 +1550,8 @@ city_scroll1_foreground:
         SPRITE_ATTR back_building_attr_addr
         exx
         ; Set back building base.
-        ld      hl, (back_building_cur_base)
-        ld      a, (hl)
+        LD_INC_VAR back_building_cur_base
         VDPREG vdp_sprite_patt
-        inc     hl
-        ld      (back_building_cur_base), hl
         SPRITES_ON
         COMPARE_FRAME city_scroll1_last_frame
         jp      nz, frame_end_disable
@@ -1579,17 +1581,10 @@ update_city_line:
 queue_infinite_city:
         ld      a, (cmd_infinite_city_1 + 9)
         ld      b, a
-        ld      a, (cmd_infinite_city_1 + 1)
-        add     a, b
-        ld      (cmd_infinite_city_1 + 1), a
-        ld      a, (cmd_infinite_city_1 + 5)
-        add     a, b
-        ld      (cmd_infinite_city_1 + 5), a
-        ld      hl, (current_city_beat)
-        ld      a, (hl)
+        ADD_VAR cmd_infinite_city_1 + 1, b
+        ADD_VAR cmd_infinite_city_1 + 5, b
+        LD_INC_VAR current_city_beat
         ld      (cmd_infinite_city_1 + 9), a
-        inc     hl
-        ld      (current_city_beat), hl
         QUEUE_VDP_COMMAND cmd_infinite_city_1
         ret
 
@@ -1696,11 +1691,8 @@ city_scroll2_foreground:
         SPRITE_ATTR back_building_attr_addr
         exx
         ; Set back building base.
-        ld      hl, (back_building_cur_base)
-        ld      a, (hl)
+        LD_INC_VAR back_building_cur_base
         VDPREG vdp_sprite_patt
-        inc     hl
-        ld      (back_building_cur_base), hl
         SPRITES_ON
         call    update_city_line
         call    prepare_city_overlay
@@ -1801,10 +1793,7 @@ city_scroll5:
         HSPLIT_LINE 192
         VDP_STATUS 1
         ENABLE_HIRQ
-        ld      hl, (current_motion_blur)
-        ld      a, (hl)
-        inc     hl
-        ld      (current_motion_blur), hl
+        LD_INC_VAR current_motion_blur
         ld      (motion_blur_counter), a
         NEXT_HANDLE city_scroll5_split
         jp      return_irq_exx
@@ -1870,10 +1859,7 @@ alley_scroll1:
         VDP_STATUS 1
         ENABLE_HIRQ
         SMART_PALETTE city_palette_final
-        ld      hl, (alley_scroll_current)
-        ld      a, (hl)
-        inc     hl
-        ld      (alley_scroll_current), hl
+        LD_INC_VAR alley_scroll_current
         or      a
         jr      z, 1f
         ld      (motion_blur_counter), a
