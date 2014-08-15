@@ -67,6 +67,10 @@ vdp_status      equ     0000Fh  ; VDP register to select status
 vdp_palette     equ     00010h  ; VDP register to select palette index
 openmsx_control equ     0002Eh  ; OpenMSX debug control port
 openmsx_data    equ     0002Fh  ; OpenMSX debug data port
+vdp_data        equ     00098h  ; VDP data port
+vdp_control     equ     00099h  ; VDP control port
+vdp_color_data  equ     0009Ah  ; VDP color data port
+vdp_indirect    equ     0009Bh  ; VDP indirect access port
 
 ; ----------------------------------------------------------------
 ; VRAM layout
@@ -136,16 +140,16 @@ alley_switch_frame              equ     930
 
 ; Set a VDP register
         macro   VDPREG reg
-        out     (099h), a
+        out     (vdp_control), a
         ld      a, 128 + reg
-        out     (099h), a
+        out     (vdp_control), a
         endm
 
 ; Set entire palette
         macro   SET_PALETTE
         xor     a
         VDPREG  vdp_palette
-        ld      bc, (16 * 2) * 256 + 09Ah
+        ld      bc, (16 * 2) * 256 + vdp_color_data
         otir
         endm
 
@@ -154,9 +158,9 @@ alley_switch_frame              equ     930
         ld      a, addr >> 14
         VDPREG  14
         ld      a, addr and 255
-        out     (099h), a
+        out     (vdp_control), a
         ld      a, ((addr >> 8) and 03Fh) or 64
-        out     (099h), a
+        out     (vdp_control), a
         endm
 
 ; Queue VRAM address to write
@@ -180,7 +184,7 @@ alley_switch_frame              equ     930
 ; Check if a virq has happened.
         macro   PREAMBLE_VERTICAL
         ex      af, af'
-        in      a, (099h)
+        in      a, (vdp_control)
         and     a
         jp      p, return_irq
         endm
@@ -188,7 +192,7 @@ alley_switch_frame              equ     930
 ; Check if a hirq has happened.
         macro   PREAMBLE_HORIZONTAL
         ex      af, af'
-        in      a, (099h)
+        in      a, (vdp_control)
         rrca
         jp      nc, return_irq
         endm
@@ -310,9 +314,9 @@ alley_switch_frame              equ     930
 ; Set the value of the h scroll using indirect register access.
         macro   FAST_SET_HSCROLL value
         ld      a, (value + 7) / 8
-        out     (09Bh), a
+        out     (vdp_indirect), a
         ld      a, ((value + 7) and 01F8h) - value
-        out     (09Bh), a
+        out     (vdp_indirect), a
         endm
 
 ; VDP Command HMMV: fill rectangle with a color.
@@ -1628,9 +1632,9 @@ set_back_building_palette_patch:
         ld      d, 0
         add     ix, de
         ld      a, (ix + 0)
-        out     (09Ah), a
+        out     (vdp_color_data), a
         ld      a, (ix + 1)
-        out     (09Ah), a
+        out     (vdp_color_data), a
         inc     hl
         djnz    set_back_building_palette_patch
         ret
@@ -1896,7 +1900,7 @@ alley_scroll1_switch:
         ; Order is important!
         ld      a, (motion_blur_scroll)
         add     a, 72
-        out     (09Bh), a
+        out     (vdp_indirect), a
         SET_PAGE 0
         exx
         COMPARE_FRAME 930
@@ -1927,7 +1931,7 @@ alley_scroll2_city:
         PREAMBLE_HORIZONTAL
         ld      a, (motion_blur_scroll)
         add     a, 72
-        out     (09Bh), a
+        out     (vdp_indirect), a
         exx
         SET_PAGE 0
         SMART_PALETTE alley_palette
@@ -2047,7 +2051,7 @@ white_frame:
 2:
         xor     a
         VDPREG  vdp_palette
-        ld      bc, (2) * 256 + 09Ah
+        ld      bc, (2) * 256 + vdp_color_data
         otir
         ret
 
@@ -2124,7 +2128,7 @@ zblit_main:
         ld      b, a
 1:
         ld      a, (hl)
-        out     (098h), a
+        out     (vdp_data), a
         inc     hl
         ld      (ix), a
         ADD_MOD ixl, 1, 07Fh
@@ -2139,7 +2143,7 @@ zblit_rle:
         inc     hl
 1:
         ld      a, c
-        out     (098h), a
+        out     (vdp_data), a
         ld      (ix), a
         ADD_MOD ixl, 1, 07Fh
         djnz    1b
@@ -2149,7 +2153,7 @@ zblit_copy:
         ld      b, a
 1:
         ld      a, (ix)
-        out     (098h), a
+        out     (vdp_data), a
         ADD_MOD ixl, 1, 07Fh
         djnz    1b
         jr      zblit_main
@@ -2164,7 +2168,7 @@ zblit_end:
 vdp_command:
         VDP_STATUS 2
 1:
-        in      a, (099h)
+        in      a, (vdp_control)
         rrca
         jr      c, 1b
         ; Set VDP to autoinc.
@@ -2173,11 +2177,11 @@ vdp_command:
         ld      a, 47
         sub     (hl)
         ld      b, a
-        ld      c, 09Bh
+        ld      c, vdp_indirect
         inc     hl
         otir
 2:
-        in      a, (099h)
+        in      a, (vdp_control)
         rrca
         jr      c, 2b
         VDP_STATUS 0
@@ -2239,9 +2243,9 @@ smart_zblit_queued:
         ld      a, (iy + 4)
         VDPREG  14
         ld      a, (iy + 5)
-        out     (099h), a
+        out     (vdp_control), a
         ld      a, (iy + 6)
-        out     (099h), a
+        out     (vdp_control), a
         ld      l, (iy + 2)
         ld      h, (iy + 3)
         ld      (iy + 1), 0
@@ -2276,7 +2280,7 @@ process_vdp_command_queue:
         di
         ld      a, 2
         VDPREG vdp_status
-        in      a, (099h)
+        in      a, (vdp_control)
         rrca
         jr      nc, smart_vdp_command_queued
         ; Not ready yet.
@@ -2287,7 +2291,7 @@ process_vdp_command_queue:
 
 process_vdp_command_delay:
         di
-        in      a, (099h)
+        in      a, (vdp_control)
         rrca
         jr      nc, smart_vdp_command_queued
         ei
@@ -2317,7 +2321,7 @@ smart_vdp_command:
         pop     hl
         ; Check for VDP overrun.
         VDP_STATUS 2
-        in      a, (099h)
+        in      a, (vdp_control)
         rrca
         ld      de, str_vdp_error
         jp      c, graphic_abort
@@ -2343,7 +2347,7 @@ foreground_vdp_command_begin:
         ld      b, a
 foreground_vdp_command:
         ld      a, (hl)
-        out     (09Bh), a
+        out     (vdp_indirect), a
         inc     hl
         dec     b
         jp      nz, foreground_continue
@@ -2383,7 +2387,7 @@ foreground_zblit:
 foreground_direct_step:
         ld      a, (iy)
         inc     iy
-        out     (098h), a
+        out     (vdp_data), a
         ld      (hl), a
         inc     l
         res     7, l
@@ -2406,7 +2410,7 @@ foreground_rle_setup:
 
 foreground_rle_step:
         ld      a, c
-        out     (098h), a
+        out     (vdp_data), a
         ld      (hl), a
         inc     l
         res     7, l
@@ -2423,7 +2427,7 @@ foreground_copy_setup:
         ld      (foreground + 1), bc
         sub     0C0h - 3
         ld      b, a
-        ld      c, 098h
+        ld      c, vdp_data
         ; fall through
 
 foreground_copy_step:
@@ -2463,7 +2467,7 @@ foreground_palette_begin:
         ld      hl, (load_foreground_hl)
 foreground_palette:
         ld      a, (hl)
-        out     (09Ah), a
+        out     (vdp_color_data), a
         inc     hl
         dec     b
         jp      nz, foreground_continue
@@ -2495,11 +2499,11 @@ restore_irq:
 
         ; Clear H-irq flag
         VDP_STATUS 1
-        in      a, (099h)
+        in      a, (vdp_control)
 
         ; Clear V-irq flag
         VDP_STATUS 0
-        in      a, (099h)
+        in      a, (vdp_control)
 
         ; Reload old interrupt handler
         ld      a, (save_irq)
