@@ -160,10 +160,15 @@ alley_switch_frame              equ     930
         endm
 
 ; Queue VRAM address to write
-        macro   QUEUE_VRAM_WRITE addr
-        ld      b, addr >> 14
-        ld      d, addr and 255
-        ld      e, ((addr >> 8) and 03Fh) or 64
+        macro   QUEUE_VRAM_WRITE vramaddr, addrl, addrh
+        ld      ix, (queue_push)
+        ld      (ix + 2), addrl
+        ld      (ix + 3), addrh
+        ld      (ix + 4), vramaddr >> 14
+        ld      (ix + 5), vramaddr and 255
+        ld      (ix + 6), ((vramaddr >> 8) and 03Fh) or 64
+        ld      (ix + 0), low process_zblit
+        ld      (ix + 1), high process_zblit
         endm
 
 ; Set display page.
@@ -437,22 +442,24 @@ alley_switch_frame              equ     930
 
 ; Queue zblit
         macro   QUEUE_ZBLIT vramaddr, cpuaddr
-        QUEUE_VRAM_WRITE vramaddr
-        ld      hl, cpuaddr
-        call    queue_zblit
+        QUEUE_VRAM_WRITE vramaddr, low cpuaddr, high cpuaddr
+        call    queue_zblit_macro
         endm
 
 ; Queue zblit indirect
         macro   QUEUE_ZBLIT_IND vramaddr, pointer
-        QUEUE_VRAM_WRITE vramaddr
         ld      hl, (pointer)
-        call    queue_zblit
+        QUEUE_VRAM_WRITE vramaddr, l, h
+        call    queue_zblit_macro
         endm
 
 ; Queue mapper
         macro   QUEUE_MAPPER page
-        ld      a, page
-        call    queue_mapper
+        ld      ix, (queue_push)
+        ld      (ix + 0), low process_mapper
+        ld      (ix + 2), page
+        ld      (ix + 1), high process_mapper
+        call    queue_mapper_macro
         endm
 
 ; Smart palette
@@ -469,8 +476,12 @@ alley_switch_frame              equ     930
 
 ; Queue VDP command
         macro   QUEUE_VDP_COMMAND command
-        ld      hl, command
-        call    queue_vdp_command
+        ld      ix, (queue_push)
+        ld      (ix + 2), low command
+        ld      (ix + 3), high command
+        ld      (ix + 0), low process_vdp_command_queue
+        ld      (ix + 1), high process_vdp_command_queue
+        call    queue_vdp_command_macro
 	endm
 
 ; Subtract a value from a memory variable.
@@ -1579,8 +1590,8 @@ queue_infinite_city:
         ld      (cmd_infinite_city_1 + 9), a
         inc     hl
         ld      (current_city_beat), hl
-        ld      hl, cmd_infinite_city_1
-        jp      queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_infinite_city_1
+        ret
 
 queue_back_building_attr:
         ; Set back building attr.
@@ -1599,8 +1610,8 @@ prepare_city_overlay:
         ld      (cmd_overlay_city + 7), a
         ld      (cmd_overlay_city_2 + 1), a
         ld      (cmd_overlay_city_3 + 1), a
-        ld      hl, cmd_overlay_city
-        jp      queue_vdp_command
+        QUEUE_VDP_COMMAND cmd_overlay_city
+        ret
 
 set_back_building_palette:
         ; Set palette of back building.
@@ -2198,6 +2209,7 @@ queue_mapper:
         ld      (ix + 0), low process_mapper
         ld      (ix + 2), a
         ld      (ix + 1), high process_mapper
+queue_mapper_macro:
         ADD_MOD ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
@@ -2228,10 +2240,9 @@ queue_zblit:
         ld      (ix + 4), b
         ld      (ix + 5), d
         ld      (ix + 6), e
-        ld      a, low process_zblit
-        ld      (ix + 0), a
-        ld      a, high process_zblit
-        ld      (ix + 1), a
+        ld      (ix + 0), low process_zblit
+        ld      (ix + 1), high process_zblit
+queue_zblit_macro:
         ADD_MOD ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
@@ -2269,6 +2280,7 @@ queue_vdp_command:
         ld      (ix + 3), h
         ld      (ix + 0), low process_vdp_command_queue
         ld      (ix + 1), high process_vdp_command_queue
+queue_vdp_command_macro:
         ADD_MOD ixl, 8, 0FFh
         ld      (queue_push), ix
         ret
