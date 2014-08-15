@@ -2052,20 +2052,17 @@ white_frame:
         xor     a
         sbc     hl, de
         jr      z, 1f
-        ld      hl, border_blue
-        xor     a
-        VDPREG  vdp_palette
-        ld      bc, (2) * 256 + 09Ah
-        otir
         ENABLE_SCREEN
-        ret
+        ld      hl, border_blue
+        jr      2f
 1:
+        DISABLE_SCREEN
         ld      hl, border_white
+2:
         xor     a
         VDPREG  vdp_palette
         ld      bc, (2) * 256 + 09Ah
         otir
-        DISABLE_SCREEN
         ret
 
 ; ----------------------------------------------------------------
