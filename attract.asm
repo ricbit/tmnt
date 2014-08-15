@@ -1056,10 +1056,7 @@ enable_blue_border:
         COMPARE_FRAME 1299
         ld      hl, title_palette
         jr      nc, 1f
-        xor     a
-        VDPREG  vdp_palette
-        ld      bc, (2) * 256 + vdp_color_data
-        otir
+        call    set_border_color
         jp      frame_end
 1:
         call    smart_palette
@@ -1173,10 +1170,7 @@ disable_screen_black:
         DISABLE_SCREEN
         exx
         ld      hl, black_palette
-        xor     a
-        VDPREG  vdp_palette
-        ld      bc, (2) * 256 + vdp_color_data
-        otir
+        call    set_border_color
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2108,11 +2102,12 @@ white_frame:
         jr      z, 1f
         ENABLE_SCREEN
         ld      hl, border_blue
-        jr      2f
+        jr      set_border_color
 1:
         DISABLE_SCREEN
         ld      hl, border_white
-2:
+        ; fall through
+set_border_color:
         xor     a
         VDPREG  vdp_palette
         ld      bc, (2) * 256 + vdp_color_data
