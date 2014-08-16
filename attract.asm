@@ -29,9 +29,6 @@ rdslt           equ     0000Ch  ; Read a byte from a given slot
 callf           equ     0001Ch  ; Call far
 chgmod          equ     000D1h  ; Change SCREEN mode
 chget           equ     0009Fh  ; Read keyboard
-ldirvm          equ     0005Ch  ; Copy RAM to VRAM
-setplt          equ     0014Dh  ; Set palette color
-wrtvdp          equ     0012Dh  ; Write a VDP register
 iniplt          equ     00141h  ; Reset the palette
 irq             equ     00038h  ; irq vector
 pcm             equ     000A4h  ; turboR PCM port
@@ -39,13 +36,11 @@ pmcntl          equ     000A5h  ; turboR PCM config
 systml          equ     000E6h  ; turboR system timer
 beep            equ     000C0h  ; Play a beep
 disscr          equ     00041h  ; Disable screen
-enascr          equ     00044h  ; Enable screen
 vdpr0           equ     0F3DFh  ; Copy of VDP register 0
 vdpr1           equ     0F3E0h  ; Copy of VDP register 1
 vdpr9           equ     0FFE8h  ; Copy of VDP register 9
 vdpr8           equ     0FFE7h  ; Copy of VDP register 8
 vdpr25          equ     0FFFAh  ; Copy of VDP register 25
-bigfil          equ     0016Bh  ; Fill vram with a value
 chgcpu          equ     00180h  ; Change CPU
 hokvld          equ     0FB20h  ; Extended BIOS support
 extbio          equ     0FFCAh  ; Extended BIOS entry point
