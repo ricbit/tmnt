@@ -99,7 +99,7 @@ top_building_patt_addr  equ     10000h
 city_line_mask_addr     equ     1E680h
 back_building_patt_addr equ     06000h
 back_building_attr_addr equ     17600h
-title_addr              equ     08000h
+title_addr              equ     18000h
 city2_continue1_addr    equ     1FC80h
 city2_continue2_addr    equ     18000h
 city2_continue3_addr    equ     1A800h
@@ -109,7 +109,7 @@ alleyline_addr          equ     1AC00h
 alley2a_addr            equ     02C00h
 alley2b_addr            equ     00000h
 alley2c_addr            equ     02C00h
-manhole_addr            equ     08000h
+manhole_addr            equ     10000h
 turtles_addr            equ     18000h
 
 ; ----------------------------------------------------------------
@@ -1027,6 +1027,29 @@ title_bounce_h_enable:
         jp      return_irq_exx
 
 ; ----------------------------------------------------------------
+; State: enable_blue_border
+; Bottom of TMNT logo slides from the right.
+
+enable_blue_border:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        ENABLE_192
+        exx
+        xor     a
+        ld      (vertical_scroll), a
+        COMPARE_FRAME 1299
+        ld      hl, title_palette
+        jr      nc, 1f
+        xor     a
+        VDPREG  vdp_palette
+        ld      bc, (2) * 256 + vdp_color_data
+        otir
+        jp      frame_end
+1:
+        call    smart_palette
+        jp      frame_end
+
+; ----------------------------------------------------------------
 ; State: title_slide
 ; Bottom of TMNT logo slides from the right.
 
@@ -1085,24 +1108,12 @@ title_stand:
 
 erase_title_vram:
         PREAMBLE_VERTICAL
+        DISABLE_SCREEN
         exx
-        SMART_VDP_COMMAND cmd_erase_vram_page0
-        VDP_STATUS 0
-        jp      frame_end
-
-; ----------------------------------------------------------------
-; State: copy_title_vram
-; Copy title data to vram.
-
-copy_title_vram:
-        PREAMBLE_VERTICAL
-        SET_VRAM_WRITE title_addr
+        SMART_PALETTE black_palette
+        QUEUE_VDP_COMMAND cmd_erase_vram_page2
         MAPPER_P2 9
-        xor     a
-        ld      (vertical_scroll), a
-        exx
-        ld      hl, opening_title
-        call    smart_zblit
+        QUEUE_ZBLIT title_addr, opening_title
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -1985,12 +1996,13 @@ alley_stand:
 
 blinking_manhole:
         PREAMBLE_VERTICAL
-        ; Blink between pages 0 and 2.
+        ; Blink between pages 0 and 1.
         ld      a, (current_frame)
         rrca
         rrca
-        and     01000000b
-        xor     01011111b
+        rrca
+        and     0100000b
+        xor     0111111b
         VDPREG  vdp_set_page
         jp      frame_end_exx
 
@@ -2070,11 +2082,12 @@ white_frame:
 
 blinking_alley:
         PREAMBLE_VERTICAL
-        ; Blink between pages 0 and 2.
+        ; Blink between pages 0 and 1.
         ld      a, (current_frame)
         rrca
         rrca
-        and     01000000b
+        rrca
+        and     0100000b
         or      011111b
         VDPREG  vdp_set_page
         exx
@@ -2668,8 +2681,8 @@ current_motion_blur:    dw      motion_blur_repeat
 motion_blur_line:       db      187
 alley_scroll_current:   dw      alley_scroll_repeat
 manhole_split:          db      184
-manhole_cmd1:           VDP_LMMM 0, 256, 104, 152, 64, 13, vdp_timp
-manhole_cmd2:           VDP_HMMM 0, 256 + 13, 104, 152 + 13, 64, 31 - 13
+manhole_cmd1:           VDP_LMMM 0, 512, 104, 152, 64, 13, vdp_timp
+manhole_cmd2:           VDP_HMMM 0, 512 + 13, 104, 152 + 13, 64, 31 - 13
 manhole_cmd3:           VDP_HMMV 104, 152 + 31, 64, 16, 0AAh
 state_end:
 state_backup:           ds      state_end - state_start, 0
@@ -2761,9 +2774,9 @@ alley_scroll_repeat:
 ; ----------------------------------------------------------------
 ; VDP commands
 
-; Erase page 0 of vram.
-cmd_erase_vram_page0:
-        VDP_HMMV 0, 0, 256, 192, 0
+; Erase page 2 of vram.
+cmd_erase_vram_page2:
+        VDP_HMMV 0, 512, 256, 192, 0
 
 ; Erase all vram.
 cmd_erase_all_vram:
@@ -2795,9 +2808,9 @@ cmd_overlay_city_3:
 cmd_city_preload_2:
         VDP_YMMM 256 + 212, 0, 973, 44
 
-; Copy alley to page 2.
+; Copy alley to page 1.
 cmd_copy_alley:
-        VDP_YMMM 0, 0, 512, 192
+        VDP_YMMM 0, 0, 256, 192
 
 ; Top of manhole explosion.
 cmd_explosion_end:
@@ -2805,17 +2818,17 @@ cmd_explosion_end:
 
 ; Bottom of manhole explosion.
 cmd_bottom_manhole:
-        VDP_HMMM 128, 256, 104, 167, 64, 22
+        VDP_HMMM 128, 512, 104, 167, 64, 22
 
 ; Lights coming out of manhole.
 cmd_light_manhole:
-        VDP_HMMM 64, 256, 104, 168 + 512, 64, 21
+        VDP_HMMM 64, 512, 104, 168 + 256, 64, 21
 
 ; Empty manhole
 cmd_empty_manhole:
-        VDP_HMMM 192, 256, 104, 152 + 512, 64, 31
+        VDP_HMMM 192, 512, 104, 152 + 256, 64, 31
 cmd_empty_manhole_2:
-        VDP_HMMV 104, 152 + 512 + 31, 64, 6, 099h
+        VDP_HMMV 104, 152 + 256 + 31, 64, 6, 099h
 
 end_of_code:
         assert  end_of_code <= 04000h
