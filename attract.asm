@@ -506,6 +506,22 @@ alley_switch_frame              equ     930
         ld      (pointer), hl
         endm
 
+; Enable 192 lines.
+        macro   ENABLE_192
+        ld      a, (vdpr9)
+        and     127
+        ld      (vdpr9), a
+        VDPREG  9
+        endm
+
+; Enable 212 lines.
+        macro   ENABLE_212
+        ld      a, (vdpr9)
+        or      128
+        ld      (vdpr9), a
+        VDPREG  9
+        endm
+
 ; ----------------------------------------------------------------
 ; Start of main program.
 
@@ -757,10 +773,7 @@ local_init:
         VDPREG  7
 
         ; Enable 192 lines.
-        ld      a, (vdpr9)
-        and     127
-        ld      (vdpr9), a
-        VDPREG  9
+        ENABLE_192
 
         ; Enable 16 colors and turn off sprites.
         ld      a, (vdpr8)
@@ -2081,6 +2094,7 @@ turtles_slide:
         PREAMBLE_VERTICAL
         SET_PAGE 3
         ENABLE_SCREEN
+        ENABLE_212
         exx
         ld      hl, top_palette
         call    smart_palette
@@ -2095,6 +2109,7 @@ disable_screen_title:
         DISABLE_SCREEN
         SPRITES_OFF
         SET_PAGE 1
+        ENABLE_192
         exx
         SMART_PALETTE title_palette
         jp      frame_end
