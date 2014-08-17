@@ -74,6 +74,10 @@ debug set_bp [getlabel zblit_end] {$running} {
   puts stderr "smart_zblit ending at [machine_info VDP_msx_y_pos]"
 }
 
+debug set_bp [getlabel short_palette] {$running} {
+  puts stderr "smart_palette starting at [machine_info VDP_msx_y_pos]"
+}
+
 debug set_bp [getlabel smart_palette] {$running} {
   puts stderr "smart_palette starting at [machine_info VDP_msx_y_pos]"
 }

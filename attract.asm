@@ -468,6 +468,12 @@ alley_switch_frame              equ     930
         call    smart_palette
         endm
 
+; Short palette
+        macro   SHORT_PALETTE palette
+        ld      hl, palette
+        call    short_palette
+        endm
+
 ; Smart VDP command
         macro   SMART_VDP_COMMAND command
         ld      hl, command
@@ -1143,6 +1149,7 @@ disable_screen_212_change:
         PREAMBLE_HORIZONTAL
         exx
         ENABLE_212
+        SMART_PALETTE top_palette
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -2128,7 +2135,7 @@ turtles_slide:
         SET_PAGE 3
         ENABLE_SCREEN
         exx
-        SMART_PALETTE top_palette 
+        SHORT_PALETTE top_palette 
         HSPLIT_LINE 103
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -2138,7 +2145,7 @@ turtles_slide:
 turtles_slide_bottom:
         PREAMBLE_HORIZONTAL
         exx
-        SMART_PALETTE bottom_palette
+        SHORT_PALETTE bottom_palette
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -2511,6 +2518,24 @@ smart_zblit_end:
         FOREGROUND_RET
 
 ; ----------------------------------------------------------------
+; Set a short palette without stopping the pcm sample.
+
+short_palette:
+        ld      a, 6
+        VDPREG  vdp_palette
+        ld      de, 6 * 2
+        add     hl, de
+        ld      (load_foreground_hl), hl
+        call    check_foreground
+        ld      hl, short_palette_begin
+        ld      (foreground + 1), hl
+        ret
+
+short_palette_begin:
+        ld      b, 32 - 6 * 2
+        jr      foreground_palette_size
+
+; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
 
 smart_palette:
@@ -2531,6 +2556,7 @@ palette_end:
 
 foreground_palette_begin:
         ld      b, 32
+foreground_palette_size:
         ld      hl, foreground_palette
         ld      (foreground + 1), hl
         ld      hl, (load_foreground_hl)
