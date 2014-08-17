@@ -2129,7 +2129,7 @@ turtles_slide:
         ENABLE_SCREEN
         exx
         SMART_PALETTE top_palette 
-        HSPLIT_LINE 104
+        HSPLIT_LINE 103
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE turtles_slide_bottom
