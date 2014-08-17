@@ -17,7 +17,7 @@ OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
           $(BACK_BUILDING:%.sc5=%.z5) $(ALLEY_PIXELS:%.sc5=%.z5) \
           $(TOP_BUILDING:%.sc5=%.z5) $(MOON_SPRITES:%.sc5=%.z5) \
           absolute_scroll.bin advance_pcm.bin cloud_fade_palette.bin \
-          city_fade_palette.bin title_bounce_palette.bin \
+          city_fade_palette.bin title_bounce_palette.bin bottom_palette.bin \
           alley_palette.bin manhole.z5 turtles.z5 top_palette.bin \
           title_bounce_scroll.bin title_slide_scroll.bin raw/theme.pcm
 

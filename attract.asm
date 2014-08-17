@@ -1126,6 +1126,26 @@ disable_screen:
         jp      frame_end_exx
 
 ; ----------------------------------------------------------------
+; State: disable_screen_212
+; Turn off the screen and change screen lines to 212.
+
+disable_screen_212:
+        PREAMBLE_VERTICAL
+        DISABLE_SCREEN
+        HSPLIT_LINE 10
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        exx
+        NEXT_HANDLE disable_screen_212_change
+        jp      return_irq_exx
+
+disable_screen_212_change:
+        PREAMBLE_HORIZONTAL
+        exx
+        ENABLE_212
+        jp      frame_end_disable
+
+; ----------------------------------------------------------------
 ; State: disable_screen
 ; Turn off the screen and set the palette to all blacks.
 
@@ -2107,11 +2127,19 @@ turtles_slide:
         PREAMBLE_VERTICAL
         SET_PAGE 3
         ENABLE_SCREEN
-        ENABLE_212
         exx
-        ld      hl, top_palette
-        call    smart_palette
-        jp      frame_end
+        SMART_PALETTE top_palette 
+        HSPLIT_LINE 104
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE turtles_slide_bottom
+        jp      return_irq_exx
+
+turtles_slide_bottom:
+        PREAMBLE_HORIZONTAL
+        exx
+        SMART_PALETTE bottom_palette
+        jp      frame_end_disable
 
 ; ----------------------------------------------------------------
 ; State: disable_screen_title
@@ -2711,6 +2739,7 @@ city_fade_palette:      incbin  "city_fade_palette.bin"
 absolute_scroll:        incbin  "absolute_scroll.bin"
 alley_palette:          incbin  "alley_palette.bin"
 top_palette:            incbin  "top_palette.bin"
+bottom_palette:         incbin  "bottom_palette.bin"
 handles_begin           equ     0C000h
 handles                 equ     handles_begin - 500 * 2
 black_palette:          ds      16 * 2, 0
