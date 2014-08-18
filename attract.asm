@@ -277,6 +277,14 @@ alley_switch_frame              equ     930
         VDPREG  25
         endm
 
+; Enable two-pages h scroll with masking.
+        macro   WIDE_SCROLL_MASK
+        ld      a, (vdpr25)
+        or      3
+        ld      (vdpr25), a
+        VDPREG  25
+        endm
+
 ; Set sprite attribute table.
         macro   SPRITE_ATTR addr
         assert  (addr and ((1 << 10) - 1)) == (1 << 9)
@@ -1040,6 +1048,7 @@ enable_blue_border:
         PREAMBLE_VERTICAL
         SET_PAGE 3
         ENABLE_192
+        WIDE_SCROLL
         exx
         xor     a
         ld      (vertical_scroll), a
@@ -1142,6 +1151,7 @@ disable_screen_212:
         HSPLIT_LINE 10
         VDP_STATUS 1
         ENABLE_HIRQ
+        WIDE_SCROLL_MASK
         exx
         NEXT_HANDLE disable_screen_212_change
         jp      return_irq_exx
