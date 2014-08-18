@@ -2781,7 +2781,7 @@ manhole_cmd1:           VDP_LMMM 0, 512, 104, 152, 64, 13, vdp_timp
 manhole_cmd2:           VDP_HMMM 0, 512 + 13, 104, 152 + 13, 64, 31 - 13
 manhole_cmd3:           VDP_HMMV 104, 152 + 31, 64, 16, 0AAh
 vscroll_top:            db      100
-vscroll_bottom:         db      154
+vscroll_bottom:         db      152
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
