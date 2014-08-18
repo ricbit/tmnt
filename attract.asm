@@ -110,7 +110,7 @@ alley2a_addr            equ     02C00h
 alley2b_addr            equ     00000h
 alley2c_addr            equ     02C00h
 manhole_addr            equ     10000h
-turtles_addr            equ     10000h
+poster_left_addr        equ     10000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1147,7 +1147,7 @@ disable_screen:
 disable_screen_212:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
-        SET_PAGE 2
+        SET_PAGE 3
         HSPLIT_LINE 10
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -2134,7 +2134,7 @@ blinking_alley:
         COMPARE_FRAME 1130 - 20
         jp      nz, frame_end
         MAPPER_P2 13
-        QUEUE_ZBLIT turtles_addr, turtles
+        QUEUE_ZBLIT poster_left_addr, poster_left
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -3019,7 +3019,7 @@ alley2a:                incbin "alley2a.z5"
 alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
-turtles:                incbin "turtles.z5"
+poster_left:            incbin "poster_left.z5"
                         PAGE_END
 
         end

@@ -12,13 +12,16 @@ ALLEY_PIXELS = alley1a.sc5 alley1b.sc5 alley2a.sc5 alley2b.sc5 alley2c.sc5
 
 MOON_SPRITES = moon_pattern.sc5 moon_attr.sc5
 
+POSTER_PIXELS = poster_left.sc5
+
 OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
           cityline.z5 tmnt.z5 cloud2.z5 cloud3.z5 alleyline.z5 \
           $(BACK_BUILDING:%.sc5=%.z5) $(ALLEY_PIXELS:%.sc5=%.z5) \
           $(TOP_BUILDING:%.sc5=%.z5) $(MOON_SPRITES:%.sc5=%.z5) \
+          $(POSTER_PIXELS:%.sc5=%.z5) \
           absolute_scroll.bin advance_pcm.bin cloud_fade_palette.bin \
           city_fade_palette.bin title_bounce_palette.bin bottom_palette.bin \
-          alley_palette.bin manhole.z5 turtles.z5 top_palette.bin \
+          alley_palette.bin manhole.z5 top_palette.bin \
           title_bounce_scroll.bin title_slide_scroll.bin raw/theme.pcm
 
 all : attract.com
@@ -78,3 +81,7 @@ title_bounce_scroll.bin : raw/title_bounce_scroll.txt
 
 title_slide_scroll.bin : raw/title_slide_scroll.txt
 	python tools/gen_title_slide.py < $<
+
+$(POSTER_PIXELS) : raw/turtles.raw tools/gen_poster_raw.py
+	python tools/gen_poster_raw.py
+
