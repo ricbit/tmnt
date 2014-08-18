@@ -110,7 +110,7 @@ alley2a_addr            equ     02C00h
 alley2b_addr            equ     00000h
 alley2c_addr            equ     02C00h
 manhole_addr            equ     10000h
-turtles_addr            equ     18000h
+turtles_addr            equ     10000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1138,7 +1138,7 @@ disable_screen:
 disable_screen_212:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
-        SET_PAGE 3
+        SET_PAGE 2
         HSPLIT_LINE 10
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -2137,6 +2137,9 @@ turtles_slide:
         exx
         ld      a, (vscroll_top)
         VDPREG vdp_vscroll
+        ld      a, (hscroll_poster)
+        call    set_absolute_scroll
+        SUB_VAR hscroll_poster, 4
         SUB_VAR vscroll_top, 4
         SHORT_PALETTE top_palette 
         HSPLIT_LINE 105
@@ -2179,6 +2182,7 @@ turtles_stand:
         VDPREG vdp_vscroll
         SHORT_PALETTE top_palette 
         HSPLIT_LINE 103
+        SET_HSCROLL 0
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE turtles_stand_bottom
@@ -2782,6 +2786,7 @@ manhole_cmd2:           VDP_HMMM 0, 512 + 13, 104, 152 + 13, 64, 31 - 13
 manhole_cmd3:           VDP_HMMV 104, 152 + 31, 64, 16, 0AAh
 vscroll_top:            db      100
 vscroll_bottom:         db      152
+hscroll_poster:         db      100
 state_end:
 state_backup:           ds      state_end - state_start, 0
 
