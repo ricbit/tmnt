@@ -111,6 +111,7 @@ alley2b_addr            equ     00000h
 alley2c_addr            equ     02C00h
 manhole_addr            equ     10000h
 poster_left_addr        equ     10000h
+poster_right_addr       equ     18000h
 
 ; ----------------------------------------------------------------
 ; Animation constants
@@ -1171,7 +1172,11 @@ disable_screen_black:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
         exx
-        SMART_PALETTE black_palette
+        ld      hl, black_palette
+        xor     a
+        VDPREG  vdp_palette
+        ld      bc, (2) * 256 + vdp_color_data
+        otir
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2131,10 +2136,11 @@ blinking_alley:
         exx
         ld      de, 1050
         call    white_frame
-        COMPARE_FRAME 1130 - 20
+        COMPARE_FRAME 1098
         jp      nz, frame_end
         MAPPER_P2 13
         QUEUE_ZBLIT poster_left_addr, poster_left
+        QUEUE_ZBLIT poster_right_addr, poster_right
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -3020,6 +3026,7 @@ alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
 poster_left:            incbin "poster_left.z5"
+poster_right:           incbin "poster_right.z5"
                         PAGE_END
 
         end
