@@ -2149,6 +2149,28 @@ turtles_slide_bottom:
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
+; State: turtles_stand
+; Turtle pictures stand.
+
+turtles_stand:
+        PREAMBLE_VERTICAL
+        SET_PAGE 3
+        ENABLE_SCREEN
+        exx
+        SHORT_PALETTE top_palette 
+        HSPLIT_LINE 103
+        VDP_STATUS 1
+        ENABLE_HIRQ
+        NEXT_HANDLE turtles_stand_bottom
+        jp      return_irq_exx
+
+turtles_stand_bottom:
+        PREAMBLE_HORIZONTAL
+        exx
+        SHORT_PALETTE bottom_palette
+        jp      frame_end_disable
+
+; ----------------------------------------------------------------
 ; State: disable_screen_title
 ; Disable the screen just before the title
 
