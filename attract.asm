@@ -1138,6 +1138,7 @@ disable_screen:
 disable_screen_212:
         PREAMBLE_VERTICAL
         DISABLE_SCREEN
+        SET_PAGE 3
         HSPLIT_LINE 10
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -2132,20 +2133,34 @@ blinking_alley:
 
 turtles_slide:
         PREAMBLE_VERTICAL
-        SET_PAGE 3
         ENABLE_SCREEN
         exx
+        ld      a, (vscroll_top)
+        VDPREG vdp_vscroll
+        SUB_VAR vscroll_top, 4
         SHORT_PALETTE top_palette 
-        HSPLIT_LINE 103
+        HSPLIT_LINE 104
         VDP_STATUS 1
         ENABLE_HIRQ
+        NEXT_HANDLE turtles_slide_middle
+        jp      return_irq_exx
+
+turtles_slide_middle:
+        PREAMBLE_HORIZONTAL
+        DISABLE_SCREEN
+        exx
+        SHORT_PALETTE bottom_palette
+        ld      a, (vscroll_bottom)
+        VDPREG vdp_vscroll
+        ADD_VAR vscroll_bottom, 4
+        HSPLIT_LINE 106
         NEXT_HANDLE turtles_slide_bottom
         jp      return_irq_exx
 
 turtles_slide_bottom:
         PREAMBLE_HORIZONTAL
+        ENABLE_SCREEN
         exx
-        SHORT_PALETTE bottom_palette
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -2157,6 +2172,8 @@ turtles_stand:
         SET_PAGE 3
         ENABLE_SCREEN
         exx
+        xor     a
+        VDPREG vdp_vscroll
         SHORT_PALETTE top_palette 
         HSPLIT_LINE 103
         VDP_STATUS 1
@@ -2760,6 +2777,8 @@ manhole_split:          db      184
 manhole_cmd1:           VDP_LMMM 0, 512, 104, 152, 64, 13, vdp_timp
 manhole_cmd2:           VDP_HMMM 0, 512 + 13, 104, 152 + 13, 64, 31 - 13
 manhole_cmd3:           VDP_HMMV 104, 152 + 31, 64, 16, 0AAh
+vscroll_top:            db      100
+vscroll_bottom:         db      156
 state_end:
 state_backup:           ds      state_end - state_start, 0
 

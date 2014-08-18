@@ -22,7 +22,7 @@ handle = [
     (1130, "disable_screen_black"),
     (1131, "disable_screen"),
     (1132, "disable_screen_212"),
-    (1136, "turtles_slide"),
+    (1138, "turtles_slide"),
     (1163, "turtles_stand"),
     (1281, "erase_title_vram"),
     (1282, "disable_screen"),
