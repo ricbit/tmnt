@@ -55,7 +55,7 @@ $(CITY_PIXELS): raw/city2.raw tools/gen_city_raw.py
 	python tools/gen_city_raw.py
 
 gen_back_building_sprites : tools/gen_back_building_sprites.cc
-	g++ -std=c++11 $^ -o $@ -O2 -Wall
+	g++ -std=c++14 $^ -o $@ -O2 -Wall
 
 $(BACK_BUILDING) : raw/city1.raw raw/city2.raw raw/cityline.raw \
                    gen_back_building_sprites

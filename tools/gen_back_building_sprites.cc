@@ -168,7 +168,7 @@ struct SpriteCover {
   vector<int> colormap;
 };
 
-vector<uint8_t> read_raw(string file, int lines) {
+auto read_raw(string file, int lines) {
   auto f = fopen(file.c_str(), "rb");
   vector<uint8_t> raw(lines * 256);
   auto size = fread(raw.data(), 1, lines * 256, f);
@@ -177,7 +177,7 @@ vector<uint8_t> read_raw(string file, int lines) {
   return raw;
 }
 
-pair<int, SpriteCover> find_cover(
+auto find_cover(
     const vector<uint8_t>& city1, const vector<uint8_t>& city2,
     const vector<uint8_t>& cityline,
     int scroll1, int scroll2, int split, int frame_number) {
@@ -241,7 +241,7 @@ struct SpriteBlock {
 };
 
 template<typename T>
-pair<vector<int>, vector<int>> get_attr(T a) {
+auto get_attr(T a) {
   vector<int> colors, attr;
   for (const auto& s : get<2>(a).sprite) {
     for (int color : s.color) {
