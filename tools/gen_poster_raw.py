@@ -32,7 +32,7 @@ c.save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
 c.save_sc5("".join(chr(i) for i in right), "poster_right.sc5", 0, 212)
 
 def save_diff(newsc5, oldsc5, start, filename):
-  page = -1
+  last_page = -1
   pos = 0
   out = []
   while pos < len(newsc5):
@@ -42,13 +42,15 @@ def save_diff(newsc5, oldsc5, start, filename):
       stripe = []
       addr = start + pos
       page = addr >> 14
-      vrampos = addr and 0x3FFF
+      vrampos = addr & 0x3FFF
       while pos < len(newsc5) and newsc5[pos] != oldsc5[pos]:
         stripe.append(newsc5[pos])
         pos += 1
-      out.append(128 + page)
-      out.append(128 + 64 + (vrampos >> 8))
-      out.append(vrampos and 255)
+      if page != last_page:
+        out.append(128 + 64 + page)
+        last_page = page
+      out.append(128 + (vrampos >> 8))
+      out.append(vrampos & 255)
       size = len(stripe)
       while size > 0:
         if (size > 63):
@@ -60,6 +62,7 @@ def save_diff(newsc5, oldsc5, start, filename):
           out.append(len(stripe))
           out.extend(stripe)
           size = 0
+  out.append(0)
   f = open(filename, "wb")
   f.write("".join(chr(i) for i in out))
   f.close()
