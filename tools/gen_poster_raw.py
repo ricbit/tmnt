@@ -29,10 +29,40 @@ for i in xrange(212):
 right_sc5 = c.convert_sc5(right, 0, 212)
 zero_sc5 = [0] * (128 * 212)
 c.save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
+c.save_sc5("".join(chr(i) for i in right), "poster_right.sc5", 0, 212)
 
-def save_diff(newsc5, oldsc5, start, name):
-  page = start >> 14
-  addr = start and 0x3FFF
+def save_diff(newsc5, oldsc5, start, filename):
+  page = -1
+  pos = 0
+  out = []
+  while pos < len(newsc5):
+    if newsc5[pos] == oldsc5[pos]:
+      pos += 1
+    else:
+      stripe = []
+      addr = start + pos
+      page = addr >> 14
+      vrampos = addr and 0x3FFF
+      while pos < len(newsc5) and newsc5[pos] != oldsc5[pos]:
+        stripe.append(newsc5[pos])
+        pos += 1
+      out.append(128 + page)
+      out.append(128 + 64 + (vrampos >> 8))
+      out.append(vrampos and 255)
+      size = len(stripe)
+      while size > 0:
+        if (size > 63):
+          out.append(63)
+          out.extend(stripe[:63])
+          stripe = stripe[63:]
+          size -= 63
+        else:
+          out.append(len(stripe))
+          out.extend(stripe)
+          size = 0
+  f = open(filename, "wb")
+  f.write("".join(chr(i) for i in out))
+  f.close()
 
 save_diff(right_sc5, zero_sc5, 0x18000, "poster_right.d5")
 
