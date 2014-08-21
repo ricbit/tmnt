@@ -2135,7 +2135,8 @@ blinking_alley:
         jp      nz, frame_end
         MAPPER_P2 13
         QUEUE_ZBLIT poster_left_addr, poster_left
-        QUEUE_ZBLIT poster_right_addr, poster_right
+        ld      hl, poster_right_diff
+        call    queue_diffblit
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -2351,7 +2352,7 @@ process_mapper:
 
 ; ----------------------------------------------------------------
 ; Queue a zblit to execute as soon as possible.
-; Input: HL=table with vdp commands, BDE = decoded VRAM address
+; Input: HL=table with compressed data, BDE = decoded VRAM address
 
 queue_zblit:
         ld      ix, (queue_push)
@@ -2388,6 +2389,35 @@ smart_zblit_queued:
         ld      hl, foreground_zblit_start
         ld      (foreground + 1), hl
         ei
+        jp      foreground_continue
+
+;; ----------------------------------------------------------------
+; Queue a diffblit to execute as soon as possible.
+; Input: HL=compressed data
+
+queue_diffblit:
+        ld      ix, (queue_push)
+        ld      (ix + 2), l
+        ld      (ix + 3), h
+        ld      (ix + 0), low process_diffblit
+        ld      (ix + 1), high process_diffblit
+        ADD_MOD ixl, 8, 0FFh
+        ld      (queue_push), ix
+        ret
+
+        ; Process diffblit.
+process_diffblit:
+        ; Don't start if there's another foreground task running.
+        CHECK_FOREGROUND
+smart_diffblit_queued:
+        ld      l, (iy + 2)
+        ld      h, (iy + 3)
+        ld      (iy + 1), 0
+        ADD_MOD iyl, 8, 0FFh
+        ld      (queue_pop), iy
+        ld      (load_foreground_hl), hl
+        ld      hl, foreground_diffblit_start
+        ld      (foreground + 1), hl
         jp      foreground_continue
 
 ; ----------------------------------------------------------------
@@ -2572,6 +2602,63 @@ foreground_copy_step:
         jp      foreground_continue
 
 smart_zblit_end:
+        FOREGROUND_RET
+
+; ----------------------------------------------------------------
+
+foreground_diffblit_start:
+        ld      hl, (load_foreground_hl)
+foreground_diffblit:
+        ld      a, (hl)
+        inc     hl
+        or      a
+        jp      z, foreground_diffblit_end
+        jp      m, foreground_address_setup
+
+        ; Setup zblit direct.
+        ld      bc, foreground_diffraw_step
+        ld      (foreground + 1), bc
+        ld      b, a
+        ; fall through
+
+foreground_diffraw_step:
+        ld      a, (hl)
+        inc     hl
+        out     (vdp_data), a
+        dec     b
+        jp      nz, foreground_continue
+        ld      bc, foreground_diffblit
+        ld      (foreground + 1), bc
+        jp      foreground_continue
+
+        ; Setup high bits of address
+foreground_address_setup:
+        bit     6, a
+        jr      z, foreground_vram_setup
+        sub     128 + 64
+        di
+        VDPREG 14
+        ei
+        ld      bc, foreground_diffblit
+        ld      (foreground + 1), bc
+        jp      foreground_continue
+
+        ; Setup low bits of address.
+foreground_vram_setup:
+        sub     64
+        ld      b, a
+        ld      a, (hl)
+        inc     hl
+        di
+        out     (vdp_control), a
+        ld      a, b
+        out     (vdp_control), a
+        ei
+        ld      bc, foreground_diffblit
+        ld      (foreground + 1), bc
+        jp      foreground_continue
+
+foreground_diffblit_end:
         FOREGROUND_RET
 
 ; ----------------------------------------------------------------
@@ -3021,7 +3108,7 @@ alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
 poster_left:            incbin "poster_left.z5"
-poster_right:           incbin "poster_right.z5"
+poster_right_diff:      incbin "poster_right.d5"
                         PAGE_END
 
         end

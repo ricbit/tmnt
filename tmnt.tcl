@@ -74,6 +74,10 @@ debug set_bp [getlabel zblit_end] {$running} {
   puts stderr "smart_zblit ending at [machine_info VDP_msx_y_pos]"
 }
 
+debug set_bp [getlabel foreground_diffblit_end] {$running} {
+  puts stderr "diffblit ending at [machine_info VDP_msx_y_pos]"
+}
+
 debug set_bp [getlabel short_palette] {$running} {
   puts stderr "smart_palette starting at [machine_info VDP_msx_y_pos]"
 }
@@ -100,6 +104,10 @@ debug set_bp [getlabel smart_vdp_command_queued] {$running} {
 
 debug set_bp [getlabel smart_zblit_queued] {$running} {
   puts stderr "smart_zblit queued at [machine_info VDP_msx_y_pos]"
+}
+
+debug set_bp [getlabel process_diffblit] {$running} {
+  puts stderr "diffblit queued at [machine_info VDP_msx_y_pos]"
 }
 
 debug set_bp [getlabel smart_vdp_command_end] {$running} {
