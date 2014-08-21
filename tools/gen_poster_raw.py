@@ -29,7 +29,6 @@ for i in xrange(212):
 right_sc5 = c.convert_sc5(right, 0, 212)
 zero_sc5 = [0] * (128 * 212)
 c.save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
-c.save_sc5("".join(chr(i) for i in right), "poster_right.sc5", 0, 212)
 
 def save_diff(newsc5, oldsc5, start, filename):
   last_page = -1

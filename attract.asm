@@ -489,6 +489,12 @@ alley_switch_frame              equ     930
         call    smart_vdp_command
         endm
 
+; Queue diffblit
+        macro   QUEUE_DIFFBLIT addr
+        ld      hl, addr
+        call    queue_diffblit
+        endm
+
 ; Queue VDP command
         macro   QUEUE_VDP_COMMAND command
         ld      ix, (queue_push)
@@ -2134,9 +2140,9 @@ blinking_alley:
         COMPARE_FRAME 1098
         jp      nz, frame_end
         MAPPER_P2 13
+        QUEUE_VDP_COMMAND cmd_erase_vram_page3
         QUEUE_ZBLIT poster_left_addr, poster_left
-        ld      hl, poster_right_diff
-        call    queue_diffblit
+        QUEUE_DIFFBLIT poster_right_diff
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -3031,6 +3037,10 @@ cmd_empty_manhole:
         VDP_HMMM 192, 512, 104, 152 + 256, 64, 31
 cmd_empty_manhole_2:
         VDP_HMMV 104, 152 + 256 + 31, 64, 6, 099h
+
+; Erase half of page 3 from vram.
+cmd_erase_vram_page3:
+        VDP_HMMV 0, 768, 128, 212, 0
 
 end_of_code:
         assert  end_of_code <= 04000h
