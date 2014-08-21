@@ -77,6 +77,44 @@ def compress(original, filename):
   f.write("".join(chr(i) for i in out))
   f.close()
 
+def save_diff(newsc5, oldsc5, start, filename):
+  last_page = -1
+  pos = 0
+  out = []
+  while pos < len(newsc5):
+    if newsc5[pos] == oldsc5[pos]:
+      pos += 1
+    else:
+      stripe = []
+      addr = start + pos
+      page = addr >> 14
+      vrampos = addr & 0x3FFF
+      while any(pos + i < len(newsc5) and newsc5[pos + i] != oldsc5[pos +i]
+                for i in xrange(4)):
+        stripe.append(newsc5[pos])
+        pos += 1
+      if page != last_page:
+        out.append(128 + 64 + page)
+        last_page = page
+      out.append(128 + (vrampos >> 8))
+      out.append(vrampos & 255)
+      size = len(stripe)
+      while size > 0:
+        if (size > 127):
+          out.append(127)
+          out.extend(stripe[:127])
+          stripe = stripe[127:]
+          size -= 127
+        else:
+          out.append(len(stripe))
+          out.extend(stripe)
+          size = 0
+  out.append(0)
+  f = open(filename, "wb")
+  f.write("".join(chr(i) for i in out))
+  f.close()
+
+
 if __name__ == "__main__":
   original = [ord(i) for i in open(sys.argv[1], "rb").read()]
   compress(original, sys.argv[2])
