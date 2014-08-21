@@ -39,6 +39,8 @@ def compress(original, filename):
     elif state == 1:
       if value != repeat_value:
         if repeat_count:
+          if repeat_count < 3:
+            print "error repeat: ", repeat_count
           out.append(128 + repeat_count - 3)
           out.append(repeat_value)
         state = 0
@@ -54,6 +56,8 @@ def compress(original, filename):
     elif state == 2:
       if value != original[slide_start + slide_count]:
         if slide_count:
+          if slide_count < 3:
+            print "error slide: ", slide_count
           out.append(128 + 64 + slide_count - 3)
         state = 0
         raw = [value]
