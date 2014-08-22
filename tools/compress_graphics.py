@@ -118,6 +118,54 @@ def compress_diff(newsc5, oldsc5, vram_start, line, size, close_stream=True):
     out.append(0)
   return out
 
+def compress_simple(original):
+  out = []
+  raw = []
+  state = 0
+  repeat_value = 0
+  repeat_count = 0
+  repeat_max = 63 + 3
+  for pos, value in enumerate(original):
+    if state == 0:
+      if len(raw) >= 2 and raw[-1] == raw[-2] == value:
+        if len(raw) > 2:
+          out.append(len(raw) - 2)
+          out.extend(raw[:-2])
+        raw = []
+        repeat_value = value
+        repeat_count = 3
+        state = 1
+      else:
+        raw.append(value)
+        if len(raw) == 63:
+          out.append(63)
+          out.extend(raw)
+          raw = []
+    elif state == 1:
+      if value != repeat_value:
+        if repeat_count:
+ 	  print repeat_count
+          out.append(64 + repeat_count - 3)
+          out.append(repeat_value)
+        state = 0
+        raw = [value]
+      else:
+        if repeat_count >= repeat_max:
+  	  print repeat_count
+          out.append(64 + repeat_max - 3)
+          out.append(repeat_value)
+	  raw = [repeat_value]
+	  state = 0
+	else:
+          repeat_count += 1
+  if state == 0 and raw:
+    out.append(len(raw))
+    out.extend(raw)
+  elif state == 1 and repeat_count > 0:
+    out.append(64 + repeat_count - 3)
+    out.append(repeat_value)
+  return out
+
 def save_diff(newsc5, oldsc5, start, line, size, filename):
   out = compress_diff(newsc5, oldsc5, start, line, size)
   f = open(filename, "wb")

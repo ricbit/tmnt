@@ -12,8 +12,14 @@ while raw[pos] != 0:
   elif raw[pos] >= 128:
     addr = ((raw[pos] & 0x3F) << 8) + raw[pos + 1]
     pos += 2
+  elif raw[pos] >= 64:
+    size = raw[pos] - 64 + 3
+    dest = (page << 14) + addr - start
+    out[dest : dest + size] = [raw[pos + 1]] * size
+    pos += 2
   else:
     size = raw[pos]
+    print size, [hex(i) for i in raw[pos+1 : pos+1+size]]
     dest = (page << 14) + addr - start
     out[dest : dest + size] = raw[pos + 1 : pos + size + 1]
     pos += size + 1
