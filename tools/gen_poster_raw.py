@@ -42,12 +42,9 @@ last_left, last_right = left_sc5, right_sc5
 start = 256 - 20
 size = 20
 hscroll = 100
-start -= 4
-size += 4
-hscroll -= 4
 stream = []
 stream_size = []
-for i in xrange(1, 15):  
+for i in xrange(0, 15):  
   for j in xrange(i * 4 + 4):
     top = 103 - j
     bottom = 108 + j
@@ -64,6 +61,7 @@ for i in xrange(1, 15):
   stream.extend(compress_diff(left, last_left, 0x10000, close_stream=False))
   stream.extend(compress_diff(right, last_right, 0x18000))
   diff_size = len(stream) - before
+  print i, diff_size
   stream_size.append(diff_size % 256)
   stream_size.append(diff_size >> 8)
   last_left, last_right = left, right
