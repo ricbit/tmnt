@@ -81,7 +81,7 @@ def compress(original, filename):
   f.write("".join(chr(i) for i in out))
   f.close()
 
-def save_diff(newsc5, oldsc5, start, filename):
+def compress_diff(newsc5, oldsc5, start, close_stream=True):
   last_page = -1
   pos = 0
   out = []
@@ -113,11 +113,15 @@ def save_diff(newsc5, oldsc5, start, filename):
           out.append(len(stripe))
           out.extend(stripe)
           size = 0
-  out.append(0)
+  if close_stream:
+    out.append(0)
+  return out
+
+def save_diff(newsc5, oldsc5, start, filename):
+  out = compress_diff(newsc5, oldsc5, start)
   f = open(filename, "wb")
   f.write("".join(chr(i) for i in out))
   f.close()
-
 
 if __name__ == "__main__":
   original = [ord(i) for i in open(sys.argv[1], "rb").read()]
