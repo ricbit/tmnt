@@ -2168,6 +2168,9 @@ turtles_slide1:
         ld      hl, (slide_data)
         call    queue_diffblit
         call    update_slide_data
+        ld      hl, (slide_data)
+        call    queue_diffblit
+        call    update_slide_data
         jp      return_irq_exx
 
 turtles_slide1_middle:

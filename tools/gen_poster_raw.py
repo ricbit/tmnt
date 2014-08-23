@@ -36,7 +36,7 @@ left_sc5 = convert_sc5(left, 0, 212)
 right_sc5 = convert_sc5(right, 0, 212)
 zero_sc5 = [0] * (128 * 212)
 save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
-save_diff(right_sc5, zero_sc5, 0x18000, "poster_right.d5")
+save_diff(right_sc5, zero_sc5, 0x18000, 0, 212, "poster_right.d5")
 
 last_left, last_right = left_sc5, right_sc5
 start = 256 - 20
@@ -57,11 +57,24 @@ for i in xrange(0, 15):
   size += 4
   hscroll -= 4
   left, right = map(lambda x: convert_sc5(x, 0, 212), getlr(large))
+  # top
   before = len(stream)
-  stream.extend(compress_diff(left, last_left, 0x10000, close_stream=False))
-  stream.extend(compress_diff(right, last_right, 0x18000))
+  stream.extend(compress_diff(
+    left, last_left, 0x10000, 0, 212 / 2, close_stream=False))
+  stream.extend(compress_diff(
+    right, last_right, 0x18000, 0, 212 / 2))
   diff_size = len(stream) - before
-  print i, diff_size
+  print i, " top ", diff_size
+  stream_size.append(diff_size % 256)
+  stream_size.append(diff_size >> 8)
+  # bottom
+  before = len(stream)
+  stream.extend(compress_diff(
+    left, last_left, 0x10000, 212 / 2, 212 / 2, close_stream=False))
+  stream.extend(compress_diff(
+    right, last_right, 0x18000, 212 / 2, 212 / 2))
+  diff_size = len(stream) - before
+  print i, " bottom ", diff_size
   stream_size.append(diff_size % 256)
   stream_size.append(diff_size >> 8)
   last_left, last_right = left, right

@@ -81,19 +81,20 @@ def compress(original, filename):
   f.write("".join(chr(i) for i in out))
   f.close()
 
-def compress_diff(newsc5, oldsc5, start, close_stream=True):
+def compress_diff(newsc5, oldsc5, vram_start, line, size, close_stream=True):
   last_page = -1
-  pos = 0
+  pos = line * 128
+  vram_size = pos + size * 128
   out = []
-  while pos < len(newsc5):
+  while pos < vram_size:
     if newsc5[pos] == oldsc5[pos]:
       pos += 1
     else:
       stripe = []
-      addr = start + pos
+      addr = vram_start + pos
       page = addr >> 14
       vrampos = addr & 0x3FFF
-      while any(pos + i < len(newsc5) and newsc5[pos + i] != oldsc5[pos +i]
+      while any(pos + i < vram_size and newsc5[pos + i] != oldsc5[pos +i]
                 for i in xrange(4)):
         stripe.append(newsc5[pos])
         pos += 1
@@ -117,8 +118,8 @@ def compress_diff(newsc5, oldsc5, start, close_stream=True):
     out.append(0)
   return out
 
-def save_diff(newsc5, oldsc5, start, filename):
-  out = compress_diff(newsc5, oldsc5, start)
+def save_diff(newsc5, oldsc5, start, line, size, filename):
+  out = compress_diff(newsc5, oldsc5, start, line, size)
   f = open(filename, "wb")
   f.write("".join(chr(i) for i in out))
   f.close()
