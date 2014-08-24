@@ -45,6 +45,17 @@ hscroll = 100
 stream = []
 stream_size = []
 for i in xrange(0, 15):  
+  last_large = large[:]
+  # Emulate vdp command
+  for j in xrange(i * 4):
+    top = 103 - j
+    bottom = 108 + j
+    offset = hscroll + 256 - size
+    last_large[top * 512 + offset: top * 512 + offset + 8] = [0xa] * 8
+    last_large[bottom * 512 + offset: bottom * 512 + offset + 8] = [0x8] * 8
+  last_left, last_right = map(
+    lambda x: convert_sc5(x, 0, 212), getlr(last_large))
+  # Diffblit
   for j in xrange(i * 4 + 4):
     top = 103 - j
     bottom = 108 + j
@@ -57,27 +68,18 @@ for i in xrange(0, 15):
   size += 4
   hscroll -= 4
   left, right = map(lambda x: convert_sc5(x, 0, 212), getlr(large))
-  # top
-  before = len(stream)
-  stream.extend(compress_diff(
-    left, last_left, 0x10000, 0, 212 / 2, close_stream=False))
-  stream.extend(compress_diff(
-    right, last_right, 0x18000, 0, 212 / 2))
-  diff_size = len(stream) - before
-  print i, " top ", diff_size
-  stream_size.append(diff_size % 256)
-  stream_size.append(diff_size >> 8)
-  # bottom
-  before = len(stream)
-  stream.extend(compress_diff(
-    left, last_left, 0x10000, 212 / 2, 212 / 2, close_stream=False))
-  stream.extend(compress_diff(
-    right, last_right, 0x18000, 212 / 2, 212 / 2))
-  diff_size = len(stream) - before
-  print i, " bottom ", diff_size
-  stream_size.append(diff_size % 256)
-  stream_size.append(diff_size >> 8)
-  last_left, last_right = left, right
+  def extend_half_screen(line_start):
+    before = len(stream)
+    stream.extend(compress_diff(
+      left, last_left, 0x10000, line_start, 212 / 2, close_stream=False))
+    stream.extend(compress_diff(
+      right, last_right, 0x18000, line_start, 212 / 2))
+    diff_size = len(stream) - before
+    print i, diff_size
+    stream_size.append(diff_size % 256)
+    stream_size.append(diff_size >> 8)
+  extend_half_screen(0)
+  extend_half_screen(212 / 2)
 f = open("poster_slide_diff.d5", "wb")
 f.write("".join(chr(i) for i in stream))
 f.close()
