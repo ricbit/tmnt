@@ -2,6 +2,7 @@ sjasmplus
 openmsx
 gen_back_building_sprites
 log.txt
+oldlog.txt
 *.d5
 *.bin
 *.z5

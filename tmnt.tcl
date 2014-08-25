@@ -149,3 +149,14 @@ debug set_watchpoint write_mem [expr 1 + [getlabel current_frame]] {
   quit
 }
 
+proc vc {offset} {
+  peek16 [expr [reg hl] - $offset]
+}
+
+debug set_bp [getlabel foreground_vdp_command] {[reg b] == 1} {
+  if {[peek [reg hl]] == 0xC0} {
+    puts stderr [format "%s%02X" \
+                 "HMMV dx=[vc 10] dy=[vc 8] nx=[vc 6] ny=[vc 4] color=0x" \
+                 [vc 2]]
+  }
+}
