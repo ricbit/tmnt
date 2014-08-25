@@ -31,6 +31,7 @@ def getlr(large):
     right[i * 256 : i * 256 + 256] = large[i * 512 + 256: i * 512 + 512]
   return left, right
 
+# Initial state of vram
 left, right = getlr(large)
 left_sc5 = convert_sc5(left, 0, 212)
 right_sc5 = convert_sc5(right, 0, 212)
@@ -38,6 +39,7 @@ zero_sc5 = [0] * (128 * 212)
 save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
 save_diff(right_sc5, zero_sc5, 0x18000, 0, 212, "poster_right.d5")
 
+# State turtle_slide1
 last_left, last_right = left_sc5, right_sc5
 start = 256 - 20
 size = 20
