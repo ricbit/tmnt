@@ -48,6 +48,7 @@ debug probe set_bp VDP.IRQhorizontal {
   $running == 1 && [debug read {VDP regs} 15] != 1
 } {
   puts stderr "HIRQ but VDP status is [debug read {VDP regs} 15]"
+  puts stderr "on line [machine_info VDP_msx_y_pos]"
   record stop
   exit
 }
@@ -59,6 +60,7 @@ debug probe set_bp VDP.IRQvertical {
   puts stderr "Frame $current_frame"
   if {[debug read {VDP regs} 15] != 0} {
     puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
+    puts stderr "on line [machine_info VDP_msx_y_pos]"
     record stop
     exit
   }
