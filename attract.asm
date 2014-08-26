@@ -2166,11 +2166,18 @@ turtles_slide1:
         NEXT_HANDLE turtles_slide1_middle
         MAPPER_P2 14
         COMPARE_FRAME 1138
-        jp      nz, return_irq_exx
+        jp      nz, 1f
         ; Top of the first frame
         ld      hl, (slide_data)
         call    queue_diffblit
         call    update_slide_data
+        jp      return_irq_exx
+1:
+        COMPARE_FRAME 1148
+        jp      nz, return_irq_exx
+        ld      a, 2
+        ld      (top_poster_cmd + 4), a
+        ld      (bottom_poster_cmd + 4), a
         jp      return_irq_exx
 
 turtles_slide1_middle:
