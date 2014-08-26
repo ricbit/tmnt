@@ -2188,9 +2188,9 @@ turtles_slide1_middle:
         in      a, (vdp_control)
         call    update_poster_command
         COMPARE_FRAME 1138
-        jp      z, 1f
-        QUEUE_VDP_COMMAND top_poster_cmd
+        jp      c, 1f
         QUEUE_VDP_COMMAND bottom_poster_cmd
+        QUEUE_VDP_COMMAND top_poster_cmd
 1:
         ; Diffblit bottom of this frame
         ld      hl, (slide_data)
@@ -2976,7 +2976,7 @@ vscroll_bottom:         db      152
 hscroll_poster:         db      100
 slide_data:             dw      poster_slide_diff
 slide_size:             dw      poster_slide_size
-top_poster_cmd:         VDP_HMMV 80, 768 + 103, 8, 0, 0AAh
+top_poster_cmd:         VDP_HMMV 80, 768 + 104, 8, 0, 0AAh
 bottom_poster_cmd:      VDP_HMMV 80, 768 + 108, 8, 0, 088h
 state_end:
 state_backup:           ds      state_end - state_start, 0

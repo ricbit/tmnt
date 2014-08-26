@@ -48,6 +48,7 @@ stream = []
 stream_size = []
 for i in xrange(0, 15):  
   last_large = large[:]
+  print i, " offset ", hscroll + 256 - size
   # Emulate vdp command
   for j in xrange(i * 4):
     top = 103 - j
