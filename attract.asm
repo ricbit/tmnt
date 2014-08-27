@@ -2263,7 +2263,6 @@ turtles_slide2:
         MAPPER_P2 14
         call    update_poster_command
         QUEUE_VDP_COMMAND bottom_poster_cmd
-        QUEUE_VDP_COMMAND cmd_serialize
         ; Diffblit bottom of this frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -3232,10 +3231,6 @@ cmd_empty_manhole_2:
 ; Erase half of page 3 from vram.
 cmd_erase_vram_page3:
         VDP_HMMV 0, 768, 128, 212, 0
-
-; Dummy write to serialize vdp commands.
-cmd_serialize:
-        VDP_HMMV 0, 1023, 2, 1, 0
 
 end_of_code:
         assert  end_of_code <= 04000h
