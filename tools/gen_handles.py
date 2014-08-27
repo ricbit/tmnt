@@ -24,7 +24,7 @@ handle = [
     (1137, "disable_screen_212"),
     (1138, "turtles_slide1"),
     (1150, "turtles_slide2"),
-    (1151, "turtles_slide"),
+    (1152, "turtles_slide"),
     (1163, "turtles_stand"),
     (1281, "erase_title_vram"),
     (1282, "disable_screen"),

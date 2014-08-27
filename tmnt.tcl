@@ -82,6 +82,10 @@ debug set_bp [getlabel foreground_diffblit_end] {$running} {
   puts stderr "diffblit ending at [machine_info VDP_msx_y_pos]"
 }
 
+debug set_bp [getlabel short_palette_queued] {$running} {
+  puts stderr "smart_palette queued at [machine_info VDP_msx_y_pos]"
+}
+
 debug set_bp [getlabel short_palette] {$running} {
   puts stderr "smart_palette starting at [machine_info VDP_msx_y_pos]"
 }

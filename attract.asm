@@ -2254,7 +2254,8 @@ turtles_slide2:
         call    set_absolute_scroll
         SUB_VAR hscroll_poster, 4
         SUB_VAR vscroll_top, 4
-        SHORT_PALETTE top_palette 
+        ld      hl, top_palette 
+        call    queue_short_palette
         HSPLIT_LINE 105
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -2309,7 +2310,8 @@ turtles_slide:
         call    set_absolute_scroll
         SUB_VAR hscroll_poster, 4
         SUB_VAR vscroll_top, 4
-        SHORT_PALETTE top_palette 
+        ld      hl, top_palette 
+        call    queue_short_palette
         HSPLIT_LINE 105
         VDP_STATUS 1
         ENABLE_HIRQ
@@ -2834,6 +2836,41 @@ short_palette:
 short_palette_begin:
         ld      b, 32 - 6 * 2
         jr      foreground_palette_size
+
+; ----------------------------------------------------------------
+; Queue a short palette change to execute as soon as possible.
+; Input: HL=table with new palette
+
+queue_short_palette:
+        ld      ix, (queue_push)
+        ld      de, 6 * 2
+        add     hl, de
+        ld      (ix + 2), l
+        ld      (ix + 3), h
+        ld      (ix + 0), low process_short_palette
+        ld      (ix + 1), high process_short_palette
+        ADD_MOD ixl, 8, 0FFh
+        ld      (queue_push), ix
+        ret
+
+process_short_palette:
+        ; Don't start if there's another foreground task running.
+        CHECK_FOREGROUND
+short_palette_queued:
+        di
+        ld      a, 6
+        VDPREG  vdp_palette
+        ld      l, (iy + 2)
+        ld      h, (iy + 3)
+        ld      (iy + 1), 0
+        ADD_MOD iyl, 8, 0FFh
+        ld      (queue_pop), iy
+        ld      (load_foreground_hl), hl
+        ld      hl, foreground_palette_size
+        ld      (foreground + 1), hl
+        ld      b, 32 - 6 * 2
+        ei
+        jp      foreground_continue
 
 ; ----------------------------------------------------------------
 ; Set the palette without stopping the pcm sample.
