@@ -2235,6 +2235,14 @@ update_slide_data:
         ld      d, (hl)
         inc     hl
         ld      (slide_size), hl
+        if      debug == 1
+        ld      a, e
+        or      d
+        jp      nz, 1f
+        ld      de, str_assert_failed
+        jp      graphic_abort
+1:
+        endif
         ld      hl, (slide_data)
         add     hl, de
         ld      (slide_data), hl
@@ -3093,6 +3101,7 @@ str_read_error:         db      "Error reading from disk, sorry.", 13, 10, "$"
 str_not_enough_memory:  db      "Not enough memory, sorry.", 13, 10, "$"
 str_foreground_error:   db      "Foreground thread overrun.", 13, 10, "$"
 str_vdp_error:          db      "VDP command overrun.", 13, 10, "$"
+str_assert_failed:      db      "Assert failed.", 13, 10, "$"
 str_loading:            db      "Loading$"
 str_dot:                db      ".$"
 str_press_any_key:      db      13, 10, "Press any key to start.$"

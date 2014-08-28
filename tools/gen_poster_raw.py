@@ -31,10 +31,23 @@ def getlr(large):
     right[i * 256 : i * 256 + 256] = large[i * 512 + 256: i * 512 + 512]
   return left, right
 
+def map_sc5(left_right_tuple):
+  return map(lambda x: convert_sc5(x, 0, 212), left_right_tuple)
+
+def extend_half_screen(line_start, lr, last_lr, stream, stream_size):
+  before = len(stream)
+  stream.extend(compress_diff(
+    lr[0], last_lr[0], 0x10000, line_start, 212 / 2, close_stream=False))
+  stream.extend(compress_diff(
+    lr[1], last_lr[1], 0x18000, line_start, 212 / 2))
+  diff_size = len(stream) - before
+  print i, diff_size
+  stream_size.append(diff_size % 256)
+  stream_size.append(diff_size >> 8)
+
 # Initial state of vram
 left, right = getlr(large)
-left_sc5 = convert_sc5(left, 0, 212)
-right_sc5 = convert_sc5(right, 0, 212)
+left_sc5, right_sc5 = map_sc5((left, right))
 zero_sc5 = [0] * (128 * 212)
 save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
 save_diff(right_sc5, zero_sc5, 0x18000, 0, 212, "poster_right.d5")
@@ -46,7 +59,7 @@ size = 20
 hscroll = 100
 stream = []
 stream_size = []
-for i in xrange(0, 17):  
+for i in xrange(0, 15):
   last_large = large[:]
   print i, " offset ", hscroll + 256 - size
   # Emulate vdp command
@@ -56,8 +69,7 @@ for i in xrange(0, 17):
     offset = hscroll + 256 - size
     last_large[top * 512 + offset: top * 512 + offset + 8] = [0xa] * 8
     last_large[bottom * 512 + offset: bottom * 512 + offset + 8] = [0x8] * 8
-  last_left, last_right = map(
-    lambda x: convert_sc5(x, 0, 212), getlr(last_large))
+  last_left, last_right = map_sc5(getlr(last_large))
   # Diffblit
   for j in xrange(i * 4 + 4):
     top = 103 - j
@@ -70,22 +82,14 @@ for i in xrange(0, 17):
   start -= 4
   size += 4
   hscroll -= 4
-  left, right = map(lambda x: convert_sc5(x, 0, 212), getlr(large))
-  def extend_half_screen(line_start):
-    before = len(stream)
-    stream.extend(compress_diff(
-      left, last_left, 0x10000, line_start, 212 / 2, close_stream=False))
-    stream.extend(compress_diff(
-      right, last_right, 0x18000, line_start, 212 / 2))
-    diff_size = len(stream) - before
-    print i, diff_size
-    stream_size.append(diff_size % 256)
-    stream_size.append(diff_size >> 8)
-  extend_half_screen(0)
-  extend_half_screen(212 / 2)
+  left, right = lr = map_sc5(getlr(large))
+  last_lr = [last_left, last_right]
+  extend_half_screen(0, lr, last_lr, stream, stream_size)
+  extend_half_screen(212 / 2, lr, last_lr, stream, stream_size)
 f = open("poster_slide_diff.d5", "wb")
 f.write("".join(chr(i) for i in stream))
 f.close()
+stream_size.extend([0, 0])
 f = open("poster_slide_size.bin", "wb")
 f.write("".join(chr(i) for i in stream_size))
 f.close()
