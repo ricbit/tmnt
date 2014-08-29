@@ -125,7 +125,7 @@ for i in xrange(14, 20):
   extend_half_screen(
     0, 212 / 4, lr, last_lr, stream, stream_size)
   extend_half_screen(
-    0, 212 / 4, lr, last_lr, stream, stream_size)
+    212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
 f = open("poster_slide3_diff.d5", "wb")
 f.write("".join(chr(i) for i in stream))
 f.close()
