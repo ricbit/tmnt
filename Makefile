@@ -12,7 +12,9 @@ ALLEY_PIXELS = alley1a.sc5 alley1b.sc5 alley2a.sc5 alley2b.sc5 alley2c.sc5
 
 MOON_SPRITES = moon_pattern.sc5 moon_attr.sc5
 
-POSTER_PIXELS = poster_left.sc5 poster_right.d5
+POSTER_PIXELS = poster_left.sc5 poster_right.d5 \
+                poster_slide_diff.d5 poster_slide_size.bin \
+                poster_slide3_diff.d5 poster_slide3_size.bin
 
 OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
           cityline.z5 tmnt.z5 cloud2.z5 cloud3.z5 alleyline.z5 \
