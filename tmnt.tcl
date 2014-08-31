@@ -1,4 +1,5 @@
 set throttle off
+set mute on
 set running 0
 set current_frame 0
 set vdp_command_running 0
