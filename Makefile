@@ -32,6 +32,18 @@ clean :
 	rm -f *sc5 *z5 *bin *inc *d5 gen_back_building_sprites \
            attract.com attract.dat attract.lst attract.sym
 
+run : attract.com
+	./openmsx -machine Panasonic_FS-A1GT -diska disk
+
+save : tmntmsx.avi
+
+vlc : tmntmsx.avi
+	vlc tmntmsx.avi
+
+tmntmsx.avi : attract.com 
+	./openmsx -machine Panasonic_FS-A1GT -diska disk -script tmnt.tcl \
+        -ext debugdevice > log.txt 2>&1
+
 attract.com : $(OBJECTS)
 	./sjasmplus attract.asm --lst=attract.lst --sym=attract.sym
 	mkdir -p disk
