@@ -22,6 +22,9 @@ for i in xrange(26):
   start -= 4
   size += 4
   hscroll -= 4
+for i in xrange(192):
+  large[i * 512 + 256 + 128 : i * 512 + 512] = raw[
+      i * 256 + 128 : i * 256 + 256]
 
 def getlr(large):
   left = [0] * (256 * 212)

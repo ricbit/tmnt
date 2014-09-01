@@ -6,7 +6,7 @@
         org     0100h
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     15
+selectors       equ     16
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -2142,6 +2142,7 @@ blinking_alley:
         MAPPER_P2 13
         QUEUE_VDP_COMMAND cmd_erase_vram_page3
         QUEUE_ZBLIT poster_left_addr, poster_left
+        QUEUE_MAPPER 15
         QUEUE_DIFFBLIT poster_right_diff
         jp      frame_end
 
@@ -3275,9 +3276,9 @@ cmd_empty_manhole:
 cmd_empty_manhole_2:
         VDP_HMMV 104, 152 + 256 + 31, 64, 6, 099h
 
-; Erase half of page 3 from vram.
+; Erase page 3 from vram.
 cmd_erase_vram_page3:
-        VDP_HMMV 0, 768, 128, 212, 0
+        VDP_HMMV 0, 768, 256, 212, 0
 
 end_of_code:
         assert  end_of_code <= 04000h
@@ -3355,15 +3356,20 @@ alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
 poster_left:            incbin "poster_left.z5"
-poster_right_diff:      incbin "poster_right.d5"
                         PAGE_END
 
 ; Mapper page 14
                         PAGE_BEGIN
 poster_slide_diff:      incbin "poster_slide_diff.d5"
 poster_slide_size:      incbin "poster_slide_size.bin"
-poster_slide3_diff:      incbin "poster_slide3_diff.d5"
-poster_slide3_size:      incbin "poster_slide3_size.bin"
+poster_slide3_diff:     incbin "poster_slide3_diff.d5"
+poster_slide3_size:     incbin "poster_slide3_size.bin"
                         PAGE_END
+
+; Mapper page 15
+                        PAGE_BEGIN
+poster_right_diff:      incbin "poster_right.d5"
+                        PAGE_END
+
         end
 
