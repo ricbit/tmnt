@@ -40,7 +40,7 @@ save : tmntmsx.avi
 vlc : tmntmsx.avi
 	vlc tmntmsx.avi
 
-tmntmsx.avi : attract.com 
+tmntmsx.avi : attract.com tmnt.tcl 
 	./openmsx -machine Panasonic_FS-A1GT -diska disk -script tmnt.tcl \
         -ext debugdevice > log.txt 2>&1
 
