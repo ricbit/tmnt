@@ -2828,6 +2828,9 @@ foreground_diffblit:
         jp      z, foreground_diffblit_end
         jp      m, foreground_address_setup
 
+        bit     6, a
+        jr      nz, foreground_diffrle_setup
+
         ; Setup zblit direct.
         ld      bc, foreground_diffraw_step
         ld      (foreground + 1), bc
@@ -2840,6 +2843,24 @@ foreground_diffraw_step:
         out     (vdp_data), a
         dec     b
         jp      nz, foreground_continue
+        ld      bc, foreground_diffblit
+        ld      (foreground + 1), bc
+        jp      foreground_continue
+
+foreground_diffrle_setup:
+        ; Setup zblit rle.
+        ld      bc, foreground_diffrle_step
+        ld      (foreground + 1), bc
+        sub     64 - 3
+        ld      b, a
+        ; fall through
+
+foreground_diffrle_step:
+        ld      a, (hl)
+        out     (vdp_data), a
+        dec     b
+        jp      nz, foreground_continue
+        inc     hl
         ld      bc, foreground_diffblit
         ld      (foreground + 1), bc
         jp      foreground_continue

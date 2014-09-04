@@ -81,43 +81,6 @@ def compress(original, filename):
   f.write("".join(chr(i) for i in out))
   f.close()
 
-def compress_diff(newsc5, oldsc5, vram_start, line, size, close_stream=True):
-  last_page = -1
-  pos = line * 128
-  vram_size = pos + size * 128
-  out = []
-  while pos < vram_size:
-    if newsc5[pos] == oldsc5[pos]:
-      pos += 1
-    else:
-      stripe = []
-      addr = vram_start + pos
-      page = addr >> 14
-      vrampos = addr & 0x3FFF
-      while any(pos + i < vram_size and newsc5[pos + i] != oldsc5[pos +i]
-                for i in xrange(4)):
-        stripe.append(newsc5[pos])
-        pos += 1
-      if page != last_page:
-        out.append(128 + 64 + page)
-        last_page = page
-      out.append(128 + (vrampos >> 8))
-      out.append(vrampos & 255)
-      size = len(stripe)
-      while size > 0:
-        if (size > 127):
-          out.append(127)
-          out.extend(stripe[:127])
-          stripe = stripe[127:]
-          size -= 127
-        else:
-          out.append(len(stripe))
-          out.extend(stripe)
-          size = 0
-  if close_stream:
-    out.append(0)
-  return out
-
 def compress_simple(original):
   out = []
   raw = []
@@ -163,6 +126,34 @@ def compress_simple(original):
     out.append(64 + repeat_count - 3)
     out.append(repeat_value)
   return out
+
+def compress_diff(newsc5, oldsc5, vram_start, line, size, close_stream=True):
+  last_page = -1
+  pos = line * 128
+  vram_size = pos + size * 128
+  out = []
+  while pos < vram_size:
+    if newsc5[pos] == oldsc5[pos]:
+      pos += 1
+    else:
+      stripe = []
+      addr = vram_start + pos
+      page = addr >> 14
+      vrampos = addr & 0x3FFF
+      while any(pos + i < vram_size and newsc5[pos + i] != oldsc5[pos +i]
+                for i in xrange(4)):
+        stripe.append(newsc5[pos])
+        pos += 1
+      if page != last_page:
+        out.append(128 + 64 + page)
+        last_page = page
+      out.append(128 + (vrampos >> 8))
+      out.append(vrampos & 255)
+      out.extend(compress_simple(stripe))
+  if close_stream:
+    out.append(0)
+  return out
+
 
 def save_diff(newsc5, oldsc5, start, line, size, filename):
   out = compress_diff(newsc5, oldsc5, start, line, size)
