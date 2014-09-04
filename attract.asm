@@ -2088,11 +2088,20 @@ exploding_manhole:
 exploding_manhole_copy:
         PREAMBLE_HORIZONTAL
         exx
+        COMPARE_FRAME 1042
+        jr      nc, 1f
         SUB_VAR manhole_cmd1 + 7, 16
+3:
         SMART_VDP_COMMAND manhole_cmd1
-        COMPARE_FRAME 1043
-        jp      nz, frame_end_disable
-
+        jp      frame_end_disable
+1:
+        jp      nz, 2f
+        ld      ix, manhole_cmd1
+        ld      (ix + 7), 0
+        ld      (ix + 11), 5
+        ld      (ix + 3), 8
+        jr      3b
+2:
         QUEUE_VDP_COMMAND cmd_explosion_end
         jp      frame_end_disable
 
