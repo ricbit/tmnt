@@ -144,14 +144,12 @@ def compress_simple(original):
     elif state == 1:
       if value != repeat_value:
         if repeat_count:
- 	  print repeat_count
           out.append(64 + repeat_count - 3)
           out.append(repeat_value)
         state = 0
         raw = [value]
       else:
         if repeat_count >= repeat_max:
-  	  print repeat_count
           out.append(64 + repeat_max - 3)
           out.append(repeat_value)
 	  raw = [repeat_value]

@@ -16,12 +16,13 @@ while raw[pos] != 0:
     size = raw[pos] - 64 + 3
     dest = (page << 14) + addr - start
     out[dest : dest + size] = [raw[pos + 1]] * size
+    addr += size
     pos += 2
   else:
     size = raw[pos]
-    print size, [hex(i) for i in raw[pos+1 : pos+1+size]]
     dest = (page << 14) + addr - start
     out[dest : dest + size] = raw[pos + 1 : pos + size + 1]
+    addr += size
     pos += size + 1
 f = open(sys.argv[2], "wb")
 f.write("".join(chr(i) for i in out))
