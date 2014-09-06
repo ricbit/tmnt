@@ -6,7 +6,7 @@
         org     0100h
 
 ; Required memory, in mapper 16kb selectors
-selectors       equ     16
+selectors       equ     15
 
 ; Compile in debug mode or not
 debug           equ     1
@@ -1156,6 +1156,7 @@ disable_screen_212:
         VDP_STATUS 1
         ENABLE_HIRQ
         WIDE_SCROLL_MASK
+        MAPPER_P2 13
         exx
         NEXT_HANDLE disable_screen_212_change
         jp      return_irq_exx
@@ -2151,7 +2152,7 @@ blinking_alley:
         MAPPER_P2 13
         QUEUE_VDP_COMMAND cmd_erase_vram_page3
         QUEUE_ZBLIT poster_left_addr, poster_left
-        QUEUE_MAPPER 15
+        QUEUE_MAPPER 14
         QUEUE_DIFFBLIT poster_right_diff
         jp      frame_end
 
@@ -2174,7 +2175,6 @@ turtles_slide1:
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE turtles_slide1_middle
-        MAPPER_P2 14
         COMPARE_FRAME 1138
         jp      nz, 1f
         ; Top of the first frame
@@ -2264,7 +2264,6 @@ turtles_slide2:
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE turtles_slide2_middle
-        MAPPER_P2 14
         call    update_poster_command
         QUEUE_VDP_COMMAND bottom_poster_cmd
         ; Diffblit bottom of this frame
@@ -2295,6 +2294,7 @@ turtles_slide2_middle:
         call    update_slide_data
         jp      return_irq_exx
 1:
+        MAPPER_P2 14
         ld      hl, poster_slide3_diff
         ld      (slide_data), hl
         ld      hl, poster_slide3_size
@@ -2321,7 +2321,6 @@ turtles_slide3:
         VDP_STATUS 1
         ENABLE_HIRQ
         NEXT_HANDLE turtles_slide3_middle
-        MAPPER_P2 14
         call    update_poster_command
         QUEUE_VDP_COMMAND bottom_poster_cmd
         ; Diffblit bottom of this frame
@@ -3386,18 +3385,14 @@ alley2c:                incbin "alley2c.z5"
 alleyline:              incbin "alleyline.z5"
 manhole:                incbin "manhole.z5"
 poster_left:            incbin "poster_left.z5"
+poster_slide_diff:      incbin "poster_slide_diff.d5"
+poster_slide_size:      incbin "poster_slide_size.bin"
                         PAGE_END
 
 ; Mapper page 14
                         PAGE_BEGIN
-poster_slide_diff:      incbin "poster_slide_diff.d5"
-poster_slide_size:      incbin "poster_slide_size.bin"
 poster_slide3_diff:     incbin "poster_slide3_diff.d5"
 poster_slide3_size:     incbin "poster_slide3_size.bin"
-                        PAGE_END
-
-; Mapper page 15
-                        PAGE_BEGIN
 poster_right_diff:      incbin "poster_right.d5"
                         PAGE_END
 
