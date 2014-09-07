@@ -44,7 +44,7 @@ def extend_half_screen(line_start, size, lr, last_lr, stream, stream_size):
   stream.extend(compress_diff(
     lr[1], last_lr[1], 0x18000, line_start, size))
   diff_size = len(stream) - before
-  print i, diff_size
+  print diff_size
   stream_size.append(diff_size % 256)
   stream_size.append(diff_size >> 8)
 
@@ -64,7 +64,7 @@ stream = []
 stream_size = []
 for i in xrange(0, 14):
   last_large = large[:]
-  print i, " offset ", hscroll + 256 - size
+  print 1138 + i, " offset ", hscroll + 256 - size
   # Emulate vdp command
   for j in xrange(i * 4):
     top = 103 - j
@@ -102,7 +102,7 @@ stream = []
 stream_size = []
 for i in xrange(14, 20):
   last_large = large[:]
-  print i, " offset ", hscroll + 256 - size
+  print 1138 + i, " offset ", hscroll + 256 - size
   # Emulate vdp command
   for j in xrange(i * 4):
     top = 103 - j
