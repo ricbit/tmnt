@@ -8,7 +8,8 @@ def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
     raw[top * stride2 + offset2: top * stride2 + offset2 + size])
 
 raw = [ord(i) for i in open("raw/turtles.raw", "rb").read()]
-background = [0xa] * 256
+background_a = [0xa] * 256
+background_8 = [0x8] * 256
 large = [0] * (512 * 212)
 for i in xrange(212):
   copy(large, i, 512, 0, 128, raw, 256, 0)
@@ -72,10 +73,8 @@ for i in xrange(0, 14):
     top = 103 - j
     bottom = 108 + j
     offset = hscroll + 256 - size
-    #copy(last_large, top, 512, offset, 8, background, 0, 0)
-    #copy(last_large, bottom, 512, offset, 8, background, 0, 0)
-    last_large[top * 512 + offset: top * 512 + offset + 8] = [0xa] * 8
-    last_large[bottom * 512 + offset: bottom * 512 + offset + 8] = [0x8] * 8
+    copy(last_large, top, 512, offset, 8, background_a, 0, 0)
+    copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
   last_left, last_right = map_sc5(getlr(last_large))
   # Diffblit
   for j in xrange(i * 4 + 4):
@@ -110,10 +109,8 @@ for i in xrange(14, 20):
     top = 103 - j
     bottom = 108 + j
     offset = hscroll + 256 - size
-    #copy(last_large, top, 512, offset, 8, background, 0, 0)
-    #copy(last_large, bottom, 512, offset, 8, background, 0, 0)
-    last_large[top * 512 + offset: top * 512 + offset + 8] = [0xa] * 8
-    last_large[bottom * 512 + offset: bottom * 512 + offset + 8] = [0x8] * 8
+    copy(last_large, top, 512, offset, 8, background_a, 0, 0)
+    copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
   last_left, last_right = map_sc5(getlr(last_large))
   # Diffblit
   for j in xrange(i * 4 + 4):
