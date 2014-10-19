@@ -3393,6 +3393,7 @@ poster_slide_size:      incbin "poster_slide_size.bin"
                         PAGE_BEGIN
 poster_slide3_diff:     incbin "poster_slide3_diff.d5"
 poster_slide3_size:     incbin "poster_slide3_size.bin"
+poster_slide3_cmd:      include "poster_slide3_cmd.inc"
 poster_right_diff:      incbin "poster_right.d5"
                         PAGE_END
 

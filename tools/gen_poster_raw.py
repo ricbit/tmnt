@@ -101,16 +101,18 @@ f.close()
 # States turtles_slide3
 stream = []
 stream_size = []
-for i in xrange(14, 20):
+commands = []
+for i in xrange(14, 18):
   last_large = large[:]
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
+  offset = hscroll + 256 - size
+  vdpc = 30
+  rem = size - vdpc
+  print "start at ", offset + rem, " ends at ", offset + size
   # Emulate vdp command
   for j in xrange(i * 4):
     top = 103 - j
     bottom = 108 + j
-    offset = hscroll + 256 - size
-    vdpc = 30
-    rem = size - vdpc
     copy(last_large, top, 512, offset, 8, background_a, 0, 0)
     copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
     copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
@@ -123,6 +125,14 @@ for i in xrange(14, 20):
     offset = hscroll + 256 - size
     copy(large, top, 512, offset, size, raw, 256, 130)
     copy(large, bottom, 512, offset, size, raw, 256, 130)
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + 103 - i * 4, 
+                  offset + rem - 256, 512 + 103 - i * 4, 
+                  vdpc, i * 4))
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + 108, 
+                  offset + rem - 256, 512 + 108, 
+                  vdpc, i * 4))
   start -= 4
   size += 4
   hscroll -= 4
@@ -139,4 +149,6 @@ stream_size.extend([0, 0])
 f = open("poster_slide3_size.bin", "wb")
 f.write("".join(chr(i) for i in stream_size))
 f.close()
-
+f = open("poster_slide3_cmd.inc", "wt")
+f.write("".join(commands))
+f.close()
