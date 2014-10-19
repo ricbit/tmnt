@@ -67,7 +67,7 @@ stream = []
 stream_size = []
 for i in xrange(0, 14):
   last_large = large[:]
-  print 1138 + i, " offset ", hscroll + 256 - size
+  print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   # Emulate vdp command
   for j in xrange(i * 4):
     top = 103 - j
@@ -103,14 +103,18 @@ stream = []
 stream_size = []
 for i in xrange(14, 20):
   last_large = large[:]
-  print 1138 + i, " offset ", hscroll + 256 - size
+  print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   # Emulate vdp command
   for j in xrange(i * 4):
     top = 103 - j
     bottom = 108 + j
     offset = hscroll + 256 - size
+    vdpc = 30
+    rem = size - vdpc
     copy(last_large, top, 512, offset, 8, background_a, 0, 0)
     copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
+    copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
+    copy(last_large, bottom, 512, offset + rem, vdpc, raw, 256, 130 + rem)
   last_left, last_right = map_sc5(getlr(last_large))
   # Diffblit
   for j in xrange(i * 4 + 4):
@@ -125,7 +129,7 @@ for i in xrange(14, 20):
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
   extend_half_screen(
-    0, 212 / 4, lr, last_lr, stream, stream_size)
+    0, 212 / 2, lr, last_lr, stream, stream_size)
   extend_half_screen(
     212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
 f = open("poster_slide3_diff.d5", "wb")
