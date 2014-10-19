@@ -495,14 +495,25 @@ alley_switch_frame              equ     930
         call    queue_diffblit
         endm
 
-; Queue VDP command
-        macro   QUEUE_VDP_COMMAND command
+; Queue VDP command common
+        macro   QUEUE_VDP_COMMAND_COMMON cmd_high, cmd_low
         ld      ix, (queue_push)
-        ld      (ix + 2), low command
-        ld      (ix + 3), high command
+        ld      (ix + 2), cmd_low
+        ld      (ix + 3), cmd_high
         ld      (ix + 0), low process_vdp_command_queue
         ld      (ix + 1), high process_vdp_command_queue
         call    queue_vdp_command_macro
+        endm
+
+; Queue VDP command
+        macro   QUEUE_VDP_COMMAND command
+        QUEUE_VDP_COMMAND_COMMON high command, low command
+        endm
+
+; Queue VDP command indirect
+        macro   QUEUE_VDP_COMMAND_IND command
+        ld      hl, (command)
+        QUEUE_VDP_COMMAND_COMMON h, l
         endm
 
 ; Subtract a value from a memory variable.
@@ -2323,6 +2334,11 @@ turtles_slide3:
         NEXT_HANDLE turtles_slide3_middle
         call    update_poster_command
         QUEUE_VDP_COMMAND bottom_poster_cmd
+        QUEUE_VDP_COMMAND_IND slide3_command
+        ld      hl, (slide3_command)
+        ld      de, vdp_hmmm_size 
+        add     hl, de
+        ld      (slide3_command), hl
         ; Diffblit bottom of this frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -2344,6 +2360,11 @@ turtles_slide3_middle:
         in      a, (vdp_control)
 turtles_slide3_middle_blit:
         QUEUE_VDP_COMMAND top_poster_cmd
+        QUEUE_VDP_COMMAND_IND slide3_command
+        ld      hl, (slide3_command)
+        ld      de, vdp_hmmm_size 
+        add     hl, de
+        ld      (slide3_command), hl
         ; Diffblit top of next frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -3157,6 +3178,7 @@ slide_data:             dw      poster_slide_diff
 slide_size:             dw      poster_slide_size
 top_poster_cmd:         VDP_HMMV 80, 768 + 104, 8, 0, 0AAh
 bottom_poster_cmd:      VDP_HMMV 88, 768 + 108, 8, 256 - 4, 088h
+slide3_command:         dw      poster_slide3_cmd 
 state_end:
 state_backup:           ds      state_end - state_start, 0
 

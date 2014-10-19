@@ -125,13 +125,15 @@ for i in xrange(14, 18):
     offset = hscroll + 256 - size
     copy(large, top, 512, offset, size, raw, 256, 130)
     copy(large, bottom, 512, offset, size, raw, 256, 130)
+  top = 103 - i * 4 + 1
+  bottom = 108
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-                  (130 + rem, 768 + 103 - i * 4, 
-                  offset + rem - 256, 512 + 103 - i * 4, 
+                  (130 + rem, 768 + top, 
+                  offset + rem - 256, 768 + top, 
                   vdpc, i * 4))
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-                  (130 + rem, 768 + 108, 
-                  offset + rem - 256, 512 + 108, 
+                  (130 + rem, 768 + bottom, 
+                  offset + rem - 256, 768 + bottom, 
                   vdpc, i * 4))
   start -= 4
   size += 4
