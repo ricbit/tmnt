@@ -98,7 +98,7 @@ f = open("poster_slide_size.bin", "wb")
 f.write("".join(chr(i) for i in stream_size))
 f.close()
 
-# States turtles_slide3
+# State turtles_slide3
 stream = []
 stream_size = []
 commands = []
@@ -152,5 +152,65 @@ f = open("poster_slide3_size.bin", "wb")
 f.write("".join(chr(i) for i in stream_size))
 f.close()
 f = open("poster_slide3_cmd.inc", "wt")
+f.write("".join(commands))
+f.close()
+
+# State turtles_slide4
+stream = []
+stream_size = []
+commands = []
+for i in xrange(18, 20):
+  last_large = large[:]
+  print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
+  offset = hscroll + 256 - size
+  vdpc = 30
+  rem = size - vdpc
+  if offset + rem < 256:
+    rem = 256 - offset
+    vdpc = size - rem
+  print "start at ", offset + rem, " ends at ", offset + size
+  # Emulate vdp command
+  for j in xrange(i * 4):
+    top = 103 - j
+    bottom = 108 + j
+    copy(last_large, top, 512, offset, 8, background_a, 0, 0)
+    copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
+    copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
+    copy(last_large, bottom, 512, offset + rem, vdpc, raw, 256, 130 + rem)
+  last_left, last_right = map_sc5(getlr(last_large))
+  # Diffblit
+  for j in xrange(i * 4 + 4):
+    top = 103 - j
+    bottom = 108 + j
+    offset = hscroll + 256 - size
+    copy(large, top, 512, offset, size, raw, 256, 130)
+    copy(large, bottom, 512, offset, size, raw, 256, 130)
+  top = 103 - i * 4 + 1
+  bottom = 108
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + top, 
+                  offset + rem - 256, 768 + top, 
+                  vdpc, i * 4 - 20))
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + bottom, 
+                  offset + rem - 256, 768 + bottom, 
+                  vdpc, i * 4 - 20))
+  start -= 4
+  size += 4
+  hscroll -= 4
+  left, right = lr = map_sc5(getlr(large))
+  last_lr = [last_left, last_right]
+  extend_half_screen(
+    0, 212 / 2 - 60, lr, last_lr, stream, stream_size)
+  extend_half_screen(
+    212 / 2, 212 / 2 - 60, lr, last_lr, stream, stream_size)
+f = open("poster_slide4_diff.d5", "wb")
+f.write("".join(chr(i) for i in stream))
+f.close()
+stream_size.extend([0, 0])
+f = open("poster_slide4_size.bin", "wb")
+f.write("".join(chr(i) for i in stream_size))
+f.close()
+f = open("poster_slide4_cmd.inc", "wt")
 f.write("".join(commands))
 f.close()
