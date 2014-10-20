@@ -523,11 +523,19 @@ alley_switch_frame              equ     930
         ld      (var), a
         endm
 
-; Add a value to a memory variable.
+; Add a value to an 8-bit memory variable.
         macro   ADD_VAR var, value
         ld      a, (var)
         add     a, value
         ld      (var), a
+        endm
+
+; Add a value to a 16-bit memory variable.
+        macro   ADD_VARW var, value
+        ld      hl, (var)
+        ld      de, value
+        add     hl, de
+        ld      (var), hl
         endm
 
 ; Load from a pointer and increment it
@@ -1234,10 +1242,7 @@ cloud_fade_common:
         ld      a, (palette_fade_counter)
         dec     a
         jr      nz, 2f
-        ld      hl, (palette_fade)
-        ld      de, 16 * 2
-        add     hl, de
-        ld      (palette_fade), hl
+        ADD_VARW palette_fade, 16 * 2
         ld      a, 6 + 1
 2:
         ld      (palette_fade_counter), a
@@ -1410,10 +1415,7 @@ set_absolute_scroll:
 update_top_building_sprite:
         ; Update the top building sprite attributes.
         QUEUE_ZBLIT_IND top_building_attr_addr, top_building_current
-        ld      hl, (top_building_current)
-        ld      de, 2 + top_building_attr_size
-        add     hl, de
-        ld      (top_building_current), hl
+        ADD_VARW top_building_current, 2 + top_building_attr_size
         ret
 
 ; ----------------------------------------------------------------
@@ -2336,10 +2338,7 @@ turtles_slide3:
         call    update_poster_command
         QUEUE_VDP_COMMAND bottom_poster_cmd
         QUEUE_VDP_COMMAND_IND slide_command
-        ld      hl, (slide_command)
-        ld      de, vdp_hmmm_size 
-        add     hl, de
-        ld      (slide_command), hl
+        ADD_VARW slide_command, vdp_hmmm_size
         ; Diffblit bottom of this frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -2364,10 +2363,7 @@ turtles_slide3_middle:
 turtles_slide3_middle_blit:
         QUEUE_VDP_COMMAND top_poster_cmd
         QUEUE_VDP_COMMAND_IND slide_command
-        ld      hl, (slide_command)
-        ld      de, vdp_hmmm_size 
-        add     hl, de
-        ld      (slide_command), hl
+        ADD_VARW slide_command, vdp_hmmm_size
         ; Diffblit top of next frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -2406,10 +2402,7 @@ turtles_slide4:
         call    update_poster_command
         QUEUE_VDP_COMMAND bottom_poster_cmd
         QUEUE_VDP_COMMAND_IND slide_command
-        ld      hl, (slide_command)
-        ld      de, vdp_hmmm_size 
-        add     hl, de
-        ld      (slide_command), hl
+        ADD_VARW slide_command, vdp_hmmm_size
         ; Diffblit bottom of this frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -2434,10 +2427,7 @@ turtles_slide4_middle:
 turtles_slide4_middle_blit:
         QUEUE_VDP_COMMAND top_poster_cmd
         QUEUE_VDP_COMMAND_IND slide_command
-        ld      hl, (slide_command)
-        ld      de, vdp_hmmm_size 
-        add     hl, de
-        ld      (slide_command), hl
+        ADD_VARW slide_command, vdp_hmmm_size
         ; Diffblit top of next frame
         ld      hl, (slide_data)
         call    queue_diffblit
