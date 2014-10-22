@@ -163,11 +163,8 @@ for i in xrange(18, 20):
   last_large = large[:]
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   offset = hscroll + 256 - size
-  vdpc = 30
+  vdpc = 46
   rem = size - vdpc
-  if offset + rem < 256:
-    rem = 256 - offset
-    vdpc = size - rem
   print "start at ", offset + rem, " ends at ", offset + size
   # Emulate vdp command
   for j in xrange(i * 4):
@@ -187,23 +184,37 @@ for i in xrange(18, 20):
     copy(large, bottom, 512, offset, size, raw, 256, 130)
   top = 103 - i * 4 + 1
   bottom = 108
+  if offset + rem < 256:
+    rem2 = 256 - offset
+    vdpc2 = size - rem2
+  # Top turtle
+  commands.append("; start at %d ends at %d\n" % (offset + rem, offset + size))
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                   (130 + rem, 768 + top, 
-                  offset + rem - 256, 768 + top, 
-                  vdpc, i * 4 - 20))
+                  offset + rem, 512 + top, 
+                  256 - offset - rem, i * 4 - 30))
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-                  (130 + rem, 768 + bottom, 
-                  offset + rem - 256, 768 + bottom, 
-                  vdpc, i * 4 - 20))
+                  (130 + rem, 768 + top, 
+                  offset + rem2, 768 + top, 
+                  vdpc2, i * 4 - 30))
+  # Bottom turtle
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + top, 
+                  offset + rem, 512 + top, 
+                  256 - offset - rem, i * 4 - 30))
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + top, 
+                  offset + rem2, 768 + top, 
+                  vdpc2, i * 4 - 30))
   start -= 4
   size += 4
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
   extend_half_screen(
-    0, 212 / 2 - 60, lr, last_lr, stream, stream_size)
+    0, 212 / 2, lr, last_lr, stream, stream_size)
   extend_half_screen(
-    212 / 2, 212 / 2 - 60, lr, last_lr, stream, stream_size)
+    212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
 f = open("poster_slide4_diff.d5", "wb")
 f.write("".join(chr(i) for i in stream))
 f.close()

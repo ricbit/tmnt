@@ -2403,6 +2403,8 @@ turtles_slide4:
         QUEUE_VDP_COMMAND bottom_poster_cmd
         QUEUE_VDP_COMMAND_IND slide_command
         ADD_VARW slide_command, vdp_hmmm_size
+        QUEUE_VDP_COMMAND_IND slide_command
+        ADD_VARW slide_command, vdp_hmmm_size
         ; Diffblit bottom of this frame
         ld      hl, (slide_data)
         call    queue_diffblit
@@ -2426,6 +2428,8 @@ turtles_slide4_middle:
         jp      z, return_irq_exx
 turtles_slide4_middle_blit:
         QUEUE_VDP_COMMAND top_poster_cmd
+        QUEUE_VDP_COMMAND_IND slide_command
+        ADD_VARW slide_command, vdp_hmmm_size
         QUEUE_VDP_COMMAND_IND slide_command
         ADD_VARW slide_command, vdp_hmmm_size
         ; Diffblit top of next frame
