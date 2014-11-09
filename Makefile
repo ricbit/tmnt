@@ -25,7 +25,7 @@ OBJECTS = attract.asm handles.inc city1.z5 $(CITY_PIXELS:%.sc5=%.z5) \
           $(POSTER_PIXELS:%.sc5=%.z5) \
           absolute_scroll.bin advance_pcm.bin cloud_fade_palette.bin \
           city_fade_palette.bin title_bounce_palette.bin bottom_palette.bin \
-          alley_palette.bin manhole.z5 top_palette.bin \
+          alley_palette.bin manhole.z5 top_palette.bin info_music.fm \
           title_bounce_scroll.bin title_slide_scroll.bin raw/theme.pcm
 
 all : attract.com
@@ -100,4 +100,10 @@ title_slide_scroll.bin : raw/title_slide_scroll.txt
 
 $(POSTER_PIXELS) : raw/turtles.raw tools/gen_poster_raw.py
 	python tools/gen_poster_raw.py
+
+info_music.fm: raw/info.bas tools/grabfm.tcl
+	mkdir -p music
+	cp raw/info.bas music/autoexec.bas
+	./openmsx -machine Panasonic_FS-A1GT -diska music \
+            -script tools/grabfm.tcl
 
