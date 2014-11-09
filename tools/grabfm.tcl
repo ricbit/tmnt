@@ -18,7 +18,9 @@ debug set_bp 0x4601 {$running == 0} {
     set psg_register [reg A]
   }
   debug set_watchpoint write_io 0xA1 {} {
-    append music_data [format "%c%c" [expr 0x80 + $psg_register] [reg A]]
+    if {$psg_register < 15} {
+      append music_data [format "%c%c" [expr 0x80 + $psg_register] [reg A]]
+    }
   }
   debug set_bp 0xFD9F {} {
     append music_data [format "%c" 0xFF]
