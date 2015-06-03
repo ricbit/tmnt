@@ -2540,6 +2540,14 @@ frame_end:
         inc     hl
         ld      d, (hl)
         ld      (irq + 1), de
+        ; check for ESC exit key
+        in      a, (0AAh)
+        and     0F0h
+        or      7
+        out     (0AAh), a
+        in      a, (0A9h)
+        and     4
+        jp      z, graphic_abort
 return_irq_exx:
         exx
 return_irq:

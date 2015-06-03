@@ -46,6 +46,11 @@ tmntmsx.avi : attract.com tmnt.tcl
 	./openmsx -machine Panasonic_FS-A1GT -diska disk -script tmnt.tcl \
         -ext debugdevice > log.txt 2>&1
 
+frames.html : tmntmsx.avi tools/build_frames_page.py
+	mkdir -p msxframes
+	ffmpeg -i tmntmsx.avi -r 60 msxframes/tmnt%03d.png
+	python tools/build_frames_page.py > frames.html
+
 attract.com : $(OBJECTS)
 	./sjasmplus attract.asm --lst=attract.lst --sym=attract.sym
 	mkdir -p disk
