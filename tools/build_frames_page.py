@@ -24,7 +24,9 @@ def convert(line, curlines):
 f = open("log.txt", "rt")
 lines = []
 framelines = []
+vdplines = []
 smart = None
+vdp = None
 current = -1
 for line in f:
   m = re.match("Frame (\d+), lines=(\d+)", line)
@@ -33,11 +35,18 @@ for line in f:
       end = convert(curlines - 1, curlines)
       print framenumber,start,end
       framelines[current][start:end+1] = [colormap[smart]] * (end - start + 1)
+    if vdp is not None:
+      vdpend = convert(curlines - 1, curlines)
+      print framenumber,vdpstart,vdpend
+      vdplines[current][vdpstart:vdpend+1] = (
+        ["orange"] * (vdpend - vdpstart + 1))
     framenumber = m.group(1)
     curlines = int(m.group(2))
     lines.append(curlines)
     framelines.append(["#000"] * screenheight)
-    start = 0    
+    vdplines.append(["#000"] * screenheight)
+    start = 0
+    vdpstart = 0
     current += 1
     continue
   m = re.match("(\w+) (?:starting|queued) at (-?\d+)", line)
@@ -51,8 +60,18 @@ for line in f:
     print framenumber,start,end
     framelines[current][start:end+1] = [colormap[smart]] * (end - start + 1)
     smart = None
+    if m.group(1) == "smart_vdp_command":
+        vdpstart = convert(int(m.group(2)), curlines)
+        vdp = "on"
     continue
-    
+  m = re.match("(\w+) stopping at (-?\d+)", line)
+  if m is not None:
+    vdpend = convert(int(m.group(2)), curlines)
+    print framenumber,vdpstart,vdpend
+    vdplines[current][vdpstart:vdpend+1] = ["orange"] * (vdpend - vdpstart + 1)
+    vdp = None
+    continue
+     
 f.close()
 
 FIRST = 521
@@ -60,12 +79,17 @@ FIRST = 521
 def frame(i):
   out = []
   out.append('Frame %03d<br>' % (i + FIRST))
-  out.append('<div style="width:20px;height:%dpx;background:black;float:left;">'%
-             screenheight)
+  out.append('<div style="width:20px;height:%dpx;' % screenheight)
+  out.append('background:black;float:left;">')
   for k, v in itertools.groupby(framelines[i]):
-    V = list(v)
     out.append('<div style="width:20px; height:%dpx;background:%s"></div>' % 
-               (len(V), k))
+               (len(list(v)), k))
+  out.append('</div>')
+  out.append('<div style="width:20px;height:%dpx;' % screenheight)
+  out.append('background:black;float:left;">')
+  for k, v in itertools.groupby(vdplines[i]):
+    out.append('<div style="width:20px; height:%dpx;background:%s"></div>' % 
+               (len(list(v)), k))
   out.append('</div>')
   spacing = (30+41-24) if lines[i] == 192 else (10+41-14)
   out.append('<div><div style="height:%dpx;"></div>' % spacing)
