@@ -26,6 +26,14 @@ proc getlabel {label_name} {
   dict get $symlabel $label_name
 }
 
+proc vdplines {} {
+  if {[expr [vdpreg 9] & 128] > 0} {
+    return 212 
+  } else {
+    return 192
+  }
+}
+
 debug set_bp [getlabel measure_sample_start] {$running} {
   set measure_sample [machine_info time]
 }
@@ -58,7 +66,7 @@ debug probe set_bp VDP.IRQvertical {
   $running == 1 && $current_frame != [peek16 [getlabel current_frame]]
 } {
   set current_frame [peek16 [getlabel current_frame]]
-  puts stderr "Frame $current_frame"
+  puts stderr "Frame $current_frame, lines=[vdplines]"
   if {[debug read {VDP regs} 15] != 0} {
     puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
     puts stderr "on line [machine_info VDP_msx_y_pos]"
