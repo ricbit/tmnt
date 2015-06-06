@@ -6,7 +6,9 @@ colormap = {
   "smart_palette": "red",
   "smart_zblit": "blue",
   "smart_vdp_command": "green",
-  "diffblit": "#5050ff"
+  "diffblit": "#5050ff",  
+  "VIRQ": "#b0b0b0",
+  "HIRQ": "#e0e0e0"
 }
 
 def convert(line, curlines):
@@ -25,8 +27,10 @@ f = open("log.txt", "rt")
 lines = []
 framelines = []
 vdplines = []
+irqlines = []
 smart = None
 vdp = None
+irq = None
 current = -1
 for line in f:
   m = re.match("Frame (\d+), lines=(\d+)", line)
@@ -45,6 +49,7 @@ for line in f:
     lines.append(curlines)
     framelines.append(["#000"] * screenheight)
     vdplines.append(["#000"] * screenheight)
+    irqlines.append(["#000"] * screenheight)
     start = 0
     vdpstart = 0
     current += 1
@@ -71,6 +76,19 @@ for line in f:
     vdplines[current][vdpstart:vdpend+1] = ["orange"] * (vdpend - vdpstart + 1)
     vdp = None
     continue
+  m = re.match("(\wIRQ) at (-?\d+)", line)
+  if m is not None:
+    irq = m.group(1)
+    irqstart = convert(int(m.group(2)), curlines)
+    continue
+  m = re.match("IRQ return at (-?\d+)", line)
+  if m is not None:
+    irqend = convert(int(m.group(1)), curlines)
+    print framenumber,irqstart,irqend
+    irqlines[current][irqstart:irqend+1] = (
+        [colormap[irq]] * (irqend - irqstart + 1))
+    irq = None
+    continue
      
 f.close()
 FIRST = 521
@@ -78,6 +96,12 @@ FIRST = 521
 def frame(i):
   out = []
   out.append('Frame %03d<br>' % (i + FIRST))
+  out.append('<div style="width:20px;height:%dpx;' % screenheight)
+  out.append('background:black;float:left;">')
+  for k, v in itertools.groupby(irqlines[i]):
+    out.append('<div style="width:20px; height:%dpx;background:%s"></div>' % 
+               (len(list(v)), k))
+  out.append('</div>')
   out.append('<div style="width:20px;height:%dpx;' % screenheight)
   out.append('background:black;float:left;">')
   for k, v in itertools.groupby(framelines[i]):
@@ -92,7 +116,7 @@ def frame(i):
   out.append('</div>')
   spacing = (30+41-24) if lines[i] == 192 else (10+41-14)
   out.append('<div><div style="height:%dpx;"></div>' % spacing)
-  out.append('<img src="tmnt%03d.png"></div>' % (i + 1))
+  out.append('<img src="tmnt%03d.png"></div>' % (i + 1 + 3))
   out.append('<br style="clear: both;">\n')
   return ''.join(out)
 

@@ -9,6 +9,7 @@ set measure_sample -1
 set measure_acc 0
 set measure_total 0
 set freq_hist [dict create]
+set irqon 0
 
 # Parse sym file.
 set symfile [open "attract.sym" r]
@@ -53,26 +54,38 @@ debug set_bp [getlabel play_sample] {$running} {
   set last_sample [machine_info time]
 }
 
-debug probe set_bp VDP.IRQhorizontal {
-  $running == 1 && [debug read {VDP regs} 15] != 1
-} {
-  puts stderr "HIRQ but VDP status is [debug read {VDP regs} 15]"
-  puts stderr "on line [machine_info VDP_msx_y_pos]"
-  record stop
-  exit
+debug probe set_bp VDP.IRQhorizontal {$running} {
+  if {[debug read {VDP regs} 15] != 1} {
+    puts stderr "HIRQ but VDP status is [debug read {VDP regs} 15]"
+    puts stderr "on line [machine_info VDP_msx_y_pos]"
+    record stop
+    exit
+  } else {
+    if {$irqon == 0} {
+      puts stderr "HIRQ at [machine_info VDP_msx_y_pos]"
+      set irqon 1
+    }
+  }
 }
 
 debug probe set_bp VDP.IRQvertical {
   $running == 1 && $current_frame != [peek16 [getlabel current_frame]]
 } {
   set current_frame [peek16 [getlabel current_frame]]
-  puts stderr "Frame $current_frame, lines=[vdplines]"
+  puts stderr "\nFrame $current_frame, lines=[vdplines]"
+  puts stderr "VIRQ at [machine_info VDP_msx_y_pos]"
+  set irqon 1
   if {[debug read {VDP regs} 15] != 0} {
     puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
     puts stderr "on line [machine_info VDP_msx_y_pos]"
     record stop
     exit
   }
+}
+
+debug set_bp [getlabel return_irq] {$running && $irqon} {
+  puts stderr "IRQ return at [machine_info VDP_msx_y_pos]"
+  set irqon 0
 }
 
 debug set_bp [getlabel smart_zblit] {$running} {
