@@ -120,6 +120,24 @@ def frame(i):
   out.append('<br style="clear: both;">\n')
   return ''.join(out)
 
+def caption():
+  out = []
+  out.append('<div style="position:fixed; background:black; left:450px;')
+  out.append('color:white;padding:20px;">')
+  def tag(color, text):
+    out.append('<div style="display:inline-block;width:20px; height:20px;')
+    out.append('background: %s; margin: 5px;">&nbsp;' % color)
+    out.append('</div> %s<br>' % text)
+  tag(colormap['VIRQ'], 'VIRQ')
+  tag(colormap['HIRQ'], 'HIRQ')
+  tag(colormap['smart_palette'], 'Palette change')
+  tag(colormap['smart_zblit'], 'Compressed blit')
+  tag(colormap['diffblit'], 'Differential blit')
+  tag(colormap['smart_vdp_command'], 'VDP command setup')
+  tag("orange", 'VDP command executing')
+  out.append('</div>')
+  return ''.join(out)
+
 f = open("frames.html", "wt")
 f.write("<html><body>")
 for i in xrange(500, FIRST-1+980, 50):
@@ -127,6 +145,7 @@ for i in xrange(500, FIRST-1+980, 50):
           (i, i, i + 99))
   g = open("msxframes/frame%04d.html" % i, "wt")
   g.write("<html><body>")
+  g.write(caption())
   for j in xrange(i, i + 100):
     if j >= FIRST and j < FIRST - 1 + 980:
       g.write(frame(j - FIRST))
