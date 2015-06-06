@@ -61,8 +61,8 @@ for line in f:
     framelines[current][start:end+1] = [colormap[smart]] * (end - start + 1)
     smart = None
     if m.group(1) == "smart_vdp_command":
-        vdpstart = convert(int(m.group(2)), curlines)
-        vdp = "on"
+      vdpstart = convert(int(m.group(2)), curlines)
+      vdp = "on"
     continue
   m = re.match("(\w+) stopping at (-?\d+)", line)
   if m is not None:
@@ -73,7 +73,6 @@ for line in f:
     continue
      
 f.close()
-
 FIRST = 521
 
 def frame(i):

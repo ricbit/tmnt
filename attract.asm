@@ -587,6 +587,12 @@ start_attract:
         inc     hl
         ld      d, (hl)
         ld      (irq + 1), de
+
+        ; Prepare keyboard to read the ESC key.
+        in      a, (0AAh)
+        and     0F0h
+        or      7
+        out     (0AAh), a
         ei
 
         ; Install foreground thread.
@@ -2541,10 +2547,6 @@ frame_end:
         ld      d, (hl)
         ld      (irq + 1), de
         ; check for ESC exit key
-        in      a, (0AAh)
-        and     0F0h
-        or      7
-        out     (0AAh), a
         in      a, (0A9h)
         and     4
         jp      z, graphic_abort
