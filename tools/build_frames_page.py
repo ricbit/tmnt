@@ -8,7 +8,11 @@ colormap = {
   "smart_vdp_command": "green",
   "diffblit": "#5050ff",  
   "VIRQ": "#b0b0b0",
-  "HIRQ": "#e0e0e0"
+  "HIRQ": "#e0e0e0",
+  "HMMV": "orange",
+  "YMMM": "pink",
+  "HMMM": "yellow",
+  "LMMM": "magenta"
 }
 
 def convert(line, curlines):
@@ -43,7 +47,7 @@ for line in f:
       vdpend = convert(curlines - 1, curlines)
       print framenumber,vdpstart,vdpend
       vdplines[current][vdpstart:vdpend+1] = (
-        ["orange"] * (vdpend - vdpstart + 1))
+          [colormap[vdp]] * (vdpend - vdpstart + 1))
     framenumber = m.group(1)
     curlines = int(m.group(2))
     lines.append(curlines)
@@ -67,19 +71,24 @@ for line in f:
     smart = None
     if m.group(1) == "smart_vdp_command":
       vdpstart = convert(int(m.group(2)), curlines)
-      vdp = "on"
     continue
   m = re.match("(\w+) stopping at (-?\d+)", line)
   if m is not None:
     vdpend = convert(int(m.group(2)), curlines)
     print framenumber,vdpstart,vdpend
-    vdplines[current][vdpstart:vdpend+1] = ["orange"] * (vdpend - vdpstart + 1)
+    vdplines[current][vdpstart:vdpend+1] = (
+        [colormap[vdp]] * (vdpend - vdpstart + 1))
     vdp = None
     continue
   m = re.match("(\wIRQ) at (-?\d+)", line)
   if m is not None:
     irq = m.group(1)
     irqstart = convert(int(m.group(2)), curlines)
+    continue
+  m = re.match("(\w+) cmd", line)
+  if m is not None:
+    vdp = m.group(1)
+    print vdp
     continue
   m = re.match("IRQ return at (-?\d+)", line)
   if m is not None:
@@ -134,7 +143,10 @@ def caption():
   tag(colormap['smart_zblit'], 'Compressed blit')
   tag(colormap['diffblit'], 'Differential blit')
   tag(colormap['smart_vdp_command'], 'VDP command setup')
-  tag("orange", 'VDP command executing')
+  tag(colormap['HMMM'], 'VDP command HMMM executing')
+  tag(colormap['YMMM'], 'VDP command YMMM executing')
+  tag(colormap['LMMM'], 'VDP command LMMM executing')
+  tag(colormap['HMMV'], 'VDP command HMMV executing')
   out.append('</div>')
   return ''.join(out)
 

@@ -182,22 +182,22 @@ proc vc {offset} {
 debug set_bp [getlabel foreground_vdp_command] {[reg b] == 1} {
   if {[peek [reg hl]] == 0xC0} {
     puts stderr [format "%s%02X" \
-                 "HMMV dx=[vc 10] dy=[vc 8] nx=[vc 6] ny=[vc 4] color=0x" \
+                 "HMMV cmd dx=[vc 10] dy=[vc 8] nx=[vc 6] ny=[vc 4] color=0x" \
                  [vc 2]]
   }
   if {[peek [reg hl]] == 0xD0} {
     puts stderr [format "%s%s" \
-                 "HMMM sx=[vc 14] sy=[vc 12] dx=[vc 10] dy=[vc 8] " \
+                 "HMMM cmd sx=[vc 14] sy=[vc 12] dx=[vc 10] dy=[vc 8] " \
                  "nx=[vc 6] ny=[vc 4]"]
   }
   if {[peek [reg hl]] == 0xE0} {
     puts stderr [format "%s%s" \
-                 "YMMM sy=[vc 12] dx=[vc 10] dy=[vc 8] " \
+                 "YMMM cmd sy=[vc 12] dx=[vc 10] dy=[vc 8] " \
                  "ny=[vc 4]"]
   }
   if {[expr [peek [reg hl]] & 0xF0] == 0x90} {
     puts stderr [format "%s%s" \
-                 "LMMM sx=[vc 14] sy=[vc 12] dx=[vc 10] dy=[vc 8] " \
+                 "LMMM cmd sx=[vc 14] sy=[vc 12] dx=[vc 10] dy=[vc 8] " \
                  "nx=[vc 6] ny=[vc 4]"]
   }
 }

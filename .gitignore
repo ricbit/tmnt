@@ -3,6 +3,7 @@ openmsx
 gen_back_building_sprites
 log.txt
 oldlog.txt
+frames.html
 *.fm
 *.d5
 *.bin
@@ -23,3 +24,4 @@ mono/
 roms/
 tmnt_data/
 music/
+msxframes/
