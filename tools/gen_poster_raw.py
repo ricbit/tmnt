@@ -172,8 +172,9 @@ for i in xrange(18, 20):
     bottom = 108 + j
     copy(last_large, top, 512, offset, 8, background_a, 0, 0)
     copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
-    copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
-    copy(last_large, bottom, 512, offset + rem, vdpc, raw, 256, 130 + rem)
+    if j >= 16:
+      copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
+      copy(last_large, bottom, 512, offset + rem, vdpc, raw, 256, 130 + rem)
   last_left, last_right = map_sc5(getlr(last_large))
   # Diffblit
   for j in xrange(i * 4 + 4):
@@ -192,20 +193,20 @@ for i in xrange(18, 20):
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                   (130 + rem, 768 + top, 
                   offset + rem, 512 + top, 
-                  256 - offset - rem, i * 4 - 30))
+                  256 - offset - rem, i * 4 - 16))
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-                  (130 + rem, 768 + top, 
-                  offset + rem2, 768 + top, 
-                  vdpc2, i * 4 - 30))
+                  (130 + rem + (256-offset-rem), 768 + top, 
+                  0, 768 + top, 
+                  vdpc2, i * 4 - 16))
   # Bottom turtle
-  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-                  (130 + rem, 768 + top, 
-                  offset + rem, 512 + top, 
-                  256 - offset - rem, i * 4 - 30))
-  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-                  (130 + rem, 768 + top, 
-                  offset + rem2, 768 + top, 
-                  vdpc2, i * 4 - 30))
+  #commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+  #                (130 + rem, 768 + bottom, 
+  #                offset + rem, 512 + bottom, 
+  #                256 - offset - rem, i * 4 - 16))
+  #commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+  #                (130 + rem + (256-offset-rem), 768 + bottom, 
+  #                0, 768 + bottom, 
+  #                vdpc2, i * 4 - 16))
   start -= 4
   size += 4
   hscroll -= 4

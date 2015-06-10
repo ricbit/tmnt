@@ -75,6 +75,9 @@ debug probe set_bp VDP.IRQvertical {
   puts stderr "\nFrame $current_frame, lines=[vdplines]"
   puts stderr "VIRQ at [machine_info VDP_msx_y_pos]"
   set irqon 1
+  #if {$current_frame == 1155} {
+  #  debug break
+  #}
   if {[debug read {VDP regs} 15] != 0} {
     puts stderr "VIRQ but VDP status is [debug read {VDP regs} 15]"
     puts stderr "on line [machine_info VDP_msx_y_pos]"

@@ -26,6 +26,7 @@ handle = [
     (1150, "turtles_slide2"),
     (1152, "turtles_slide3"),
     (1156, "turtles_slide"),
+    (1157, "turtles_slide"),
     (1158, "turtles_slide"),
     (1163, "turtles_stand"),
     (1281, "erase_title_vram"),
