@@ -161,6 +161,37 @@ def save_diff(newsc5, oldsc5, start, line, size, filename):
   f.write("".join(chr(i) for i in out))
   f.close()
 
+def split_diff(original, sizes):
+  out = []
+  pos = 0
+  cur = []
+  chunk = 0
+  while pos < len(original):
+    if original[pos] >= 128:
+      if len(cur) > sizes[chunk]:
+        out.append(cur)
+        cur = []
+        chunk += 1
+      if original[pos] >= 128 + 64:
+        cur.append(original[pos])
+        pos += 1
+      cur.append(original[pos])
+      cur.append(original[pos + 1])
+      pos += 2
+    else:
+      while pos < len(original) and original[pos] < 128:
+        if original[pos] >= 64:
+          cur.append(original[pos])
+          cur.append(original[pos + 1])
+          pos += 2
+        else:
+          size = original[pos] + 1
+          cur.extend(original[pos : pos + size])
+          pos += size
+  if cur:
+    out.append(cur)
+  return out
+
 if __name__ == "__main__":
   original = [ord(i) for i in open(sys.argv[1], "rb").read()]
   compress(original, sys.argv[2])

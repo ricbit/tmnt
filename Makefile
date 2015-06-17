@@ -104,7 +104,8 @@ title_bounce_scroll.bin : raw/title_bounce_scroll.txt
 title_slide_scroll.bin : raw/title_slide_scroll.txt
 	python tools/gen_title_slide.py < $<
 
-$(POSTER_PIXELS) : raw/turtles.raw tools/gen_poster_raw.py
+$(POSTER_PIXELS) : raw/turtles.raw tools/gen_poster_raw.py \
+                   tools/compress_graphics.py
 	python tools/gen_poster_raw.py
 
 info_music.fm: raw/info.bas tools/grabfm.tcl

@@ -1,7 +1,7 @@
 # Convert poster rgb to screen 5.
 
 from convert_raw import convert_sc5, save_sc5
-from compress_graphics import compress_diff, save_diff
+from compress_graphics import compress_diff, save_diff, split_diff
 
 def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
   last_large[top * stride + offset: top * stride + offset + size] = (
@@ -42,14 +42,35 @@ def map_sc5(left_right_tuple):
 
 def extend_half_screen(line_start, size, lr, last_lr, stream, stream_size):
   before = len(stream)
-  stream.extend(compress_diff(
+  new_stream = []
+  new_stream.extend(compress_diff(
     lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
-  stream.extend(compress_diff(
-    lr[1], last_lr[1], 0x18000, line_start, size))
+  new_stream.extend(compress_diff(
+    lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
+  stream.extend(new_stream)
+  stream.append(0)
   diff_size = len(stream) - before
   print diff_size
   stream_size.append(diff_size % 256)
   stream_size.append(diff_size >> 8)
+
+def chunk_half_screen(line_start, size, lr, last_lr, 
+                      stream, stream_size, chunk):
+  before = len(stream)
+  new_stream = []
+  new_stream.extend(compress_diff(
+    lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
+  new_stream.extend(compress_diff(
+    lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
+  packs = split_diff(new_stream, chunk)
+  print [len(i) for i in packs]
+  for p in packs:
+    stream.extend(p)
+    stream.append(0)
+    diff_size = len(stream) - before
+    stream_size.append(diff_size % 256)
+    stream_size.append(diff_size >> 8)
+    before = len(stream)
 
 # Initial state of vram
 left, right = getlr(large)
@@ -212,10 +233,10 @@ for i in xrange(18, 20):
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
-  extend_half_screen(
-    0, 212 / 2, lr, last_lr, stream, stream_size)
-  extend_half_screen(
-    212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
+  chunk_half_screen(
+    0, 212 / 2, lr, last_lr, stream, stream_size, [60, 220, 10000])
+  #extend_half_screen(
+  #  212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
 f = open("poster_slide4_diff.d5", "wb")
 f.write("".join(chr(i) for i in stream))
 f.close()
