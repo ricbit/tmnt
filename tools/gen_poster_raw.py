@@ -177,24 +177,36 @@ f.write("".join(commands))
 f.close()
 
 # State turtles_slide4
+topstarty = 12
+topchunks = [
+  [70, 220, 10000],
+  [70, 270, 10000],
+  [70, 270, 10000],
+  [70, 270, 10000],
+  [70, 270, 10000],
+  [70, 270, 10000],
+]
 stream = []
 stream_size = []
 commands = []
-for i in xrange(18, 20):
+for i, topc in zip(xrange(18, 22), topchunks):
   last_large = large[:]
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   offset = hscroll + 256 - size
   vdpc = 46
   rem = size - vdpc
   print "start at ", offset + rem, " ends at ", offset + size
-  # Emulate vdp command
+  # Emulate vdp command top
   for j in xrange(i * 4):
     top = 103 - j
-    bottom = 108 + j
     copy(last_large, top, 512, offset, 8, background_a, 0, 0)
+    if j >= topstarty:
+      copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
+  # Emulate vdp command bottom
+  for j in xrange(i * 4):
+    bottom = 108 + j
     copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
     if j >= 16:
-      copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
       copy(last_large, bottom, 512, offset + rem, vdpc, raw, 256, 130 + rem)
   last_left, last_right = map_sc5(getlr(last_large))
   # Diffblit
@@ -205,7 +217,7 @@ for i in xrange(18, 20):
     copy(large, top, 512, offset, size, raw, 256, 130)
     copy(large, bottom, 512, offset, size, raw, 256, 130)
   top = 103 - i * 4 + 1
-  bottom = 108
+  bottom = 108 + 16
   if offset + rem < 256:
     rem2 = 256 - offset
     vdpc2 = size - rem2
@@ -214,29 +226,29 @@ for i in xrange(18, 20):
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                   (130 + rem, 768 + top, 
                   offset + rem, 512 + top, 
-                  256 - offset - rem, i * 4 - 16))
+                  256 - offset - rem, i * 4 - topstarty))
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                   (130 + rem + (256-offset-rem), 768 + top, 
                   0, 768 + top, 
-                  vdpc2, i * 4 - 16))
+                  vdpc2, i * 4 - topstarty))
   # Bottom turtle
-  #commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-  #                (130 + rem, 768 + bottom, 
-  #                offset + rem, 512 + bottom, 
-  #                256 - offset - rem, i * 4 - 16))
-  #commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
-  #                (130 + rem + (256-offset-rem), 768 + bottom, 
-  #                0, 768 + bottom, 
-  #                vdpc2, i * 4 - 16))
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem, 768 + bottom, 
+                  offset + rem, 512 + bottom, 
+                  256 - offset - rem, i * 4 - 16))
+  commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                  (130 + rem + (256-offset-rem), 768 + bottom, 
+                  0, 768 + bottom, 
+                  vdpc2, i * 4 - 16))
   start -= 4
   size += 4
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
   chunk_half_screen(
-    0, 212 / 2, lr, last_lr, stream, stream_size, [60, 220, 10000])
-  #extend_half_screen(
-  #  212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
+    0, 212 / 2, lr, last_lr, stream, stream_size, topc)
+  chunk_half_screen(
+    212 / 2, 212 / 2, lr, last_lr, stream, stream_size, [70, 220, 10000])
 f = open("poster_slide4_diff.d5", "wb")
 f.write("".join(chr(i) for i in stream))
 f.close()
