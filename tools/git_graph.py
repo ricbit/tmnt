@@ -4,8 +4,9 @@ import matplotlib.pyplot as plot
 from datetime import datetime
 
 git = subprocess.check_output("tools/git_graph.sh", shell=True)
-commits = re.findall("(?s)Date:\s+\w+\s+(\w+.*?:\d\d) .*?(\d+)\s+attract", git)
-commits = [(datetime.strptime(i[0] + " 2014", "%b %d %X %Y"), i[1])
+commits = re.findall(
+    "(?s)Date:\s+\w+\s+(\w+.*?:\d\d\s\d+) .*?(\d+)\s+attract", git)
+commits = [(datetime.strptime(i[0], "%b %d %X %Y"), i[1])
            for i in commits]
 commits.sort()
 fig = plot.figure()
