@@ -182,15 +182,15 @@ bottomstarty = 34
 topchunks = [
   [70, 240, 10000],
   [70, 320, 10000],
-  [80, 400, 10000],
-  [70, 350, 10000],
+  [80, 360, 10000],
+  [80, 470, 10000],
   [70, 350, 10000],
   [70, 320, 10000],
 ]
 bottomchunks = [
   [70, 200, 10000],
-  [70, 300, 10000],
-  [80, 280, 10000],
+  [60, 200, 10000],
+  [60, 320, 10000],
   [70, 250, 10000],
   [70, 350, 10000],
   [70, 320, 10000],
@@ -198,7 +198,7 @@ bottomchunks = [
 stream = []
 stream_size = []
 commands = []
-for i, topc, bottomc in zip(xrange(18, 21), topchunks, bottomchunks):
+for i, topc, bottomc in zip(xrange(18, 20), topchunks, bottomchunks):
   last_large = large[:]
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   offset = hscroll + 256 - size
@@ -276,34 +276,18 @@ f.write("".join(commands))
 f.close()
 
 # State turtles_slide5
-topstarty = 12
-bottomstarty = 34
-topchunks = [
-  [70, 240, 10000],
-  [70, 320, 10000],
-  [80, 400, 10000],
-  [70, 350, 10000],
-  [70, 350, 10000],
-  [70, 320, 10000],
-]
-bottomchunks = [
-  [70, 200, 10000],
-  [70, 300, 10000],
-  [80, 280, 10000],
-  [70, 250, 10000],
-  [70, 350, 10000],
-  [70, 320, 10000],
-]
 stream = []
 stream_size = []
 commands = []
-for i, topc, bottomc in zip(xrange(21, 23), topchunks, bottomchunks):
+topchunks = topchunks[2:]
+bottomchunks = bottomchunks[2:]
+for i, topc, bottomc in zip(xrange(20, 23), topchunks, bottomchunks):
   last_large = large[:]
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   offset = hscroll + 256 - size
-  vdpc = 52
+  vdpc = 54
   rem = size - vdpc
-  bottomvdpc = 52
+  bottomvdpc = 56 # 52
   bottomrem = size - bottomvdpc
   print "start at ", offset + rem, " ends at ", offset + size
   # Emulate vdp command top
