@@ -279,8 +279,10 @@ f.close()
 stream = []
 stream_size = []
 commands = []
+precommands = []
 topchunks = topchunks[2:]
 bottomchunks = bottomchunks[2:]
+page0addr = 0
 for i, topc, bottomc in zip(xrange(20, 23), topchunks, bottomchunks):
   last_large = large[:]
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
@@ -320,13 +322,18 @@ for i, topc, bottomc in zip(xrange(20, 23), topchunks, bottomchunks):
     bottomrem2 = 256 - offset
     bottomvdpc2 = size - bottomrem2
   # Top turtle
+  precommands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+                     (130 + rem, 768 + top, 
+                     offset + rem, page0addr, 
+                     256 - offset - rem, i * 4 - topstarty))
   commands.append("; start at %d ends at %d\n" % (offset + rem, offset + size))
   commands.append("\tVDP_YMMM %d, %d, %d, %d\n" %
-                  (0, offset + rem, 512 + top, i * 4 - topstarty))
+                  (page0addr, offset + rem, 512 + top, i * 4 - topstarty))
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                   (130 + rem + (256-offset-rem), 768 + top, 
                   0, 768 + top, 
                   vdpc2, i * 4 - topstarty))
+  page0addr += i * 4 - topstarty
   # Bottom turtle
   commands.append("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                   (130 + bottomrem, 768 + bottom, 
@@ -354,4 +361,7 @@ f.write("".join(chr(i) for i in stream_size))
 f.close()
 f = open("poster_slide5_cmd.inc", "wt")
 f.write("".join(commands))
+f.close()
+f = open("poster_slide5_pre.inc", "wt")
+f.write("".join(precommands))
 f.close()

@@ -2175,6 +2175,11 @@ blinking_alley:
         QUEUE_MAPPER 15
         QUEUE_DIFFBLIT poster_right_diff
         QUEUE_MAPPER 14
+        ld      hl, poster_slide5_pre
+        call    queue_vdp_command
+        ld      de, vdp_hmmm_size
+        add     hl, de
+        call    queue_vdp_command
         jp      frame_end
 
 ; ----------------------------------------------------------------
@@ -3595,6 +3600,7 @@ poster_slide4_size:     incbin "poster_slide4_size.bin"
 poster_slide5_size:     incbin "poster_slide5_size.bin"
 poster_slide4_cmd:      include "poster_slide4_cmd.inc"
 poster_slide5_cmd:      include "poster_slide5_cmd.inc"
+poster_slide5_pre:      include "poster_slide5_pre.inc"
                         PAGE_END
 
 ; Mapper page 15
