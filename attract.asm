@@ -1,5 +1,5 @@
 ; TMNT attract mode
-; by Ricardo Bittencourt 2014
+; by Ricardo Bittencourt 2014, 2015
 
         output  attract.com
 
@@ -3374,7 +3374,7 @@ str_loading:            db      "Loading$"
 str_dot:                db      ".$"
 str_press_any_key:      db      13, 10, "Press any key to start.$"
 str_credits:            db      "TMNT Attract Mode 1.0", 13, 10
-                        db      "by Ricardo Bittencourt 2014.", 13, 10, "$"
+                        db      "by Ricardo Bittencourt 2015.", 13, 10, "$"
 mapper_data_filename:   dz      "attract.dat"
 
 ; ----------------------------------------------------------------
