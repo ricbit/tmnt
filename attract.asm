@@ -2551,7 +2551,7 @@ turtles_slide5_middle_blit:
 
 turtles_slide:
         PREAMBLE_VERTICAL
-        ENABLE_SCREEN
+        DISABLE_SCREEN
         exx
         ld      a, (vscroll_top)
         VDPREG vdp_vscroll
@@ -2583,9 +2583,15 @@ turtles_slide_middle:
         jp      return_irq_exx
 
 turtles_slide_bottom:
-        PREAMBLE_HORIZONTAL
-        ENABLE_SCREEN
+        PREAMBLE_HORIZONTAL        
         exx
+        COMPARE_FRAME 1159
+        jr      nc, 1f
+        ENABLE_SCREEN
+        jp      frame_end_disable
+
+1f:
+        DISABLE_SCREEN
         jp      frame_end_disable
 
 ; ----------------------------------------------------------------
@@ -2595,7 +2601,7 @@ turtles_slide_bottom:
 turtles_stand:
         PREAMBLE_VERTICAL
         SET_PAGE 3
-        ENABLE_SCREEN
+        DISABLE_SCREEN
         exx
         xor     a
         VDPREG vdp_vscroll
