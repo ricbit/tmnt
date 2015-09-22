@@ -35,7 +35,7 @@ all : attract.com
 clean :
 	rm -f *sc5 *z5 *bin *inc *d5 gen_back_building_sprites \
            attract.com attract.dat attract.lst attract.sym \
-           info_music.fm frames.html
+           info_music.fm frames.html msxframes/*
 
 run : attract.com
 	./openmsx -machine Panasonic_FS-A1GT -diska disk
