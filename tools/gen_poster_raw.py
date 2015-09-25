@@ -46,10 +46,10 @@ class Stream(object):
     before = len(self.stream)
     lr = vram_after.getlr_sc5()
     last_lr = vram_before.getlr_sc5()
-    self.stream.extend(compress_diff(
-      lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
-    self.stream.extend(compress_diff(
-      lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
+    for i in xrange(2):
+      self.stream.extend(compress_diff(
+        lr[i], last_lr[i], 0x10000 + 0x8000 * i, 
+        line_start, size, close_stream=False))
     self.stream.append(0)
     diff_size = len(self.stream) - before
     print diff_size
@@ -135,37 +135,50 @@ save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
 save_diff(right_sc5, zero_sc5, 0x18000, 0, 212, "poster_right.d5")
 
 # States turtles_slide1 and turtles_slide2
-start = 256 - 20
-size = 20
-hscroll = 100
+class StateEngine(object):
+  def __init__(self, large):
+    self.start = 256 - 20
+    self.size = 20
+    self.hscroll = 100
+    self.large = large
+  def run(self, irange, stream):
+    for i in irange:
+      last_large = self.large.clone()
+      print (1138 + i, " offset ", self.hscroll + 256 - self.size, 
+             " size ", self.size)
+      # Emulate vdp command
+      top = 104 - i * 4
+      bottom = 108
+      offset = self.hscroll + 256 - self.size
+      last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
+      last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
+      # Diffblit
+      top = 100 - i * 4
+      bottom = 108
+      offset = self.hscroll + 256 - self.size
+      self.large.copy_block(
+          top, offset, raw, top, 130, i * 4 + 4, self.size)
+      self.large.copy_block(
+          bottom, offset, raw, bottom, 130, i * 4 + 4, self.size)
+      self.start -= 4
+      self.size += 4
+      self.hscroll -= 4
+      stream.extend_half_screen(0, 212 / 2, large, last_large)
+      stream.extend_half_screen(212 / 2, 212 / 2, large, last_large)
+
+engine = StateEngine(large)
 stream = Stream()
-for i in xrange(0, 14):
-  last_large = large.clone()
-  print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
-  # Emulate vdp command
-  top = 104 - i * 4
-  bottom = 108
-  offset = hscroll + 256 - size
-  last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
-  last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
-  # Diffblit
-  top = 100 - i * 4
-  bottom = 108
-  offset = hscroll + 256 - size
-  large.copy_block(top, offset, raw, top, 130, i * 4 + 4, size)
-  large.copy_block(bottom, offset, raw, bottom, 130, i * 4 + 4, size)
-  start -= 4
-  size += 4
-  hscroll -= 4
-  stream.extend_half_screen(0, 212 / 2, large, last_large)
-  stream.extend_half_screen(212 / 2, 212 / 2, large, last_large)
+engine.run(range(0, 14), stream)
 stream.save("poster_slide_diff.d5", "poster_slide_size.bin")
 
 # State turtles_slide3
-large = large.contents
+large = engine.large.contents
 raw = raw.contents
 background_a = background_a.contents
 background_8 = background_8.contents
+start = engine.start
+size = engine.size
+hscroll = engine.hscroll
 
 stream = []
 stream_size = []
