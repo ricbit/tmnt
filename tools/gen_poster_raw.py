@@ -3,16 +3,31 @@
 from convert_raw import convert_sc5, save_sc5
 from compress_graphics import compress_diff, save_diff, split_diff
 
+class Bitmap(object):
+  def __init__(self, width, height, contents = None):
+    self.width = width
+    self.height = height
+    if contents is not None:
+      self.contents = contents
+      assert(width * height == len(contents))
+    else:
+      self.contents = [0] * (width * height)
+
+  def copy_line(self, y, x, source, x2, size):
+    self.contents[y * self.width + x: y * self.width + x + size] = (
+      source.contents[y * source.width + x2: y * source.width + x2 + size])
+
 def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
   last_large[top * stride + offset: top * stride + offset + size] = (
     raw[top * stride2 + offset2: top * stride2 + offset2 + size])
 
-raw = [ord(i) for i in open("raw/turtles.raw", "rb").read()]
+raw_array = [ord(i) for i in open("raw/turtles.raw", "rb").read()]
+raw = Bitmap(256, 212, raw_array)
 background_a = [0xa] * 256
 background_8 = [0x8] * 256
-large = [0] * (512 * 212)
+large = Bitmap(512, 212)
 for i in xrange(212):
-  copy(large, i, 512, 0, 128, raw, 256, 0)
+  large.copy_line(i, 0, raw, 0, 128)
 start = 256 - 20
 size = 20
 hscroll = 100
@@ -21,13 +36,13 @@ for i in xrange(26):
     top = 103 - i * 4 - j
     bottom = 108 + i * 4 + j
     offset = hscroll + 256 - size
-    copy(large, top, 512, offset, size, raw, 256, 130)
-    copy(large, bottom, 512, offset, size, raw, 256, 130)
+    large.copy_line(top, offset, raw, 130, size)
+    large.copy_line(bottom, offset, raw, 130, size)
   start -= 4
   size += 4
   hscroll -= 4
 for i in xrange(192):
-  copy(large, i, 512, 256 + 128, 128, raw, 256, 128)
+  large.copy_line(i, 256 + 128, raw, 128, 128)
 
 def getlr(large):
   left = [0] * (256 * 212)
@@ -73,6 +88,9 @@ def chunk_half_screen(line_start, size, lr, last_lr,
     before = len(stream)
 
 # Initial state of vram
+large = large.contents
+raw = raw.contents
+
 left, right = getlr(large)
 left_sc5, right_sc5 = map_sc5((left, right))
 zero_sc5 = [0] * (128 * 212)
