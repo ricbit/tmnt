@@ -97,18 +97,6 @@ def getlr(large):
 def map_sc5(left_right_tuple):
   return map(lambda x: convert_sc5(x, 0, 212), left_right_tuple)
 
-def extend_half_screen(line_start, size, lr, last_lr, stream, stream_size):
-  before = len(stream)
-  stream.extend(compress_diff(
-    lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
-  stream.extend(compress_diff(
-    lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
-  stream.append(0)
-  diff_size = len(stream) - before
-  print diff_size
-  stream_size.append(diff_size % 256)
-  stream_size.append(diff_size >> 8)
-
 def chunk_half_screen(line_start, size, lr, last_lr, 
                       stream, stream_size, chunk):
   before = len(stream)
