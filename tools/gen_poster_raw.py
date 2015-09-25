@@ -141,7 +141,8 @@ class StateEngine(object):
     self.size = 20
     self.hscroll = 100
     self.large = large
-  def run(self, irange, stream):
+    self.processors = []
+  def run(self, irange, stream, commands):
     for i in irange:
       last_large = self.large.clone()
       print (1138 + i, " offset ", self.hscroll + 256 - self.size, 
@@ -152,6 +153,10 @@ class StateEngine(object):
       offset = self.hscroll + 256 - self.size
       last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
       last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
+      vdpc = 30
+      rem = self.size - vdpc
+      for p in self.processors:
+        p(last_large, top, bottom, offset, rem, vdpc, i, commands)
       # Diffblit
       top = 100 - i * 4
       bottom = 108
@@ -166,19 +171,54 @@ class StateEngine(object):
       stream.extend_half_screen(0, 212 / 2, large, last_large)
       stream.extend_half_screen(212 / 2, 212 / 2, large, last_large)
 
+class Commands(object):
+  def __init__(self):
+    self.commands = []
+  def add(self, cmd):
+    self.commands.append(cmd)
+  def save(self, name):
+    f = open(name, "wt")
+    f.write("".join(self.commands))
+    f.close()
+
+
 engine = StateEngine(large)
 stream = Stream()
-engine.run(range(0, 14), stream)
+engine.run(range(0, 14), stream, Commands())
 stream.save("poster_slide_diff.d5", "poster_slide_size.bin")
 
 # State turtles_slide3
+def slide3_vram_move(last_large, top, bottom, offset, rem, vdpc, i, commands):
+  last_large.copy_block(
+      top, offset + rem, raw, top, 130 + rem, i * 4, vdpc)
+  last_large.copy_block(
+      bottom, offset + rem, raw, bottom, 130 + rem, i * 4, vdpc)
+
+def slide3_vdp_cmd(last_large, top, bottom, offset, rem, vdpc, i, commands):
+  commands.add("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+               (130 + rem, 768 + top, 
+               offset + rem - 256, 768 + top, 
+               vdpc, i * 4))
+  commands.add("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
+               (130 + rem, 768 + bottom, 
+               offset + rem - 256, 768 + bottom, 
+               vdpc, i * 4))
+
+start = engine.start
+size = engine.size
+hscroll = engine.hscroll
+
+stream = Stream()
+commands = Commands()
+engine.processors = [slide3_vram_move, slide3_vdp_cmd]
+engine.run(range(14, 18), stream, commands)
+stream.save("poster_slide3_diff.d5", "poster_slide3_size.bin")
+commands.save("poster_slide3_cmd.inc")
+
 large = engine.large.contents
 raw = raw.contents
 background_a = background_a.contents
 background_8 = background_8.contents
-start = engine.start
-size = engine.size
-hscroll = engine.hscroll
 
 stream = []
 stream_size = []
@@ -225,16 +265,16 @@ for i in xrange(14, 18):
     0, 212 / 2, lr, last_lr, stream, stream_size)
   extend_half_screen(
     212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
-f = open("poster_slide3_diff.d5", "wb")
-f.write("".join(chr(i) for i in stream))
-f.close()
-stream_size.extend([0, 0])
-f = open("poster_slide3_size.bin", "wb")
-f.write("".join(chr(i) for i in stream_size))
-f.close()
-f = open("poster_slide3_cmd.inc", "wt")
-f.write("".join(commands))
-f.close()
+#f = open("poster_slide3_diff.d5", "wb")
+#f.write("".join(chr(i) for i in stream))
+#f.close()
+#stream_size.extend([0, 0])
+#f = open("poster_slide3_size.bin", "wb")
+#f.write("".join(chr(i) for i in stream_size))
+#f.close()
+#f = open("poster_slide3_cmd.inc", "wt")
+#f.write("".join(commands))
+#f.close()
 
 # State turtles_slide4
 topstarty = 12
