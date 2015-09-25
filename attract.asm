@@ -181,7 +181,7 @@ alley_switch_frame              equ     930
 
 ; Check if a virq has happened.
         macro   PREAMBLE_VERTICAL
-        ex      af, af'
+        ex      af, af
         in      a, (vdp_control)
         and     a
         jp      p, return_irq
@@ -189,7 +189,7 @@ alley_switch_frame              equ     930
 
 ; Check if a hirq has happened.
         macro   PREAMBLE_HORIZONTAL
-        ex      af, af'
+        ex      af, af
         in      a, (vdp_control)
         rrca
         jp      nc, return_irq
@@ -2660,7 +2660,7 @@ frame_end:
 return_irq_exx:
         exx
 return_irq:
-        ex      af, af'
+        ex      af, af
         ei
         ret
 
