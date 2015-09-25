@@ -17,6 +17,14 @@ class Bitmap(object):
     self.contents[y * self.width + x: y * self.width + x + size] = (
       source.contents[y * source.width + x2: y * source.width + x2 + size])
 
+  def copy_block(self, y, x, source, y2, x2, ysize, xsize):
+    for i in xrange(ysize):
+      self.contents[(y + i) * self.width + x: 
+                    (y + i) * self.width + x + xsize] = (
+        source.contents[(y2 + i) * source.width + x2: 
+                        (y2 + i) * source.width + x2 + xsize])
+      
+
 def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
   last_large[top * stride + offset: top * stride + offset + size] = (
     raw[top * stride2 + offset2: top * stride2 + offset2 + size])
@@ -26,23 +34,16 @@ raw = Bitmap(256, 212, raw_array)
 background_a = [0xa] * 256
 background_8 = [0x8] * 256
 large = Bitmap(512, 212)
-for i in xrange(212):
-  large.copy_line(i, 0, raw, 0, 128)
-start = 256 - 20
-size = 20
-hscroll = 100
+large.copy_block(0, 0, raw, 0, 0, 212, 128)
 for i in xrange(26):
-  for j in xrange(4):
-    top = 103 - i * 4 - j
-    bottom = 108 + i * 4 + j
-    offset = hscroll + 256 - size
-    large.copy_line(top, offset, raw, 130, size)
-    large.copy_line(bottom, offset, raw, 130, size)
-  start -= 4
-  size += 4
-  hscroll -= 4
-for i in xrange(192):
-  large.copy_line(i, 256 + 128, raw, 128, 128)
+  top = 103 - i * 4 - 3
+  bottom = 108 + i * 4
+  size = 20 + i * 4
+  hscroll = 100 - i * 4
+  offset = hscroll + 256 - size
+  large.copy_block(top, offset, raw, top, 130, 4, size)
+  large.copy_block(bottom, offset, raw, bottom, 130, 4, size)
+large.copy_block(0, 256 + 128, raw, 0, 128, 192, 128)
 
 def getlr(large):
   left = [0] * (256 * 212)
