@@ -24,6 +24,17 @@ class Bitmap(object):
         source.contents[(y2 + i) * source.width + x2: 
                         (y2 + i) * source.width + x2 + xsize])
       
+  def getlr(self):
+    left = [0] * (256 * 212)
+    right = [0] * (256 * 212)
+    left = Bitmap(256, 212)
+    left.copy_block(0, 0, self, 0, 0, 212, 256)
+    right = Bitmap(256, 212)
+    right.copy_block(0, 0, self, 0, 256, 212, 256)
+    return left.contents, right.contents
+
+  def clone(self):
+    return Bitmap(self.width, self.height, self.contents[:])
 
 def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
   last_large[top * stride + offset: top * stride + offset + size] = (
@@ -31,8 +42,8 @@ def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
 
 raw_array = [ord(i) for i in open("raw/turtles.raw", "rb").read()]
 raw = Bitmap(256, 212, raw_array)
-background_a = [0xa] * 256
-background_8 = [0x8] * 256
+background_a = Bitmap(256, 212, [0xa] * 256 * 212)
+background_8 = Bitmap(256, 212, [0x8] * 256 * 212)
 large = Bitmap(512, 212)
 large.copy_block(0, 0, raw, 0, 0, 212, 128)
 for i in xrange(26):
@@ -89,10 +100,7 @@ def chunk_half_screen(line_start, size, lr, last_lr,
     before = len(stream)
 
 # Initial state of vram
-large = large.contents
-raw = raw.contents
-
-left, right = getlr(large)
+left, right = large.getlr()
 left_sc5, right_sc5 = map_sc5((left, right))
 zero_sc5 = [0] * (128 * 212)
 save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
@@ -106,27 +114,25 @@ hscroll = 100
 stream = []
 stream_size = []
 for i in xrange(0, 14):
-  last_large = large[:]
+  last_large = large.clone()
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
   # Emulate vdp command
-  for j in xrange(i * 4):
-    top = 103 - j
-    bottom = 108 + j
-    offset = hscroll + 256 - size
-    copy(last_large, top, 512, offset, 8, background_a, 0, 0)
-    copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
-  last_left, last_right = map_sc5(getlr(last_large))
+  top = 104 - i * 4
+  bottom = 108
+  offset = hscroll + 256 - size
+  last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
+  last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
+  last_left, last_right = map_sc5(last_large.getlr())
   # Diffblit
-  for j in xrange(i * 4 + 4):
-    top = 103 - j
-    bottom = 108 + j
-    offset = hscroll + 256 - size
-    copy(large, top, 512, offset, size, raw, 256, 130)
-    copy(large, bottom, 512, offset, size, raw, 256, 130)
+  top = 100 - i * 4
+  bottom = 108
+  offset = hscroll + 256 - size
+  large.copy_block(top, offset, raw, top, 130, i * 4 + 4, size)
+  large.copy_block(bottom, offset, raw, bottom, 130, i * 4 + 4, size)
   start -= 4
   size += 4
   hscroll -= 4
-  left, right = lr = map_sc5(getlr(large))
+  left, right = lr = map_sc5(large.getlr())
   last_lr = [last_left, last_right]
   extend_half_screen(0, 212 / 2, lr, last_lr, stream, stream_size)
   extend_half_screen(212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
@@ -139,6 +145,11 @@ f.write("".join(chr(i) for i in stream_size))
 f.close()
 
 # State turtles_slide3
+large = large.contents
+raw = raw.contents
+background_a = background_a.contents
+background_8 = background_8.contents
+
 stream = []
 stream_size = []
 commands = []
