@@ -25,8 +25,6 @@ class Bitmap(object):
                         (y2 + i) * source.width + x2 + xsize])
       
   def getlr(self):
-    left = [0] * (256 * 212)
-    right = [0] * (256 * 212)
     left = Bitmap(256, 212)
     left.copy_block(0, 0, self, 0, 0, 212, 256)
     right = Bitmap(256, 212)
@@ -36,18 +34,45 @@ class Bitmap(object):
   def clone(self):
     return Bitmap(self.width, self.height, self.contents[:])
 
+class Stream(object):
+  def __init__(self):
+    self.stream = []
+    self.stream_size = []
+
+  def extend_half_screen(self, line_start, size, lr, last_lr):
+    before = len(self.stream)
+    self.stream.extend(compress_diff(
+      lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
+    self.stream.extend(compress_diff(
+      lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
+    self.stream.append(0)
+    diff_size = len(self.stream) - before
+    print diff_size
+    self.stream_size.append(diff_size % 256)
+    self.stream_size.append(diff_size >> 8)
+
+  def save(self):
+    f = open("poster_slide_diff.d5", "wb")
+    f.write("".join(chr(i) for i in self.stream))
+    f.close()
+    self.stream_size.extend([0, 0])
+    f = open("poster_slide_size.bin", "wb")
+    f.write("".join(chr(i) for i in self.stream_size))
+    f.close()
+
+
 def copy(last_large, top, stride, offset, size, raw, stride2, offset2):
   last_large[top * stride + offset: top * stride + offset + size] = (
     raw[top * stride2 + offset2: top * stride2 + offset2 + size])
 
-raw_array = [ord(i) for i in open("raw/turtles.raw", "rb").read()]
-raw = Bitmap(256, 212, raw_array)
+# Draw initial state of vram.
+raw = Bitmap(256, 212, map(ord, open("raw/turtles.raw", "rb").read()))
 background_a = Bitmap(256, 212, [0xa] * 256 * 212)
 background_8 = Bitmap(256, 212, [0x8] * 256 * 212)
 large = Bitmap(512, 212)
 large.copy_block(0, 0, raw, 0, 0, 212, 128)
 for i in xrange(26):
-  top = 103 - i * 4 - 3
+  top = 100 - i * 4
   bottom = 108 + i * 4
   size = 20 + i * 4
   hscroll = 100 - i * 4
@@ -69,12 +94,10 @@ def map_sc5(left_right_tuple):
 
 def extend_half_screen(line_start, size, lr, last_lr, stream, stream_size):
   before = len(stream)
-  new_stream = []
-  new_stream.extend(compress_diff(
+  stream.extend(compress_diff(
     lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
-  new_stream.extend(compress_diff(
+  stream.extend(compress_diff(
     lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
-  stream.extend(new_stream)
   stream.append(0)
   diff_size = len(stream) - before
   print diff_size
@@ -99,7 +122,7 @@ def chunk_half_screen(line_start, size, lr, last_lr,
     stream_size.append(diff_size >> 8)
     before = len(stream)
 
-# Initial state of vram
+# Save initial state of vram.
 left, right = large.getlr()
 left_sc5, right_sc5 = map_sc5((left, right))
 zero_sc5 = [0] * (128 * 212)
@@ -107,12 +130,10 @@ save_sc5("".join(chr(i) for i in left), "poster_left.sc5", 0, 212)
 save_diff(right_sc5, zero_sc5, 0x18000, 0, 212, "poster_right.d5")
 
 # States turtles_slide1 and turtles_slide2
-last_left, last_right = left_sc5, right_sc5
 start = 256 - 20
 size = 20
 hscroll = 100
-stream = []
-stream_size = []
+stream = Stream()
 for i in xrange(0, 14):
   last_large = large.clone()
   print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
@@ -134,15 +155,9 @@ for i in xrange(0, 14):
   hscroll -= 4
   left, right = lr = map_sc5(large.getlr())
   last_lr = [last_left, last_right]
-  extend_half_screen(0, 212 / 2, lr, last_lr, stream, stream_size)
-  extend_half_screen(212 / 2, 212 / 2, lr, last_lr, stream, stream_size)
-f = open("poster_slide_diff.d5", "wb")
-f.write("".join(chr(i) for i in stream))
-f.close()
-stream_size.extend([0, 0])
-f = open("poster_slide_size.bin", "wb")
-f.write("".join(chr(i) for i in stream_size))
-f.close()
+  stream.extend_half_screen(0, 212 / 2, lr, last_lr)
+  stream.extend_half_screen(212 / 2, 212 / 2, lr, last_lr)
+stream.save()
 
 # State turtles_slide3
 large = large.contents
