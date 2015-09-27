@@ -52,7 +52,6 @@ class Stream(object):
         line_start, size, close_stream=False))
     self.stream.append(0)
     diff_size = len(self.stream) - before
-    print diff_size
     self.stream_size.append(diff_size % 256)
     self.stream_size.append(diff_size >> 8)
 
@@ -138,18 +137,13 @@ class StateEngine(object):
       top = 104 - i * 4
       bottom = 108
       offset = self.hscroll + 256 - self.size
-      last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
-      last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
       vdpc = 30
       rem = self.size - vdpc
       for p in self.processors:
         p(last_large, top, bottom, offset, rem, vdpc, i, commands)
       # Diffblit
-      top = 100 - i * 4
-      bottom = 108
-      offset = self.hscroll + 256 - self.size
       self.large.copy_block(
-          top, offset, raw, top, 130, i * 4 + 4, self.size)
+          top - 4, offset, raw, top - 4, 130, i * 4 + 4, self.size)
       self.large.copy_block(
           bottom, offset, raw, bottom, 130, i * 4 + 4, self.size)
       self.start -= 4
@@ -168,9 +162,14 @@ class Commands(object):
     f.write("".join(self.commands))
     f.close()
 
+def small_hmmv(last_large, top, bottom, offset, rem, vdpc, i, commands):
+  last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
+  last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
+
 # States turtles_slide1 and turtles_slide2
 engine = StateEngine(large)
 stream = Stream()
+engine.processors = [small_hmmv]
 engine.run(range(0, 14), stream, Commands())
 stream.save("poster_slide_diff.d5", "poster_slide_size.bin")
 
@@ -193,7 +192,7 @@ def slide3_vdp_cmd(last_large, top, bottom, offset, rem, vdpc, i, commands):
 # State turtles_slide3
 stream = Stream()
 commands = Commands()
-engine.processors = [slide3_vram_move, slide3_vdp_cmd]
+engine.processors = [small_hmmv, slide3_vram_move, slide3_vdp_cmd]
 engine.run(range(14, 18), stream, commands)
 stream.save("poster_slide3_diff.d5", "poster_slide3_size.bin")
 commands.save("poster_slide3_cmd.inc")
