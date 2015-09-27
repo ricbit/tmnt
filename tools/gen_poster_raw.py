@@ -140,12 +140,8 @@ class StateEngine(object):
       vdpc = 30
       rem = self.size - vdpc
       for p in self.processors:
-        p(last_large, top, bottom, offset, rem, vdpc, i, commands)
+        p(last_large, large, top, bottom, offset, rem, vdpc, i, self.size, commands)
       # Diffblit
-      self.large.copy_block(
-          top - 4, offset, raw, top - 4, 130, i * 4 + 4, self.size)
-      self.large.copy_block(
-          bottom, offset, raw, bottom, 130, i * 4 + 4, self.size)
       self.start -= 4
       self.size += 4
       self.hscroll -= 4
@@ -162,24 +158,31 @@ class Commands(object):
     f.write("".join(self.commands))
     f.close()
 
-def small_hmmv(last_large, top, bottom, offset, rem, vdpc, i, commands):
+def small_hmmv(last_large, large, top, bottom, offset, rem, vdpc, i, size, commands):
   last_large.copy_block(top, offset, background_a, 0, 0, i * 4, 8)
   last_large.copy_block(bottom, offset, background_8, 0, 0, i * 4, 8)
+
+def state_diffblit(
+    last_large, large, top, bottom, offset, rem, vdpc, i, size, commands):
+  large.copy_block(
+      top - 4, offset, raw, top - 4, 130, i * 4 + 4, size)
+  large.copy_block(
+      bottom, offset, raw, bottom, 130, i * 4 + 4, size)
 
 # States turtles_slide1 and turtles_slide2
 engine = StateEngine(large)
 stream = Stream()
-engine.processors = [small_hmmv]
+engine.processors = [small_hmmv, state_diffblit]
 engine.run(range(0, 14), stream, Commands())
 stream.save("poster_slide_diff.d5", "poster_slide_size.bin")
 
-def slide3_vram_move(last_large, top, bottom, offset, rem, vdpc, i, commands):
+def slide3_vram_move(last_large, large, top, bottom, offset, rem, vdpc, i, size, commands):
   last_large.copy_block(
       top, offset + rem, raw, top, 130 + rem, i * 4, vdpc)
   last_large.copy_block(
       bottom, offset + rem, raw, bottom, 130 + rem, i * 4, vdpc)
 
-def slide3_vdp_cmd(last_large, top, bottom, offset, rem, vdpc, i, commands):
+def slide3_vdp_cmd(last_large, large, top, bottom, offset, rem, vdpc, i, size, commands):
   commands.add("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
                (130 + rem, 768 + top, 
                offset + rem - 256, 768 + top, 
@@ -192,7 +195,7 @@ def slide3_vdp_cmd(last_large, top, bottom, offset, rem, vdpc, i, commands):
 # State turtles_slide3
 stream = Stream()
 commands = Commands()
-engine.processors = [small_hmmv, slide3_vram_move, slide3_vdp_cmd]
+engine.processors = [small_hmmv, state_diffblit, slide3_vram_move, slide3_vdp_cmd]
 engine.run(range(14, 18), stream, commands)
 stream.save("poster_slide3_diff.d5", "poster_slide3_size.bin")
 commands.save("poster_slide3_cmd.inc")
