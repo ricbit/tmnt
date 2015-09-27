@@ -134,14 +134,16 @@ class StateEngine(object):
   def run(self, irange, stream, commands):
     state = State()
     for i in irange:
+      # Set up internal state.
       state.i = i
       state.large = large
       state.size = self.size
       state.commands = commands
+      state.stream = stream
       state.last_large = self.large.clone()
       print (1138 + i, " offset ", self.hscroll + 256 - self.size, 
              " size ", self.size)
-      # Emulate vdp command
+      # Call state processors.
       state.top = 104 - i * 4
       state.bottom = 108
       state.offset = self.hscroll + 256 - self.size
@@ -149,12 +151,10 @@ class StateEngine(object):
       state.rem = self.size - state.vdpc
       for p in self.processors:
         p(state)
-      # Diffblit
+      # Update state.
       self.start -= 4
       self.size += 4
       self.hscroll -= 4
-      stream.extend_half_screen(0, 212 / 2, large, state.last_large)
-      stream.extend_half_screen(212 / 2, 212 / 2, large, state.last_large)
 
 class Commands(object):
   def __init__(self):
@@ -167,27 +167,39 @@ class Commands(object):
     f.close()
 
 def small_hmmv(state):
-  state.last_large.copy_block(state.top, state.offset, background_a, 0, 0, state.i * 4, 8)
-  state.last_large.copy_block(state.bottom, state.offset, background_8, 0, 0, state.i * 4, 8)
+  state.last_large.copy_block(
+      state.top, state.offset, background_a, 0, 0, state.i * 4, 8)
+  state.last_large.copy_block(
+      state.bottom, state.offset, background_8, 0, 0, state.i * 4, 8)
 
 def state_diffblit(state):
   state.large.copy_block(
-      state.top - 4, state.offset, raw, state.top - 4, 130, state.i * 4 + 4, state.size)
+      state.top - 4, state.offset, raw, 
+      state.top - 4, 130, state.i * 4 + 4, state.size)
   state.large.copy_block(
-      state.bottom, state.offset, raw, state.bottom, 130, state.i * 4 + 4, state.size)
+      state.bottom, state.offset, raw, 
+      state.bottom, 130, state.i * 4 + 4, state.size)
+
+def extend_stream(state):
+  state.stream.extend_half_screen(
+      0, 212 / 2, state.large, state.last_large)
+  state.stream.extend_half_screen(
+      212 / 2, 212 / 2, state.large, state.last_large)
 
 # States turtles_slide1 and turtles_slide2
 engine = StateEngine(large)
 stream = Stream()
-engine.processors = [small_hmmv, state_diffblit]
+engine.processors = [small_hmmv, state_diffblit, extend_stream]
 engine.run(range(0, 14), stream, Commands())
 stream.save("poster_slide_diff.d5", "poster_slide_size.bin")
 
 def slide3_vram_move(state):
   state.last_large.copy_block(
-      state.top, state.offset + state.rem, raw, state.top, 130 + state.rem, state.i * 4, state.vdpc)
+      state.top, state.offset + state.rem, raw, 
+      state.top, 130 + state.rem, state.i * 4, state.vdpc)
   state.last_large.copy_block(
-      state.bottom, state.offset + state.rem, raw, state.bottom, 130 + state.rem, state.i * 4, state.vdpc)
+      state.bottom, state.offset + state.rem, raw, 
+      state.bottom, 130 + state.rem, state.i * 4, state.vdpc)
 
 def slide3_vdp_cmd(state):
   state.commands.add("\tVDP_HMMM %d, %d, %d, %d, %d, %d\n" %
@@ -202,7 +214,7 @@ def slide3_vdp_cmd(state):
 # State turtles_slide3
 stream = Stream()
 commands = Commands()
-engine.processors = [small_hmmv, state_diffblit, slide3_vram_move, slide3_vdp_cmd]
+engine.processors = [small_hmmv, state_diffblit, slide3_vram_move, slide3_vdp_cmd, extend_stream]
 engine.run(range(14, 18), stream, commands)
 stream.save("poster_slide3_diff.d5", "poster_slide3_size.bin")
 commands.save("poster_slide3_cmd.inc")
