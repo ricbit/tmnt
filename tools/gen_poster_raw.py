@@ -55,6 +55,23 @@ class Stream(object):
     self.stream_size.append(diff_size % 256)
     self.stream_size.append(diff_size >> 8)
 
+  def chunk_half_screen(self, line_start, size, lr, last_lr, chunk):
+    before = len(self.stream)
+    new_stream = []
+    for i in xrange(2):
+      new_stream.extend(compress_diff(
+        lr[i], last_lr[i], 0x10000 + 0x8000 * i, 
+        line_start, size, close_stream=False))
+    packs = split_diff(new_stream, chunk)
+    print [len(i) for i in packs]
+    for p in packs:
+      self.stream.extend(p)
+      self.stream.append(0)
+      diff_size = len(self.stream) - before
+      self.stream_size.append(diff_size % 256)
+      self.stream_size.append(diff_size >> 8)
+      before = len(self.stream)
+
   def save(self, diff_name, size_name):
     f = open(diff_name, "wb")
     f.write("".join(chr(i) for i in self.stream))
@@ -95,24 +112,6 @@ def getlr(large):
 
 def map_sc5(left_right_tuple):
   return map(lambda x: convert_sc5(x, 0, 212), left_right_tuple)
-
-def chunk_half_screen(line_start, size, lr, last_lr, 
-                      stream, stream_size, chunk):
-  before = len(stream)
-  new_stream = []
-  new_stream.extend(compress_diff(
-    lr[0], last_lr[0], 0x10000, line_start, size, close_stream=False))
-  new_stream.extend(compress_diff(
-    lr[1], last_lr[1], 0x18000, line_start, size, close_stream=False))
-  packs = split_diff(new_stream, chunk)
-  print [len(i) for i in packs]
-  for p in packs:
-    stream.extend(p)
-    stream.append(0)
-    diff_size = len(stream) - before
-    stream_size.append(diff_size % 256)
-    stream_size.append(diff_size >> 8)
-    before = len(stream)
 
 # Save initial state of vram.
 left, right = large.getlr()
@@ -286,8 +285,7 @@ bottomchunks = [
   [70, 350, 10000],
   [70, 320, 10000],
 ]
-stream = []
-stream_size = []
+stream = Stream()
 commands = []
 for i, topc, bottomc in zip(xrange(18, 20), topchunks, bottomchunks):
   last_large = large[:]
@@ -324,21 +322,14 @@ for i, topc, bottomc in zip(xrange(18, 20), topchunks, bottomchunks):
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
-  chunk_half_screen(
-    0, 212 / 2, lr, last_lr, stream, stream_size, topc)
-  chunk_half_screen(
-    212 / 2, 212 / 2, lr, last_lr, stream, stream_size, bottomc)
-f = open("poster_slide4_diff.d5", "wb")
-f.write("".join(chr(i) for i in stream))
-f.close()
-stream_size.extend([0, 0])
-f = open("poster_slide4_size.bin", "wb")
-f.write("".join(chr(i) for i in stream_size))
-f.close()
+  stream.chunk_half_screen(
+    0, 212 / 2, lr, last_lr, topc)
+  stream.chunk_half_screen(
+    212 / 2, 212 / 2, lr, last_lr, bottomc)
+stream.save("poster_slide4_diff.d5", "poster_slide4_size.bin")
 
 # State turtles_slide5
-stream = []
-stream_size = []
+stream = Stream()
 commands = []
 precommands = []
 topchunks = topchunks[2:]
@@ -409,17 +400,11 @@ for i, topc, bottomc in zip(xrange(20, 23), topchunks, bottomchunks):
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
-  chunk_half_screen(
-    0, 212 / 2, lr, last_lr, stream, stream_size, topc)
-  chunk_half_screen(
-    212 / 2, 212 / 2, lr, last_lr, stream, stream_size, bottomc)
-f = open("poster_slide5_diff.d5", "wb")
-f.write("".join(chr(i) for i in stream))
-f.close()
-stream_size.extend([0, 0])
-f = open("poster_slide5_size.bin", "wb")
-f.write("".join(chr(i) for i in stream_size))
-f.close()
+  stream.chunk_half_screen(
+    0, 212 / 2, lr, last_lr, topc)
+  stream.chunk_half_screen(
+    212 / 2, 212 / 2, lr, last_lr, bottomc)
+stream.save("poster_slide5_diff.d5", "poster_slide5_size.bin")
 f = open("poster_slide5_cmd.inc", "wt")
 f.write("".join(commands))
 f.close()
