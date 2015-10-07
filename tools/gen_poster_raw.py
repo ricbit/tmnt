@@ -19,10 +19,10 @@ class Bitmap(object):
 
   def copy_block(self, y, x, source, y2, x2, ysize, xsize):
     for i in xrange(ysize):
-      self.contents[(y + i) * self.width + x: 
-                    (y + i) * self.width + x + xsize] = (
-        source.contents[(y2 + i) * source.width + x2: 
-                        (y2 + i) * source.width + x2 + xsize])
+      self_pos = (y + i) * self.width + x
+      source_pos = (y2 + i) * source.width + x2
+      self.contents[self_pos: self_pos + xsize] = (
+        source.contents[source_pos: source_pos + xsize])
       
   def getlr(self):
     left = Bitmap(256, 212)
@@ -42,34 +42,33 @@ class Stream(object):
     self.stream = []
     self.stream_size = []
 
-  def extend_half_screen(self, line_start, size, vram_after, vram_before):
-    before = len(self.stream)
-    lr = vram_after.getlr_sc5()
-    last_lr = vram_before.getlr_sc5()
+  def extend_stream(self, stream, lr, last_lr, line_start, size):
     for i in xrange(2):
-      self.stream.extend(compress_diff(
+      stream.extend(compress_diff(
         lr[i], last_lr[i], 0x10000 + 0x8000 * i, 
         line_start, size, close_stream=False))
+
+  def extend_size(self, before):
     self.stream.append(0)
     diff_size = len(self.stream) - before
     self.stream_size.append(diff_size % 256)
     self.stream_size.append(diff_size >> 8)
 
+  def extend_half_screen(self, line_start, size, vram_after, vram_before):
+    before = len(self.stream)
+    lr = vram_after.getlr_sc5()
+    last_lr = vram_before.getlr_sc5()
+    self.extend_stream(self.stream, lr, last_lr, line_start, size)
+    self.extend_size(before)
+
   def chunk_half_screen(self, line_start, size, lr, last_lr, chunk):
     before = len(self.stream)
     new_stream = []
-    for i in xrange(2):
-      new_stream.extend(compress_diff(
-        lr[i], last_lr[i], 0x10000 + 0x8000 * i, 
-        line_start, size, close_stream=False))
+    self.extend_stream(new_stream, lr, last_lr, line_start, size);
     packs = split_diff(new_stream, chunk)
-    print [len(i) for i in packs]
     for p in packs:
       self.stream.extend(p)
-      self.stream.append(0)
-      diff_size = len(self.stream) - before
-      self.stream_size.append(diff_size % 256)
-      self.stream_size.append(diff_size >> 8)
+      self.extend_size(before)
       before = len(self.stream)
 
   def save(self, diff_name, size_name):
@@ -322,10 +321,8 @@ for i, topc, bottomc in zip(xrange(18, 20), topchunks, bottomchunks):
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
-  stream.chunk_half_screen(
-    0, 212 / 2, lr, last_lr, topc)
-  stream.chunk_half_screen(
-    212 / 2, 212 / 2, lr, last_lr, bottomc)
+  stream.chunk_half_screen(0, 212 / 2, lr, last_lr, topc)
+  stream.chunk_half_screen(212 / 2, 212 / 2, lr, last_lr, bottomc)
 stream.save("poster_slide4_diff.d5", "poster_slide4_size.bin")
 
 # State turtles_slide5
@@ -400,10 +397,8 @@ for i, topc, bottomc in zip(xrange(20, 23), topchunks, bottomchunks):
   hscroll -= 4
   left, right = lr = map_sc5(getlr(large))
   last_lr = [last_left, last_right]
-  stream.chunk_half_screen(
-    0, 212 / 2, lr, last_lr, topc)
-  stream.chunk_half_screen(
-    212 / 2, 212 / 2, lr, last_lr, bottomc)
+  stream.chunk_half_screen(0, 212 / 2, lr, last_lr, topc)
+  stream.chunk_half_screen(212 / 2, 212 / 2, lr, last_lr, bottomc)
 stream.save("poster_slide5_diff.d5", "poster_slide5_size.bin")
 f = open("poster_slide5_cmd.inc", "wt")
 f.write("".join(commands))
