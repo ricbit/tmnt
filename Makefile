@@ -75,23 +75,33 @@ handles.inc : tools/gen_handles.py
 %_palette.bin : raw/%.act
 	python tools/convert_act.py $< $@
 
-$(CITY_PIXELS): raw/city2.raw tools/gen_city_raw.py
+$(CITY_PIXELS) : city_pixels.i
+.INTERMEDIATE : city_pixels.i
+city_pixels.i: raw/city2.raw tools/gen_city_raw.py
 	python tools/gen_city_raw.py
 
 gen_back_building_sprites : tools/gen_back_building_sprites.cc
 	g++ -std=c++14 $^ -o $@ -O2 -Wall
 
-$(BACK_BUILDING) : raw/city1.raw raw/city2.raw raw/cityline.raw \
-                   gen_back_building_sprites
+$(BACK_BUILDING) : back_building.i
+.INTERMEDIATE : back_building.i
+back_building.i: raw/city1.raw raw/city2.raw raw/cityline.raw \
+                 gen_back_building_sprites
 	./gen_back_building_sprites
 
-$(TOP_BUILDING) : raw/city2.raw tools/gen_top_building_sprites.py
+$(TOP_BUILDING) : top_building.i
+.INTERMEDIATE : top_building.i
+top_building.i : raw/city2.raw tools/gen_top_building_sprites.py
 	python tools/gen_top_building_sprites.py
 
-$(ALLEY_PIXELS) : raw/alley1.raw raw/alley2.raw tools/gen_alley_raw.py
+$(ALLEY_PIXELS) : alley_pixels.i
+.INTERMEDIATE : alley_pixels.i
+alley_pixels.i : raw/alley1.raw raw/alley2.raw tools/gen_alley_raw.py
 	python tools/gen_alley_raw.py
 
-$(MOON_SPRITES) : raw/moon.raw raw/cloud2.raw
+$(MOON_SPRITES) : moon_sprites.i
+.INTERMEDIATE : moon_sprites.i
+moon_sprites.i : raw/moon.raw raw/cloud2.raw
 	python tools/gen_moon_sprites.py
 
 absolute_scroll.bin :
@@ -106,8 +116,10 @@ title_bounce_scroll.bin : raw/title_bounce_scroll.txt
 title_slide_scroll.bin : raw/title_slide_scroll.txt
 	python tools/gen_title_slide.py < $<
 
-$(POSTER_PIXELS) : raw/turtles.raw tools/gen_poster_raw.py \
-                   tools/compress_graphics.py
+$(POSTER_PIXELS) : poster_pixels.i
+.INTERMEDIATE : poster_pixels.i
+poster_pixels.i : raw/turtles.raw tools/gen_poster_raw.py \
+                  tools/compress_graphics.py
 	python tools/gen_poster_raw.py
 
 info_music.fm: raw/info.bas tools/grabfm.tcl
