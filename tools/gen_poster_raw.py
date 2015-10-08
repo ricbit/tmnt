@@ -241,6 +241,34 @@ def slide4_vdp_cmd(state):
                   0, 768 + state.bottom + state.bottomstarty, 
                   state.bottomvdpc2, state.i * 4 - state.bottomstarty))
 
+def slide4_old(state):
+  # Emulate vdp command top
+  for j in xrange(state.i * 4):
+    top = 103 - j
+    state.last_large.copy_line(top, state.offset, background_a, 0, 8)
+    if j >= state.topstarty:
+      state.last_large.copy_line(top, state.offset + state.rem, raw, 
+          130 + state.rem, state.vdpc)
+  # Emulate vdp command bottom
+  for j in xrange(state.i * 4):
+    bottom = 108 + j
+    state.last_large.copy_line(bottom, state.offset, background_8, 0, 8)
+    if j >= state.bottomstarty:
+      state.last_large.copy_line(bottom, state.offset + state.bottomrem, 
+           raw, 130 + state.bottomrem, state.vdpc)
+  # Diffblit
+  for j in xrange(state.i * 4 + 4):
+    top = 103 - j
+    bottom = 108 + j
+    state.large.copy_line(top, state.offset, raw, 130, state.size)
+    state.large.copy_line(bottom, state.offset, raw, 130, state.size)
+  stream.chunk_half_screen(
+      0, 212 / 2, state.large.getlr_sc5(), state.last_large.getlr_sc5(), 
+      topchunks[state.i - 18])
+  stream.chunk_half_screen(
+      212 / 2, 212 / 2, state.large.getlr_sc5(), state.last_large.getlr_sc5(), 
+      bottomchunks[state.i - 18])
+
 # State turtles_slide3
 stream = Stream()
 commands = Commands()
@@ -249,21 +277,6 @@ engine.run(range(14, 18), stream, commands)
 stream.save("poster_slide3_diff.d5", "poster_slide3_size.bin")
 commands.save("poster_slide3_cmd.inc")
 
-large = engine.large.contents[:]
-start = engine.start
-size = engine.size
-hscroll = engine.hscroll
-
-# State turtles_slide4
-stream = Stream()
-commands = Commands()
-engine.processors = [small_hmmv, slide4_vdp_cmd]
-engine.run(range(18, 20), stream, commands, vdpc=52)
-commands.save("poster_slide4_cmd.inc")
-
-raw = raw.contents[:]
-background_a = background_a.contents
-background_8 = background_8.contents
 
 # State turtles_slide4
 topstarty = 12
@@ -285,45 +298,19 @@ bottomchunks = [
   [70, 320, 10000],
 ]
 stream = Stream()
-commands = []
-for i, topc, bottomc in zip(xrange(18, 20), topchunks, bottomchunks):
-  last_large = large[:]
-  print 1138 + i, " offset ", hscroll + 256 - size, " size ", size
-  offset = hscroll + 256 - size
-  vdpc = 52
-  rem = size - vdpc
-  bottomvdpc = 52
-  bottomrem = size - bottomvdpc
-  print "start at ", offset + rem, " ends at ", offset + size
-  # Emulate vdp command top
-  for j in xrange(i * 4):
-    top = 103 - j
-    copy(last_large, top, 512, offset, 8, background_a, 0, 0)
-    if j >= topstarty:
-      copy(last_large, top, 512, offset + rem, vdpc, raw, 256, 130 + rem)
-  # Emulate vdp command bottom
-  for j in xrange(i * 4):
-    bottom = 108 + j
-    copy(last_large, bottom, 512, offset, 8, background_8, 0, 0)
-    if j >= bottomstarty:
-      copy(last_large, bottom, 512, offset + bottomrem, bottomvdpc, 
-           raw, 256, 130 + bottomrem)
-  last_left, last_right = map_sc5(getlr(last_large))
-  # Diffblit
-  for j in xrange(i * 4 + 4):
-    top = 103 - j
-    bottom = 108 + j
-    offset = hscroll + 256 - size
-    copy(large, top, 512, offset, size, raw, 256, 130)
-    copy(large, bottom, 512, offset, size, raw, 256, 130)
-  start -= 4
-  size += 4
-  hscroll -= 4
-  left, right = lr = map_sc5(getlr(large))
-  last_lr = [last_left, last_right]
-  stream.chunk_half_screen(0, 212 / 2, lr, last_lr, topc)
-  stream.chunk_half_screen(212 / 2, 212 / 2, lr, last_lr, bottomc)
+commands = Commands()
+engine.processors = [slide4_vdp_cmd, slide4_old]
+engine.run(range(18, 20), stream, commands, vdpc=52)
+commands.save("poster_slide4_cmd.inc")
 stream.save("poster_slide4_diff.d5", "poster_slide4_size.bin")
+
+large = engine.large.contents[:]
+start = engine.start
+size = engine.size
+hscroll = engine.hscroll
+raw = raw.contents[:]
+background_a = background_a.contents
+background_8 = background_8.contents
 
 # State turtles_slide5
 stream = Stream()
