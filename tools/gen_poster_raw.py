@@ -245,27 +245,21 @@ def slide4_old(state):
   # Emulate vdp command top
   for j in xrange(state.i * 4):
     top = 103 - j
-    state.last_large.copy_line(top, state.offset, background_a, 0, 8)
     if j >= state.topstarty:
       state.last_large.copy_line(top, state.offset + state.rem, raw, 
           130 + state.rem, state.vdpc)
   # Emulate vdp command bottom
   for j in xrange(state.i * 4):
     bottom = 108 + j
-    state.last_large.copy_line(bottom, state.offset, background_8, 0, 8)
     if j >= state.bottomstarty:
       state.last_large.copy_line(bottom, state.offset + state.bottomrem, 
            raw, 130 + state.bottomrem, state.vdpc)
-  # Diffblit
-  for j in xrange(state.i * 4 + 4):
-    top = 103 - j
-    bottom = 108 + j
-    state.large.copy_line(top, state.offset, raw, 130, state.size)
-    state.large.copy_line(bottom, state.offset, raw, 130, state.size)
-  stream.chunk_half_screen(
+
+def chunk_screen(state):
+  state.stream.chunk_half_screen(
       0, 212 / 2, state.large.getlr_sc5(), state.last_large.getlr_sc5(), 
       topchunks[state.i - 18])
-  stream.chunk_half_screen(
+  state.stream.chunk_half_screen(
       212 / 2, 212 / 2, state.large.getlr_sc5(), state.last_large.getlr_sc5(), 
       bottomchunks[state.i - 18])
 
@@ -299,7 +293,7 @@ bottomchunks = [
 ]
 stream = Stream()
 commands = Commands()
-engine.processors = [slide4_vdp_cmd, slide4_old]
+engine.processors = [small_hmmv, slide4_vdp_cmd, slide4_old, state_diffblit, chunk_screen]
 engine.run(range(18, 20), stream, commands, vdpc=52)
 commands.save("poster_slide4_cmd.inc")
 stream.save("poster_slide4_diff.d5", "poster_slide4_size.bin")
